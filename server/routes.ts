@@ -1,184 +1,290 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { insertDriverSchema, insertDriverLogSchema, insertPayrollRecordSchema } from "@shared/schema";
-import { z } from "zod";
+import type { Express, Request, Response } from "express";
+import { createServer } from "http";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Health check endpoint
-  app.get("/api/health", async (req, res) => {
+// Import database functionality - fallback to null if not available
+let database: any = null;
+let driverHelpers: any = null;
+
+try {
+  const dbModule = require('../src/database/index.js');
+  database = dbModule.database;
+  driverHelpers = dbModule.driverHelpers;
+} catch (error) {
+  console.warn(`[${new Date().toISOString()}] ⚠️  Database module not available:`, error instanceof Error ? error.message : error);
+}
+
+export function registerRoutes(app: Express) {
+  const server = createServer(app);
+
+  /**
+   * Enhanced Health Check with Database Status
+   */
+  app.get('/api/health', async (req: Request, res: Response) => {
     try {
-      const health = await storage.healthCheck();
-      res.json(health);
+      let databaseStatus = { status: 'unavailable', message: 'Database module not loaded' };
+      
+      if (database) {
+        try {
+          const healthCheck = await database.healthCheck();
+          const stats = await database.getStats();
+          
+          databaseStatus = {
+            status: 'connected',
+            health: healthCheck,
+            stats: stats
+          };
+        } catch (dbError) {
+          databaseStatus = {
+            status: 'error',
+            message: dbError instanceof Error ? dbError.message : 'Unknown database error'
+          };
+        }
+      }
+      
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development',
+        database: databaseStatus,
+        server: {
+          pid: process.pid,
+          memory: process.memoryUsage(),
+          platform: process.platform,
+          nodeVersion: process.version
+        }
+      });
     } catch (error) {
-      res.status(500).json({ 
-        status: "error", 
-        message: "Health check failed",
-        timestamp: new Date()
+      res.status(500).json({
+        status: 'error',
+        message: 'Health check failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       });
     }
   });
 
-  // System metrics
-  app.get("/api/metrics", async (req, res) => {
-    try {
-      const metrics = await storage.getSystemMetrics();
-      res.json(metrics);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch system metrics" });
-    }
-  });
+  // Only register database routes if database is available
+  if (database && driverHelpers) {
+    console.log(`[${new Date().toISOString()}] ✅ Database available - registering driver API routes`);
 
-  app.put("/api/metrics", async (req, res) => {
-    try {
-      const metrics = await storage.updateSystemMetrics(req.body);
-      res.json(metrics);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update system metrics" });
-    }
-  });
+    /**
+     * DRIVERS ENDPOINTS
+     */
+    
+    // Get all drivers with pagination and filtering
+    app.get('/api/drivers', async (req: Request, res: Response) => {
+      try {
+        const {
+          limit = '50',
+          offset = '0',
+          is_active,
+          search,
+          orderBy = 'created_at',
+          orderDirection = 'DESC'
+        } = req.query;
 
-  // Drivers
-  app.get("/api/drivers", async (req, res) => {
-    try {
-      const drivers = await storage.getAllDrivers();
-      res.json(drivers);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch drivers" });
-    }
-  });
+        const options = {
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string),
+          is_active: is_active ? parseInt(is_active as string) : null,
+          search: search as string,
+          orderBy: orderBy as string,
+          orderDirection: orderDirection as string
+        };
 
-  app.get("/api/drivers/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const driver = await storage.getDriver(id);
-      if (!driver) {
-        return res.status(404).json({ message: "Driver not found" });
+        const result = await driverHelpers.getAllDrivers(options);
+        
+        console.log(`[${new Date().toISOString()}] ✅ API: Retrieved ${result.drivers.length} drivers`);
+        res.json(result);
+        
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ API error getting drivers:`, error);
+        res.status(500).json({
+          error: 'Failed to retrieve drivers',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-      res.json(driver);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch driver" });
-    }
-  });
+    });
 
-  app.post("/api/drivers", async (req, res) => {
-    try {
-      const validatedData = insertDriverSchema.parse(req.body);
-      const driver = await storage.createDriver(validatedData);
-      res.status(201).json(driver);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
+    // Get single driver by ID
+    app.get('/api/drivers/:id', async (req: Request, res: Response) => {
+      try {
+        const driverId = parseInt(req.params.id);
+        
+        if (isNaN(driverId)) {
+          return res.status(400).json({ error: 'Invalid driver ID' });
+        }
+
+        const driver = await driverHelpers.getDriverById(driverId);
+        
+        console.log(`[${new Date().toISOString()}] ✅ API: Retrieved driver ID ${driverId}`);
+        res.json(driver);
+        
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('not found')) {
+          return res.status(404).json({
+            error: 'Driver not found',
+            message: error.message
+          });
+        }
+        
+        console.error(`[${new Date().toISOString()}] ❌ API error getting driver:`, error);
+        res.status(500).json({
+          error: 'Failed to retrieve driver',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-      res.status(500).json({ message: "Failed to create driver" });
-    }
-  });
+    });
 
-  app.put("/api/drivers/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      const driver = await storage.updateDriver(id, updates);
-      if (!driver) {
-        return res.status(404).json({ message: "Driver not found" });
+    // Create new driver
+    app.post('/api/drivers', async (req: Request, res: Response) => {
+      try {
+        const { name, email, phone, password, is_phone_verified, is_active } = req.body;
+        
+        // Validate required fields
+        if (!name || !phone) {
+          return res.status(400).json({
+            error: 'Validation failed',
+            message: 'Name and phone are required'
+          });
+        }
+
+        const driverData = {
+          name,
+          email,
+          phone,
+          password,
+          is_phone_verified: is_phone_verified || 0,
+          is_active: is_active !== undefined ? is_active : 1
+        };
+
+        const newDriver = await driverHelpers.createDriver(driverData);
+        
+        console.log(`[${new Date().toISOString()}] ✅ API: Created new driver ${name}`);
+        res.status(201).json(newDriver);
+        
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+          return res.status(409).json({
+            error: 'Conflict',
+            message: 'Driver with this phone number or email already exists'
+          });
+        }
+        
+        console.error(`[${new Date().toISOString()}] ❌ API error creating driver:`, error);
+        res.status(500).json({
+          error: 'Failed to create driver',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-      res.json(driver);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update driver" });
-    }
-  });
+    });
 
-  // Driver Logs
-  app.get("/api/logs", async (req, res) => {
-    try {
-      const logs = await storage.getAllDriverLogs();
-      res.json(logs);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch logs" });
-    }
-  });
+    // Update driver
+    app.patch('/api/drivers/:id', async (req: Request, res: Response) => {
+      try {
+        const driverId = parseInt(req.params.id);
+        
+        if (isNaN(driverId)) {
+          return res.status(400).json({ error: 'Invalid driver ID' });
+        }
 
-  app.get("/api/logs/recent", async (req, res) => {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const logs = await storage.getRecentDriverLogs(limit);
-      res.json(logs);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch recent logs" });
-    }
-  });
+        const allowedFields = ['name', 'email', 'phone', 'is_phone_verified', 'is_active'];
+        const updateData: any = {};
+        
+        // Filter only allowed fields from request body
+        for (const field of allowedFields) {
+          if (req.body[field] !== undefined) {
+            updateData[field] = req.body[field];
+          }
+        }
+        
+        if (Object.keys(updateData).length === 0) {
+          return res.status(400).json({
+            error: 'Validation failed',
+            message: 'No valid fields provided for update'
+          });
+        }
 
-  app.get("/api/drivers/:id/logs", async (req, res) => {
-    try {
-      const driverId = parseInt(req.params.id);
-      const logs = await storage.getDriverLogs(driverId);
-      res.json(logs);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch driver logs" });
-    }
-  });
-
-  app.post("/api/logs", async (req, res) => {
-    try {
-      const validatedData = insertDriverLogSchema.parse(req.body);
-      const log = await storage.createDriverLog(validatedData);
-      res.status(201).json(log);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
+        const updatedDriver = await driverHelpers.updateDriver(driverId, updateData);
+        
+        console.log(`[${new Date().toISOString()}] ✅ API: Updated driver ID ${driverId}`);
+        res.json(updatedDriver);
+        
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('not found')) {
+          return res.status(404).json({
+            error: 'Driver not found',
+            message: error.message
+          });
+        }
+        
+        console.error(`[${new Date().toISOString()}] ❌ API error updating driver:`, error);
+        res.status(500).json({
+          error: 'Failed to update driver',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-      res.status(500).json({ message: "Failed to create log entry" });
-    }
-  });
+    });
 
-  // Payroll
-  app.get("/api/payroll", async (req, res) => {
-    try {
-      const payroll = await storage.getAllPayrollRecords();
-      res.json(payroll);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch payroll records" });
-    }
-  });
+    // Deactivate driver (soft delete)
+    app.delete('/api/drivers/:id', async (req: Request, res: Response) => {
+      try {
+        const driverId = parseInt(req.params.id);
+        
+        if (isNaN(driverId)) {
+          return res.status(400).json({ error: 'Invalid driver ID' });
+        }
 
-  app.get("/api/drivers/:id/payroll", async (req, res) => {
-    try {
-      const driverId = parseInt(req.params.id);
-      const payroll = await storage.getPayrollRecords(driverId);
-      res.json(payroll);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch driver payroll" });
-    }
-  });
-
-  app.post("/api/payroll", async (req, res) => {
-    try {
-      const validatedData = insertPayrollRecordSchema.parse(req.body);
-      const record = await storage.createPayrollRecord(validatedData);
-      res.status(201).json(record);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
+        await driverHelpers.deactivateDriver(driverId);
+        
+        console.log(`[${new Date().toISOString()}] ✅ API: Deactivated driver ID ${driverId}`);
+        res.json({ 
+          message: 'Driver deactivated successfully',
+          driverId 
+        });
+        
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('not found')) {
+          return res.status(404).json({
+            error: 'Driver not found',
+            message: error.message
+          });
+        }
+        
+        console.error(`[${new Date().toISOString()}] ❌ API error deactivating driver:`, error);
+        res.status(500).json({
+          error: 'Failed to deactivate driver',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-      res.status(500).json({ message: "Failed to create payroll record" });
-    }
-  });
+    });
 
-  app.put("/api/payroll/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      const record = await storage.updatePayrollRecord(id, updates);
-      if (!record) {
-        return res.status(404).json({ message: "Payroll record not found" });
+    /**
+     * STATISTICS ENDPOINTS
+     */
+
+    // Get system statistics
+    app.get('/api/stats', async (req: Request, res: Response) => {
+      try {
+        const stats = await database.getStats();
+        
+        console.log(`[${new Date().toISOString()}] ✅ API: Retrieved system statistics`);
+        res.json(stats);
+        
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ API error getting system stats:`, error);
+        res.status(500).json({
+          error: 'Failed to retrieve system statistics',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
-      res.json(record);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update payroll record" });
-    }
-  });
+    });
 
-  const httpServer = createServer(app);
-  return httpServer;
+    console.log(`[${new Date().toISOString()}] ✅ Driver management API routes registered successfully`);
+  } else {
+    console.log(`[${new Date().toISOString()}] ⚠️  Database not available - driver routes disabled`);
+  }
+
+  return server;
 }
