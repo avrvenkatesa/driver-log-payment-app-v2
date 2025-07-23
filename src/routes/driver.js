@@ -1,6 +1,6 @@
 const express = require('express');
 const { authMiddleware } = require('../auth/auth');
-const { driverHelpers } = require('../database/index');
+const { driverHelpers, shiftHelpers } = require('../database/index');
 const dbConnection = require('../database/connection');
 
 const router = express.Router();
@@ -88,6 +88,86 @@ router.get('/status', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get driver status',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Clock in - Start a new shift
+ * POST /api/driver/clock-in
+ */
+router.post('/clock-in', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { startOdometer } = req.body;
+    
+    // Validate required fields
+    if (!startOdometer) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation Error',
+        message: 'Start odometer reading is required'
+      });
+    }
+
+    // Validate odometer is numeric
+    if (isNaN(startOdometer) || startOdometer < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation Error',
+        message: 'Start odometer must be a valid positive number'
+      });
+    }
+
+    const parsedOdometer = parseInt(startOdometer);
+    
+    console.log(`[${new Date().toISOString()}] 🕐 Clock-in attempt: Driver ${driverId}, Odometer: ${parsedOdometer}`);
+    
+    // Create new shift
+    const shift = await shiftHelpers.createShift({
+      driver_id: driverId,
+      start_odometer: parsedOdometer
+    });
+    
+    const response = {
+      success: true,
+      message: 'Successfully clocked in',
+      shift: {
+        shiftId: shift.id,
+        driverId: shift.driver_id,
+        clockInTime: shift.clock_in_time,
+        startOdometer: shift.start_odometer,
+        status: shift.status
+      }
+    };
+    
+    console.log(`[${new Date().toISOString()}] ✅ Clock-in successful: Driver ${driverId}, Shift ID: ${shift.id}`);
+    res.status(201).json(response);
+    
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Clock-in error:`, error.message);
+    
+    // Handle specific error cases
+    if (error.message.includes('already has an active shift')) {
+      return res.status(409).json({
+        success: false,
+        error: 'Active Shift Exists',
+        message: error.message
+      });
+    }
+    
+    if (error.message.includes('must be greater than or equal to previous')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Odometer Validation Error',
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clock in',
       message: error.message
     });
   }

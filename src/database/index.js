@@ -1,5 +1,6 @@
 const dbConnection = require('./connection');
 const driverHelpers = require('./drivers');
+const shiftHelpers = require('./shifts');
 const { initializeDatabase } = require('../../database/init');
 const { seedDatabase } = require('../../database/seed');
 
@@ -11,6 +12,7 @@ class Database {
   constructor() {
     this.connection = dbConnection;
     this.drivers = driverHelpers;
+    this.shifts = shiftHelpers;
   }
 
   /**
@@ -150,6 +152,7 @@ module.exports = {
   database,
   dbConnection,
   driverHelpers,
+  shiftHelpers,
   initializeDatabase,
   seedDatabase
 };

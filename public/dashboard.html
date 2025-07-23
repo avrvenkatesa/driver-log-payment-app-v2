@@ -284,6 +284,27 @@
                     </div>
                     <button class="btn" onclick="logout()">Logout</button>
                 </div>
+                
+                <div class="card">
+                    <h3>⏰ Clock In/Out</h3>
+                    <div id="clock-in-form" style="display: none;">
+                        <div class="form-group">
+                            <label for="start-odometer">Start Odometer Reading:</label>
+                            <input type="number" id="start-odometer" name="startOdometer" required placeholder="Enter odometer reading" min="0">
+                        </div>
+                        <button class="btn" onclick="clockIn()" id="clock-in-btn">🕐 Clock In</button>
+                    </div>
+                    <div id="clock-out-form" style="display: none;">
+                        <div class="form-group">
+                            <label for="end-odometer">End Odometer Reading:</label>
+                            <input type="number" id="end-odometer" name="endOdometer" required placeholder="Enter odometer reading" min="0">
+                        </div>
+                        <button class="btn" onclick="clockOut()" id="clock-out-btn">🕕 Clock Out</button>
+                    </div>
+                    <div id="clock-message" style="text-align: center; padding: 20px; color: #7f8c8d;">
+                        Loading shift actions...
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -391,10 +412,20 @@
                 document.getElementById('clock-in-time').textContent = formatDateTime(data.shift.currentShift.clockInTime);
                 document.getElementById('shift-duration').textContent = formatDuration(data.shift.currentShift.currentDuration);
                 document.getElementById('start-odometer').textContent = data.shift.currentShift.startOdometer + ' km';
+                
+                // Show clock-out form, hide clock-in form
+                document.getElementById('clock-in-form').style.display = 'none';
+                document.getElementById('clock-out-form').style.display = 'block';
+                document.getElementById('clock-message').style.display = 'none';
             } else {
                 statusIndicator.className = 'status-indicator status-inactive';
                 statusText.textContent = 'CLOCKED OUT';
                 document.getElementById('active-shift-info').style.display = 'none';
+                
+                // Show clock-in form, hide clock-out form
+                document.getElementById('clock-in-form').style.display = 'block';
+                document.getElementById('clock-out-form').style.display = 'none';
+                document.getElementById('clock-message').style.display = 'none';
             }
             
             todayShiftsCount.textContent = data.shift.todayShiftsCount;
@@ -453,6 +484,59 @@
             localStorage.removeItem('driverToken');
             authToken = null;
             showLogin();
+        }
+        
+        // Clock in function
+        async function clockIn() {
+            const startOdometer = document.getElementById('start-odometer').value;
+            
+            if (!startOdometer || startOdometer < 0) {
+                showError('Please enter a valid odometer reading');
+                return;
+            }
+            
+            try {
+                document.getElementById('clock-in-btn').disabled = true;
+                document.getElementById('clock-in-btn').textContent = 'Clocking In...';
+                
+                const response = await fetch('/api/driver/clock-in', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ startOdometer: parseInt(startOdometer) })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Successfully clocked in! Your shift has started.');
+                    document.getElementById('start-odometer').value = '';
+                    loadDashboard(); // Refresh dashboard to show updated status
+                } else {
+                    showError('Clock-in failed: ' + data.message);
+                }
+            } catch (error) {
+                showError('Network error: Unable to clock in');
+            } finally {
+                document.getElementById('clock-in-btn').disabled = false;
+                document.getElementById('clock-in-btn').textContent = '🕐 Clock In';
+            }
+        }
+        
+        // Clock out function (placeholder for future implementation)
+        async function clockOut() {
+            showError('Clock-out functionality will be implemented in the next story');
+        }
+        
+        // Show success message
+        function showSuccess(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="success-message" style="background: #2ecc71; color: white; padding: 15px; border-radius: 8px; margin: 10px 0; text-align: center;">${message}</div>`;
+            setTimeout(() => {
+                errorContainer.innerHTML = '';
+            }, 5000);
         }
         
         // Auto-refresh every 30 seconds if dashboard is active

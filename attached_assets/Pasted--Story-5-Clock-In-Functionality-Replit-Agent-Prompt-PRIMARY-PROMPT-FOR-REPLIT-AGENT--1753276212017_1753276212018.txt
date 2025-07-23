@@ -1,0 +1,112 @@
+# Story 5: Clock In Functionality - Replit Agent Prompt
+
+## 🤖 **PRIMARY PROMPT FOR REPLIT AGENT:**
+
+```
+Implement Story 5: Clock In Functionality for the Driver Log Payment App.
+
+USER STORY:
+As a driver, I want to clock in at the start of my shift, so that my work time is tracked accurately.
+
+ACCEPTANCE CRITERIA TO IMPLEMENT:
+✅ AC-1: Shifts table creation in database
+✅ AC-2: Clock-in endpoint (/api/driver/clock-in)
+✅ AC-3: Odometer reading validation (required, numeric)
+✅ AC-4: IST timestamp recording
+✅ AC-5: One active shift per driver validation
+✅ AC-6: Clock-in UI form
+✅ AC-7: Success/error notifications
+✅ AC-8: Automatic status update after clock-in
+✅ AC-9: Start odometer ≥ previous end odometer validation
+
+TECHNICAL SPECIFICATIONS:
+
+DATABASE REQUIREMENTS:
+- Create shifts table if not already exists with this schema:
+```sql
+CREATE TABLE shifts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    driver_id INTEGER NOT NULL,
+    clock_in_time DATETIME NOT NULL,
+    clock_out_time DATETIME,
+    start_odometer INTEGER NOT NULL,
+    end_odometer INTEGER,
+    total_distance INTEGER,
+    shift_duration_minutes INTEGER,
+    is_overtime BOOLEAN DEFAULT 0,
+    status TEXT DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (driver_id) REFERENCES drivers (id)
+);
+```
+
+API ENDPOINT REQUIREMENTS:
+- POST /api/driver/clock-in
+- Protected route (requires JWT authentication)
+- Request body: { startOdometer: number }
+- Response: { success: boolean, message: string, shift: object }
+
+VALIDATION LOGIC:
+1. Driver must be authenticated (JWT token required)
+2. startOdometer must be provided and numeric
+3. Only one active shift per driver allowed
+4. Start odometer must be ≥ previous shift's end odometer
+5. Record timestamp in IST (Asia/Kolkata timezone)
+
+UI REQUIREMENTS:
+- Add clock-in form to existing dashboard
+- Form fields: Start Odometer input, Clock In button
+- Show success/error notifications
+- Update dashboard status after successful clock-in
+- Disable clock-in if driver already has active shift
+
+INTEGRATION REQUIREMENTS:
+- Build on existing authentication system (Stories 1-3)
+- Integrate with existing dashboard (Story 4)
+- Update /api/driver/status endpoint to show active shift details
+- Ensure database connection uses existing setup
+
+ERROR HANDLING:
+- Invalid/missing odometer reading
+- Duplicate active shifts
+- Authentication failures
+- Database errors
+- Invalid odometer sequence (less than previous end)
+
+Please implement this clock-in functionality that integrates seamlessly with the existing authentication and dashboard systems.
+```
+
+## 🧪 **TESTING VERIFICATION COMMANDS:**
+
+After implementation, test using:
+
+```bash
+# 1. Test authentication required
+curl -X POST http://localhost:5000/api/driver/clock-in -H "Content-Type: application/json" -d '{"startOdometer":1000}'
+
+# 2. Test with valid authentication
+TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d '{"identifier":"+1234567890","password":"password123"}' | jq -r '.token')
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:5000/api/driver/clock-in -H "Content-Type: application/json" -d '{"startOdometer":1000}'
+
+# 3. Test duplicate clock-in (should fail)
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:5000/api/driver/clock-in -H "Content-Type: application/json" -d '{"startOdometer":1100}'
+
+# 4. Test dashboard shows active shift
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/driver/status
+
+# 5. Test UI in browser
+# Navigate to localhost:5000 and test clock-in form
+```
+
+## 📋 **SUCCESS CRITERIA:**
+
+✅ Shifts table created with proper schema  
+✅ Clock-in endpoint works with authentication  
+✅ Odometer validation prevents invalid entries  
+✅ One active shift per driver enforced  
+✅ Dashboard UI includes clock-in functionality  
+✅ Status updates automatically after clock-in  
+✅ IST timestamps recorded correctly  
+✅ Previous odometer validation works  
+✅ Proper error handling and user feedback
