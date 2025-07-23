@@ -288,4 +288,401 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * Get daily shift history for a specific date
+ * GET /api/driver/shifts/daily/:date (YYYY-MM-DD format)
+ */
+router.get('/shifts/daily/:date', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { date } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format',
+        message: 'Date must be in YYYY-MM-DD format'
+      });
+    }
+
+    // Get shifts for the specific date
+    const shiftsQuery = `
+      SELECT 
+        id, clock_in_time, clock_out_time, start_odometer, end_odometer,
+        total_distance, shift_duration_minutes, status, created_at
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) = ?
+      AND status = 'completed'
+      ORDER BY clock_in_time DESC 
+      LIMIT ? OFFSET ?
+    `;
+
+    const shifts = await dbConnection.all(shiftsQuery, [driverId, date, limit, offset]);
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) = ?
+      AND status = 'completed'
+    `;
+    const countResult = await dbConnection.get(countQuery, [driverId, date]);
+    const total = countResult.total || 0;
+
+    // Calculate summary statistics
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) as totalShifts,
+        COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
+        COALESCE(SUM(total_distance), 0) as totalDistance
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) = ?
+      AND status = 'completed'
+    `;
+    const summary = await dbConnection.get(summaryQuery, [driverId, date]);
+
+    res.json({
+      success: true,
+      data: {
+        shifts: shifts.map(shift => ({
+          ...shift,
+          clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
+          duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null
+        })),
+        summary: {
+          totalShifts: summary.totalShifts || 0,
+          totalHours: summary.totalMinutes ? (summary.totalMinutes / 60).toFixed(2) : 0,
+          totalDistance: summary.totalDistance || 0,
+          date: date
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Error getting daily shifts:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Database Error',
+      message: 'Failed to retrieve daily shifts'
+    });
+  }
+});
+
+/**
+ * Get weekly shift history 
+ * GET /api/driver/shifts/weekly/:year/:week (ISO week numbers)
+ */
+router.get('/shifts/weekly/:year/:week', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { year, week } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    // Calculate start and end dates for the week
+    const startDate = new Date(year, 0, 1 + (week - 1) * 7);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    // Get shifts for the week
+    const shiftsQuery = `
+      SELECT 
+        id, clock_in_time, clock_out_time, start_odometer, end_odometer,
+        total_distance, shift_duration_minutes, status, created_at
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) BETWEEN ? AND ?
+      AND status = 'completed'
+      ORDER BY clock_in_time DESC 
+      LIMIT ? OFFSET ?
+    `;
+
+    const shifts = await dbConnection.all(shiftsQuery, [driverId, startDateStr, endDateStr, limit, offset]);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) BETWEEN ? AND ?
+      AND status = 'completed'
+    `;
+    const countResult = await dbConnection.get(countQuery, [driverId, startDateStr, endDateStr]);
+    const total = countResult.total || 0;
+
+    // Calculate summary statistics
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) as totalShifts,
+        COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
+        COALESCE(SUM(total_distance), 0) as totalDistance
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) BETWEEN ? AND ?
+      AND status = 'completed'
+    `;
+    const summary = await dbConnection.get(summaryQuery, [driverId, startDateStr, endDateStr]);
+
+    res.json({
+      success: true,
+      data: {
+        shifts: shifts.map(shift => ({
+          ...shift,
+          clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
+          duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null
+        })),
+        summary: {
+          totalShifts: summary.totalShifts || 0,
+          totalHours: summary.totalMinutes ? (summary.totalMinutes / 60).toFixed(2) : 0,
+          totalDistance: summary.totalDistance || 0,
+          weekNumber: week,
+          year: year,
+          startDate: startDateStr,
+          endDate: endDateStr
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Error getting weekly shifts:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Database Error',
+      message: 'Failed to retrieve weekly shifts'
+    });
+  }
+});
+
+/**
+ * Get monthly shift summary
+ * GET /api/driver/shifts/monthly/:year/:month
+ */
+router.get('/shifts/monthly/:year/:month', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { year, month } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    // Validate month (1-12)
+    const monthNum = parseInt(month);
+    if (monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid month',
+        message: 'Month must be between 1 and 12'
+      });
+    }
+
+    // Calculate start and end dates for the month
+    const startDate = `${year}-${month.padStart(2, '0')}-01`;
+    const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
+    const nextYear = monthNum === 12 ? parseInt(year) + 1 : year;
+    const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+
+    // Get shifts for the month
+    const shiftsQuery = `
+      SELECT 
+        id, clock_in_time, clock_out_time, start_odometer, end_odometer,
+        total_distance, shift_duration_minutes, status, created_at
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND clock_in_time >= ? 
+      AND clock_in_time < ?
+      AND status = 'completed'
+      ORDER BY clock_in_time DESC 
+      LIMIT ? OFFSET ?
+    `;
+
+    const shifts = await dbConnection.all(shiftsQuery, [driverId, startDate, endDate, limit, offset]);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND clock_in_time >= ? 
+      AND clock_in_time < ?
+      AND status = 'completed'
+    `;
+    const countResult = await dbConnection.get(countQuery, [driverId, startDate, endDate]);
+    const total = countResult.total || 0;
+
+    // Calculate comprehensive summary statistics
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) as totalShifts,
+        COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
+        COALESCE(SUM(total_distance), 0) as totalDistance,
+        COALESCE(AVG(shift_duration_minutes), 0) as avgMinutes,
+        COALESCE(AVG(total_distance), 0) as avgDistance,
+        COUNT(DISTINCT DATE(clock_in_time)) as workingDays
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND clock_in_time >= ? 
+      AND clock_in_time < ?
+      AND status = 'completed'
+    `;
+    const summary = await dbConnection.get(summaryQuery, [driverId, startDate, endDate]);
+
+    res.json({
+      success: true,
+      data: {
+        shifts: shifts.map(shift => ({
+          ...shift,
+          clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
+          duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null,
+          shift_date: new Date(shift.clock_in_time).toLocaleDateString('en-IN')
+        })),
+        summary: {
+          totalShifts: summary.totalShifts || 0,
+          totalHours: summary.totalMinutes ? (summary.totalMinutes / 60).toFixed(2) : 0,
+          totalDistance: summary.totalDistance || 0,
+          averageHours: summary.avgMinutes ? (summary.avgMinutes / 60).toFixed(2) : 0,
+          averageDistance: summary.avgDistance ? Math.round(summary.avgDistance) : 0,
+          workingDays: summary.workingDays || 0,
+          month: monthNum,
+          year: parseInt(year),
+          monthName: new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'long' })
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Error getting monthly shifts:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Database Error',
+      message: 'Failed to retrieve monthly shifts'
+    });
+  }
+});
+
+/**
+ * Export shift data with date range filtering
+ * GET /api/driver/shifts/export?start=date&end=date&format=csv|json
+ */
+router.get('/shifts/export', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { start, end, format = 'json' } = req.query;
+
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing parameters',
+        message: 'Start and end date are required'
+      });
+    }
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(start) || !dateRegex.test(end)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format',
+        message: 'Dates must be in YYYY-MM-DD format'
+      });
+    }
+
+    // Get shifts within date range
+    const shiftsQuery = `
+      SELECT 
+        id, clock_in_time, clock_out_time, start_odometer, end_odometer,
+        total_distance, shift_duration_minutes, status, created_at
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND DATE(clock_in_time) BETWEEN ? AND ?
+      AND status = 'completed'
+      ORDER BY clock_in_time ASC
+    `;
+
+    const shifts = await dbConnection.all(shiftsQuery, [driverId, start, end]);
+
+    const exportData = shifts.map(shift => ({
+      shift_id: shift.id,
+      date: new Date(shift.clock_in_time).toLocaleDateString('en-IN'),
+      clock_in: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      clock_out: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+      duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : 0,
+      start_odometer: shift.start_odometer,
+      end_odometer: shift.end_odometer || 0,
+      distance_km: shift.total_distance || 0,
+      status: shift.status
+    }));
+
+    if (format === 'csv') {
+      // Convert to CSV format
+      const csvHeader = 'Shift ID,Date,Clock In,Clock Out,Duration (Hours),Start Odometer,End Odometer,Distance (KM),Status\n';
+      const csvRows = exportData.map(row => 
+        `${row.shift_id},${row.date},"${row.clock_in}","${row.clock_out}",${row.duration_hours},${row.start_odometer},${row.end_odometer},${row.distance_km},${row.status}`
+      ).join('\n');
+      
+      const csv = csvHeader + csvRows;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="shifts_${start}_to_${end}.csv"`);
+      res.send(csv);
+    } else {
+      // JSON format
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="shifts_${start}_to_${end}.json"`);
+      res.json({
+        success: true,
+        data: {
+          shifts: exportData,
+          dateRange: { start, end },
+          totalShifts: exportData.length,
+          exportedAt: new Date().toISOString()
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Error exporting shifts:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Export Error',
+      message: 'Failed to export shift data'
+    });
+  }
+});
+
 module.exports = router;

@@ -197,6 +197,206 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* Shift History Styles */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #e9e9e9;
+            border-color: #ccc;
+        }
+
+        .date-range-picker {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .summary-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .summary-card span {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+        }
+
+        .shifts-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .shifts-table th {
+            background: #f8f9fa;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .shifts-table th:hover {
+            background: #e9ecef;
+        }
+
+        .sort-indicator {
+            margin-left: 5px;
+            opacity: 0.6;
+            font-size: 12px;
+        }
+
+        .shifts-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f1f1f1;
+            font-size: 14px;
+        }
+
+        .shifts-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading-row {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button:not(:disabled):hover {
+            background: #e9e9e9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, #21618c);
+        }
     </style>
 </head>
 <body>
@@ -305,6 +505,89 @@
                         Loading shift actions...
                     </div>
                 </div>
+
+                <!-- Shift History Section -->
+                <div class="card">
+                    <div class="section-header">
+                        <h3>📊 Shift History & Reports</h3>
+                        <div class="controls">
+                            <select id="date-filter" onchange="filterShifts()">
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month" selected>This Month</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                            <button onclick="exportShifts()" class="btn-secondary">📥 Export</button>
+                            <button onclick="refreshShifts()" class="btn-secondary">🔄 Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Date Range (initially hidden) -->
+                    <div id="custom-date-range" class="date-range-picker" style="display: none;">
+                        <div class="form-group">
+                            <label for="start-date">Start Date:</label>
+                            <input type="date" id="start-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="end-date">End Date:</label>
+                            <input type="date" id="end-date">
+                        </div>
+                        <button onclick="applyCustomRange()" class="btn-primary">Apply Range</button>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <h4>Total Shifts</h4>
+                            <span id="total-shifts">-</span>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Total Hours</h4>
+                            <span id="total-hours">-</span>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Total Distance</h4>
+                            <span id="total-distance">- km</span>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Working Days</h4>
+                            <span id="working-days">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Shifts Table -->
+                    <div class="table-container">
+                        <table class="shifts-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable('date')">Date <span class="sort-indicator">↕</span></th>
+                                    <th onclick="sortTable('clock_in')">Clock In <span class="sort-indicator">↕</span></th>
+                                    <th onclick="sortTable('clock_out')">Clock Out <span class="sort-indicator">↕</span></th>
+                                    <th onclick="sortTable('duration')">Duration <span class="sort-indicator">↕</span></th>
+                                    <th onclick="sortTable('distance')">Distance <span class="sort-indicator">↕</span></th>
+                                    <th onclick="sortTable('start_odometer')">Start Odo <span class="sort-indicator">↕</span></th>
+                                    <th onclick="sortTable('end_odometer')">End Odo <span class="sort-indicator">↕</span></th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shifts-table-body">
+                                <tr>
+                                    <td colspan="8" class="loading-row">
+                                        <div class="loading-spinner"></div>
+                                        Loading shift history...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button id="prev-page" onclick="changePage(-1)" disabled>← Previous</button>
+                        <span id="page-info">Page 1 of 1</span>
+                        <button id="next-page" onclick="changePage(1)" disabled>Next →</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -312,10 +595,18 @@
     <script>
         let authToken = localStorage.getItem('driverToken');
         
+        // Shift History Variables
+        let currentPage = 1;
+        let currentFilter = 'month';
+        let currentShifts = [];
+        let currentSummary = {};
+
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             if (authToken) {
                 loadDashboard();
+                // Load shift history after dashboard loads
+                setTimeout(() => loadShiftHistory(), 1000);
             } else {
                 showLogin();
             }
@@ -579,6 +870,268 @@
                 loadDashboard();
             }
         }, 30000);
+
+        // ====== SHIFT HISTORY FUNCTIONALITY ======
+        
+        // Load shift history based on current filter
+        async function loadShiftHistory() {
+            try {
+                let endpoint;
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = today.getMonth() + 1;
+                
+                switch (currentFilter) {
+                    case 'today':
+                        const todayStr = today.toISOString().split('T')[0];
+                        endpoint = `/api/driver/shifts/daily/${todayStr}?page=${currentPage}`;
+                        break;
+                    case 'week':
+                        const weekNum = getWeekNumber(today);
+                        endpoint = `/api/driver/shifts/weekly/${year}/${weekNum}?page=${currentPage}`;
+                        break;
+                    case 'month':
+                        endpoint = `/api/driver/shifts/monthly/${year}/${month}?page=${currentPage}`;
+                        break;
+                    case 'custom':
+                        const startDate = document.getElementById('start-date').value;
+                        const endDate = document.getElementById('end-date').value;
+                        if (!startDate || !endDate) {
+                            showError('Please select both start and end dates');
+                            return;
+                        }
+                        endpoint = `/api/driver/shifts/export?start=${startDate}&end=${endDate}&format=json`;
+                        break;
+                    default:
+                        endpoint = `/api/driver/shifts/monthly/${year}/${month}?page=${currentPage}`;
+                }
+
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load shift history');
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (currentFilter === 'custom') {
+                        currentShifts = data.data.shifts || [];
+                        currentSummary = {
+                            totalShifts: data.data.totalShifts || 0,
+                            totalHours: currentShifts.reduce((sum, shift) => sum + parseFloat(shift.duration_hours || 0), 0).toFixed(2),
+                            totalDistance: currentShifts.reduce((sum, shift) => sum + parseInt(shift.distance_km || 0), 0),
+                            workingDays: new Set(currentShifts.map(shift => shift.date)).size
+                        };
+                        updateShiftsDisplay();
+                        updatePagination({ page: 1, total: currentShifts.length, hasNext: false, hasPrev: false });
+                    } else {
+                        currentShifts = data.data.shifts || [];
+                        currentSummary = data.data.summary || {};
+                        updateShiftsDisplay();
+                        updatePagination(data.data.pagination || {});
+                    }
+                    updateSummaryCards();
+                } else {
+                    showError('Failed to load shifts: ' + data.message);
+                }
+
+            } catch (error) {
+                console.error('Error loading shift history:', error);
+                showError('Failed to load shift history');
+            }
+        }
+
+        // Update summary cards with current data
+        function updateSummaryCards() {
+            document.getElementById('total-shifts').textContent = currentSummary.totalShifts || 0;
+            document.getElementById('total-hours').textContent = currentSummary.totalHours || '0.00';
+            document.getElementById('total-distance').textContent = (currentSummary.totalDistance || 0) + ' km';
+            document.getElementById('working-days').textContent = currentSummary.workingDays || 0;
+        }
+
+        // Update shifts table display
+        function updateShiftsDisplay() {
+            const tbody = document.getElementById('shifts-table-body');
+            
+            if (!currentShifts || currentShifts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="loading-row">
+                            No shifts found for the selected period
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = currentShifts.map(shift => `
+                <tr>
+                    <td>${shift.shift_date || new Date(shift.clock_in_time).toLocaleDateString('en-IN')}</td>
+                    <td>${shift.clock_in_time}</td>
+                    <td>${shift.clock_out_time || 'N/A'}</td>
+                    <td>${shift.duration_hours || (shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : '0.00')} hrs</td>
+                    <td>${shift.total_distance || shift.distance_km || 0} km</td>
+                    <td>${shift.start_odometer || 0}</td>
+                    <td>${shift.end_odometer || 0}</td>
+                    <td><span class="status-badge status-${shift.status}">${shift.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Update pagination controls
+        function updatePagination(pagination) {
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+            const pageInfo = document.getElementById('page-info');
+
+            prevBtn.disabled = !pagination.hasPrev;
+            nextBtn.disabled = !pagination.hasNext;
+            
+            const totalPages = Math.ceil((pagination.total || 0) / (pagination.limit || 20));
+            pageInfo.textContent = `Page ${pagination.page || 1} of ${totalPages || 1}`;
+        }
+
+        // Filter shifts based on selection
+        function filterShifts() {
+            const filter = document.getElementById('date-filter').value;
+            currentFilter = filter;
+            currentPage = 1;
+
+            const customRange = document.getElementById('custom-date-range');
+            if (filter === 'custom') {
+                customRange.style.display = 'block';
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                document.getElementById('start-date').value = firstDay.toISOString().split('T')[0];
+                document.getElementById('end-date').value = today.toISOString().split('T')[0];
+            } else {
+                customRange.style.display = 'none';
+                loadShiftHistory();
+            }
+        }
+
+        // Apply custom date range
+        function applyCustomRange() {
+            loadShiftHistory();
+        }
+
+        // Change page
+        function changePage(direction) {
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            loadShiftHistory();
+        }
+
+        // Refresh shifts
+        function refreshShifts() {
+            loadShiftHistory();
+        }
+
+        // Export shifts
+        async function exportShifts() {
+            try {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = today.getMonth() + 1;
+                
+                let startDate, endDate;
+                
+                switch (currentFilter) {
+                    case 'today':
+                        startDate = endDate = today.toISOString().split('T')[0];
+                        break;
+                    case 'week':
+                        const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+                        startDate = weekStart.toISOString().split('T')[0];
+                        const weekEnd = new Date(weekStart);
+                        weekEnd.setDate(weekEnd.getDate() + 6);
+                        endDate = weekEnd.toISOString().split('T')[0];
+                        break;
+                    case 'month':
+                        startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+                        const nextMonth = month === 12 ? 1 : month + 1;
+                        const nextYear = month === 12 ? year + 1 : year;
+                        const lastDay = new Date(nextYear, nextMonth - 1, 0).getDate();
+                        endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+                        break;
+                    case 'custom':
+                        startDate = document.getElementById('start-date').value;
+                        endDate = document.getElementById('end-date').value;
+                        break;
+                    default:
+                        startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+                        endDate = today.toISOString().split('T')[0];
+                }
+
+                const url = `/api/driver/shifts/export?start=${startDate}&end=${endDate}&format=csv`;
+                window.open(url, '_blank');
+                
+                showSuccess('Export initiated. Download should start soon.');
+
+            } catch (error) {
+                console.error('Export error:', error);
+                showError('Failed to export shifts');
+            }
+        }
+
+        // Utility function to get week number
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        }
+
+        // Sort table functionality
+        let sortDirection = {};
+        function sortTable(column) {
+            const direction = sortDirection[column] === 'asc' ? 'desc' : 'asc';
+            sortDirection[column] = direction;
+
+            currentShifts.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch (column) {
+                    case 'date':
+                        aVal = new Date(a.clock_in_time);
+                        bVal = new Date(b.clock_in_time);
+                        break;
+                    case 'duration':
+                        aVal = parseFloat(a.duration_hours || (a.shift_duration_minutes / 60) || 0);
+                        bVal = parseFloat(b.duration_hours || (b.shift_duration_minutes / 60) || 0);
+                        break;
+                    case 'distance':
+                        aVal = parseInt(a.total_distance || a.distance_km || 0);
+                        bVal = parseInt(b.total_distance || b.distance_km || 0);
+                        break;
+                    case 'start_odometer':
+                        aVal = parseInt(a.start_odometer || 0);
+                        bVal = parseInt(b.start_odometer || 0);
+                        break;
+                    case 'end_odometer':
+                        aVal = parseInt(a.end_odometer || 0);
+                        bVal = parseInt(b.end_odometer || 0);
+                        break;
+                    default:
+                        aVal = a[column] || '';
+                        bVal = b[column] || '';
+                }
+
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            updateShiftsDisplay();
+        }
     </script>
 </body>
 </html>
