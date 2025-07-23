@@ -143,6 +143,23 @@ Preferred communication style: Simple, everyday language.
   - Mobile-friendly responsive design with auto-refresh
   - Comprehensive error handling for unauthorized access
   - Driver profile and status information display
+- **Story 5 - Clock In Functionality**: ✅ COMPLETED (July 23, 2025)
+  - POST /api/driver/clock-in endpoint with comprehensive validation
+  - Odometer reading validation against previous shifts (continuity)
+  - Active shift prevention (one shift per driver validation)
+  - Dynamic dashboard forms (show/hide clock-in/clock-out)
+  - IST timestamp recording with proper error handling
+  - Shift tracking with database integration and business logic
+- **Story 6 - Clock Out Functionality**: ✅ COMPLETED (July 23, 2025)
+  - POST /api/driver/clock-out endpoint with validation and calculations
+  - End odometer validation (required, numeric, ≥ start odometer)
+  - Automatic shift duration calculation (IST timestamps in minutes)
+  - Total distance calculation (end - start odometer)
+  - Shift completion (clock_out_time, status = 'completed')
+  - Only active shift can be clocked out validation
+  - Dynamic UI forms switching between clock-in/clock-out
+  - Dashboard status updates automatically after clock-out
+  - Complete shift tracking cycle with proper error handling
 - **Real-time Features**: Polling-based updates, WebSocket ready for enhancement
 - **Production Deployment**: Build configuration complete, hosting platform TBD
 

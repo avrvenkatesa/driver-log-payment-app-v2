@@ -174,6 +174,89 @@ router.post('/clock-in', authMiddleware, async (req, res) => {
 });
 
 /**
+ * Clock out - Complete current shift
+ * POST /api/driver/clock-out
+ */
+router.post('/clock-out', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { endOdometer } = req.body;
+    
+    // Validate required fields
+    if (!endOdometer) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation Error',
+        message: 'End odometer reading is required'
+      });
+    }
+
+    // Validate odometer is numeric
+    if (isNaN(endOdometer) || endOdometer < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation Error',
+        message: 'End odometer must be a valid positive number'
+      });
+    }
+
+    const parsedOdometer = parseInt(endOdometer);
+    
+    console.log(`[${new Date().toISOString()}] 🕕 Clock-out attempt: Driver ${driverId}, End Odometer: ${parsedOdometer}`);
+    
+    // Complete the shift
+    const completedShift = await shiftHelpers.completeShift(driverId, {
+      endOdometer: parsedOdometer
+    });
+    
+    const response = {
+      success: true,
+      message: 'Successfully clocked out',
+      shift: {
+        shiftId: completedShift.id,
+        driverId: completedShift.driver_id,
+        clockInTime: completedShift.clock_in_time,
+        clockOutTime: completedShift.clock_out_time,
+        startOdometer: completedShift.start_odometer,
+        endOdometer: completedShift.end_odometer,
+        totalDistance: completedShift.total_distance,
+        shiftDurationMinutes: completedShift.shift_duration_minutes,
+        status: completedShift.status
+      }
+    };
+    
+    console.log(`[${new Date().toISOString()}] ✅ Clock-out successful: Driver ${driverId}, Shift ID: ${completedShift.id}, Distance: ${completedShift.total_distance}km, Duration: ${completedShift.shift_duration_minutes}min`);
+    res.status(200).json(response);
+    
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Clock-out error:`, error.message);
+    
+    // Handle specific error cases
+    if (error.message.includes('No active shift found')) {
+      return res.status(409).json({
+        success: false,
+        error: 'No Active Shift',
+        message: error.message
+      });
+    }
+    
+    if (error.message.includes('must be greater than or equal to')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Odometer Validation Error',
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clock out',
+      message: error.message
+    });
+  }
+});
+
+/**
  * Get driver profile information
  * GET /api/driver/profile
  */

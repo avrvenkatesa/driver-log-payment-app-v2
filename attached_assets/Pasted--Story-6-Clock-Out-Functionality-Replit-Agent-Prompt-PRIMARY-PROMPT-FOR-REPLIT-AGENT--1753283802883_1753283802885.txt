@@ -1,0 +1,119 @@
+# Story 6: Clock Out Functionality - Replit Agent Prompt
+
+## 🤖 **PRIMARY PROMPT FOR REPLIT AGENT:**
+
+```
+Implement Story 6: Clock Out Functionality for the Driver Log Payment App.
+
+USER STORY:
+As a driver, I want to clock out at the end of my shift, so that my work time and distance are calculated accurately.
+
+ACCEPTANCE CRITERIA TO IMPLEMENT:
+✅ AC-1: Clock-out endpoint (/api/driver/clock-out)
+✅ AC-2: End odometer reading validation (required, numeric, ≥ start odometer)
+✅ AC-3: Automatic shift duration calculation (in minutes)
+✅ AC-4: Total distance calculation (end - start odometer)
+✅ AC-5: Shift completion (set clock_out_time, status = 'completed')
+✅ AC-6: Only active shift can be clocked out validation
+✅ AC-7: Clock-out UI form (replace clock-in form when active shift exists)
+✅ AC-8: Dashboard status update after clock-out
+✅ AC-9: IST timestamp recording for clock-out time
+
+TECHNICAL SPECIFICATIONS:
+
+API ENDPOINT REQUIREMENTS:
+- POST /api/driver/clock-out
+- Protected route (requires JWT authentication)
+- Request body: { endOdometer: number }
+- Response: { success: boolean, message: string, shift: object }
+
+DATABASE UPDATES:
+- Update existing shifts table record
+- Set clock_out_time (IST timestamp)
+- Set end_odometer (from request)
+- Calculate and set total_distance (end_odometer - start_odometer)
+- Calculate and set shift_duration_minutes
+- Set status = 'completed'
+- Set updated_at timestamp
+
+VALIDATION LOGIC:
+1. Driver must be authenticated (JWT token required)
+2. Driver must have an active shift (status='active', clock_out_time=NULL)
+3. endOdometer must be provided and numeric
+4. endOdometer must be ≥ startOdometer (no negative distances)
+5. Record clock-out timestamp in IST (Asia/Kolkata timezone)
+
+CALCULATION REQUIREMENTS:
+- Total Distance = end_odometer - start_odometer
+- Shift Duration = clock_out_time - clock_in_time (in minutes)
+- Update status from 'active' to 'completed'
+
+UI REQUIREMENTS:
+- Update existing clock-in/clock-out card in dashboard
+- Show clock-out form when driver has active shift
+- Hide clock-in form when driver has active shift
+- Form fields: End Odometer input, Clock Out button
+- Show success/error notifications
+- Update dashboard status after successful clock-out
+- Show completed shift summary after clock-out
+
+INTEGRATION REQUIREMENTS:
+- Build on existing clock-in functionality (Story 5)
+- Use existing shifts table and database connection
+- Integrate with existing authentication system
+- Update existing /api/driver/status endpoint to show completed shifts
+- Ensure dashboard UI switches between clock-in/clock-out forms dynamically
+
+ERROR HANDLING:
+- No active shift to clock out
+- Invalid/missing end odometer reading
+- End odometer less than start odometer
+- Authentication failures
+- Database errors
+
+DASHBOARD UPDATES:
+- Update shift status display (show "CLOCKED OUT" when no active shift)
+- Show last completed shift information
+- Display shift duration and total distance
+- Switch to show clock-in form after successful clock-out
+
+Please implement this clock-out functionality that completes the shift tracking cycle and integrates seamlessly with the existing clock-in system.
+```
+
+## 🧪 **TESTING VERIFICATION COMMANDS:**
+
+After implementation, test using:
+
+```bash
+# 1. Get authentication token and clock in first
+TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d '{"identifier":"+1234567890","password":"password123"}' | jq -r '.token')
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:5000/api/driver/clock-in -H "Content-Type: application/json" -d '{"startOdometer":1000}'
+
+# 2. Test clock-out with valid end odometer
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:5000/api/driver/clock-out -H "Content-Type: application/json" -d '{"endOdometer":1150}'
+
+# 3. Test invalid end odometer (less than start)
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:5000/api/driver/clock-out -H "Content-Type: application/json" -d '{"endOdometer":900}'
+
+# 4. Test clock-out without active shift (should fail)
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:5000/api/driver/clock-out -H "Content-Type: application/json" -d '{"endOdometer":1200}'
+
+# 5. Test dashboard status after clock-out
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/driver/status
+
+# 6. Test database shows completed shift
+sqlite3 database/driver_logs.db "SELECT * FROM shifts ORDER BY id DESC LIMIT 1"
+```
+
+## 📋 **SUCCESS CRITERIA:**
+
+✅ Clock-out endpoint works with authentication  
+✅ End odometer validation prevents invalid entries  
+✅ Shift duration calculated automatically  
+✅ Total distance calculated correctly  
+✅ Shift marked as completed in database  
+✅ Only active shifts can be clocked out  
+✅ Dashboard UI switches between clock-in/clock-out forms  
+✅ Status updates automatically after clock-out  
+✅ IST timestamps recorded correctly  
+✅ Proper error handling and user feedback

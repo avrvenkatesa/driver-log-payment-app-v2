@@ -525,9 +525,43 @@
             }
         }
         
-        // Clock out function (placeholder for future implementation)
+        // Clock out function
         async function clockOut() {
-            showError('Clock-out functionality will be implemented in the next story');
+            const endOdometer = document.getElementById('end-odometer').value;
+            
+            if (!endOdometer || endOdometer < 0) {
+                showError('Please enter a valid end odometer reading');
+                return;
+            }
+            
+            try {
+                document.getElementById('clock-out-btn').disabled = true;
+                document.getElementById('clock-out-btn').textContent = 'Clocking Out...';
+                
+                const response = await fetch('/api/driver/clock-out', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ endOdometer: parseInt(endOdometer) })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(`Successfully clocked out! Shift completed: ${data.shift.totalDistance}km in ${data.shift.shiftDurationMinutes} minutes.`);
+                    document.getElementById('end-odometer').value = '';
+                    loadDashboard(); // Refresh dashboard to show updated status
+                } else {
+                    showError('Clock-out failed: ' + data.message);
+                }
+            } catch (error) {
+                showError('Network error: Unable to clock out');
+            } finally {
+                document.getElementById('clock-out-btn').disabled = false;
+                document.getElementById('clock-out-btn').textContent = '🕕 Clock Out';
+            }
         }
         
         // Show success message

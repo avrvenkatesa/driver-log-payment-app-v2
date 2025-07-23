@@ -240,6 +240,84 @@ class ShiftHelpers {
       throw error;
     }
   }
+  /**
+   * Complete a shift (clock-out)
+   * @param {number} driverId - Driver ID
+   * @param {Object} clockOutData - Clock-out data
+   * @returns {Promise<Object>} - Updated shift
+   */
+  async completeShift(driverId, clockOutData) {
+    try {
+      const { endOdometer } = clockOutData;
+      
+      // Validate required fields
+      if (!driverId || !endOdometer) {
+        throw new Error('Driver ID and end odometer are required');
+      }
+
+      // Check if driver has an active shift
+      const activeShift = await this.getActiveShiftByDriverId(driverId);
+      if (!activeShift) {
+        throw new Error('No active shift found to clock out');
+      }
+
+      // Validate end odometer is >= start odometer
+      if (endOdometer < activeShift.start_odometer) {
+        throw new Error(`End odometer (${endOdometer}) must be greater than or equal to start odometer (${activeShift.start_odometer})`);
+      }
+
+      // Record timestamp in IST
+      const clockOutTime = new Date().toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata'
+      });
+      const clockOutISO = new Date(clockOutTime).toISOString();
+
+      // Calculate total distance
+      const totalDistance = endOdometer - activeShift.start_odometer;
+
+      // Calculate shift duration in minutes
+      const clockInTime = new Date(activeShift.clock_in_time);
+      const clockOutTimeDate = new Date(clockOutISO);
+      const shiftDurationMinutes = Math.round((clockOutTimeDate - clockInTime) / (1000 * 60));
+
+      // Update the active shift with clock-out data
+      const sql = `
+        UPDATE shifts SET
+          clock_out_time = ?,
+          end_odometer = ?,
+          total_distance = ?,
+          shift_duration_minutes = ?,
+          status = 'completed',
+          updated_at = ?
+        WHERE id = ? AND driver_id = ?
+      `;
+      
+      const params = [
+        clockOutISO,
+        endOdometer,
+        totalDistance,
+        shiftDurationMinutes,
+        clockOutISO,
+        activeShift.id,
+        driverId
+      ];
+      
+      const result = await dbConnection.run(sql, params);
+      
+      if (result.changes === 0) {
+        throw new Error('Failed to update shift record');
+      }
+      
+      console.log(`[${new Date().toISOString()}] ✅ Shift completed: Driver ${driverId}, Shift ID: ${activeShift.id}, Distance: ${totalDistance} km, Duration: ${shiftDurationMinutes} minutes`);
+      
+      // Return the completed shift
+      return await this.getShiftById(activeShift.id);
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error completing shift:`, error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = new ShiftHelpers();
