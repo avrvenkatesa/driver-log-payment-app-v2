@@ -65,6 +65,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
+// Dashboard route - serve the HTML dashboard
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/dashboard.html');
+});
+
 // Health check endpoint with enhanced response
 app.get('/api/health', (req, res) => {
   try {
@@ -91,6 +99,58 @@ app.get('/api/health', (req, res) => {
     });
   }
 });
+
+// Load database and authentication modules
+try {
+  const { driverHelpers } = require('./src/database/index.js');
+  log('✅ Database module loaded successfully');
+  
+  const { authMiddleware } = require('./src/auth/auth.js');
+  log('✅ Authentication module loaded successfully');
+  
+  // Authentication routes
+  const authRoutes = require('./src/routes/auth.js');
+  log(`✅ Auth routes type: ${typeof authRoutes}, middleware: ${typeof authMiddleware}`);
+  app.use('/api/auth', authRoutes);
+  log('✅ Authentication routes registered at /api/auth');
+  
+  // Driver routes
+  const driverRoutes = require('./src/routes/driver.js');
+  app.use('/api/driver', driverRoutes);
+  log('✅ Driver routes registered at /api/driver');
+  
+  // Test database availability
+  if (driverHelpers) {
+    log('✅ Database available - registering driver API routes');
+    
+    // Additional driver management routes if database is available
+    app.get('/api/drivers', authMiddleware, async (req, res) => {
+      try {
+        const drivers = await driverHelpers.getAllDrivers({ limit: 100 });
+        res.json({
+          success: true,
+          data: drivers,
+          count: drivers.length
+        });
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ Error fetching drivers:`, error.message);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch drivers',
+          message: error.message
+        });
+      }
+    });
+    
+    log('✅ Driver management API routes registered successfully');
+  }
+  
+  log('✅ Additional routes registered successfully');
+  
+} catch (error) {
+  console.error(`[${new Date().toISOString()}] ❌ Error loading modules:`, error.message);
+  log('⚠️  Some features may not be available due to module loading errors');
+}
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {
