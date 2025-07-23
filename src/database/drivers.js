@@ -12,17 +12,23 @@ class DriverHelpers {
    */
   async createDriver(driverData) {
     try {
-      const { name, email, phone, password, is_phone_verified = 0, is_active = 1 } = driverData;
+      const { name, email, phone, password, password_hash, is_phone_verified = 0, is_active = 1 } = driverData;
       
       // Validate required fields
       if (!name || !phone) {
         throw new Error('Name and phone are required fields');
       }
 
-      // Hash password if provided
-      let password_hash = null;
-      if (password) {
-        password_hash = await bcrypt.hash(password, 10);
+      // CRITICAL FIX: Use provided password_hash or hash the password
+      let finalPasswordHash = null;
+      if (password_hash) {
+        // Use pre-hashed password (from auth system)
+        finalPasswordHash = password_hash;
+        console.log(`[${new Date().toISOString()}] 💾 Using pre-hashed password (length: ${password_hash.length})`);
+      } else if (password) {
+        // Hash plain text password
+        finalPasswordHash = await bcrypt.hash(password, 10);
+        console.log(`[${new Date().toISOString()}] 🔐 Hashing plain text password (length: ${finalPasswordHash.length})`);
       }
 
       const sql = `
@@ -30,13 +36,34 @@ class DriverHelpers {
         VALUES (?, ?, ?, ?, ?, ?)
       `;
       
-      const params = [name, email, phone, password_hash, is_phone_verified, is_active];
+      const params = [name, email, phone, finalPasswordHash, is_phone_verified, is_active];
+      console.log(`[${new Date().toISOString()}] 💾 Creating driver with params:`, {
+        name,
+        email: email || 'null',
+        phone,
+        has_password_hash: !!finalPasswordHash,
+        password_hash_length: finalPasswordHash ? finalPasswordHash.length : 0,
+        is_phone_verified,
+        is_active
+      });
+
       const result = await dbConnection.run(sql, params);
       
       console.log(`[${new Date().toISOString()}] ✅ Driver created: ${name} (ID: ${result.lastID})`);
       
-      // Return the created driver
-      return await this.getDriverById(result.lastID);
+      // CRITICAL: Return the full driver with password_hash for verification
+      const sql_fetch = 'SELECT * FROM drivers WHERE id = ?';
+      const fullDriver = await dbConnection.get(sql_fetch, [result.lastID]);
+      
+      console.log(`[${new Date().toISOString()}] ✅ Driver verification:`, {
+        id: fullDriver.id,
+        name: fullDriver.name,
+        phone: fullDriver.phone,
+        has_password_hash: !!fullDriver.password_hash,
+        password_hash_length: fullDriver.password_hash ? fullDriver.password_hash.length : 0
+      });
+      
+      return fullDriver; // Return full driver with password_hash for auth verification
       
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Error creating driver:`, error.message);
@@ -102,6 +129,27 @@ class DriverHelpers {
       
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Error getting driver by email:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get driver by name (case insensitive)
+   */
+  async getDriverByName(name) {
+    try {
+      const sql = 'SELECT * FROM drivers WHERE LOWER(name) = LOWER(?)';
+      const driver = await dbConnection.get(sql, [name]);
+      
+      if (!driver) {
+        return null;
+      }
+      
+      console.log(`[${new Date().toISOString()}] ✅ Driver found by name: ${name} (ID: ${driver.id})`);
+      return driver;
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error getting driver by name:`, error.message);
       throw error;
     }
   }

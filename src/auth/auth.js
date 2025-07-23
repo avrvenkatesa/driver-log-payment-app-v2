@@ -91,21 +91,38 @@ class AuthService {
     try {
       const { driverHelpers } = require('../database/index.js');
       
-      // Try phone first
+      console.log(`[${new Date().toISOString()}] 🔍 Searching for driver with identifier: ${identifier}`);
+      
+      // Try phone first (more specific)
       if (identifier.match(/^\+?\d+[\d\-\s]*$/)) {
+        console.log(`[${new Date().toISOString()}] 📞 Trying phone search for: ${identifier}`);
         const driver = await driverHelpers.getDriverByPhone(identifier);
-        if (driver) return driver;
+        if (driver) {
+          console.log(`[${new Date().toISOString()}] ✅ Found driver by phone: ${driver.name} (ID: ${driver.id})`);
+          return driver;
+        }
       }
       
       // Try email
       if (identifier.includes('@')) {
+        console.log(`[${new Date().toISOString()}] 📧 Trying email search for: ${identifier}`);
         const driver = await driverHelpers.getDriverByEmail(identifier);
-        if (driver) return driver;
+        if (driver) {
+          console.log(`[${new Date().toISOString()}] ✅ Found driver by email: ${driver.name} (ID: ${driver.id})`);
+          return driver;
+        }
       }
       
-      // Try name
+      // Try name (exact match first, then case-insensitive)
+      console.log(`[${new Date().toISOString()}] 👤 Trying name search for: ${identifier}`);
       const driver = await driverHelpers.getDriverByName(identifier);
-      return driver;
+      if (driver) {
+        console.log(`[${new Date().toISOString()}] ✅ Found driver by name: ${driver.name} (ID: ${driver.id})`);
+        return driver;
+      }
+      
+      console.log(`[${new Date().toISOString()}] ❌ No driver found with identifier: ${identifier}`);
+      return null;
       
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Error finding driver:`, error.message);
@@ -121,13 +138,20 @@ class AuthService {
    */
   static async autoRegisterDriver(identifier, password) {
     try {
+      console.log(`[${new Date().toISOString()}] 🔐 Starting auto-registration for: ${identifier}`);
+      
+      if (!password || password.length < 3) {
+        throw new Error('Password must be at least 3 characters long');
+      }
+
       const hashedPassword = await this.hashPassword(password);
+      console.log(`[${new Date().toISOString()}] ✅ Password hashed successfully (length: ${hashedPassword.length})`);
       
       // Determine if identifier is phone, email, or name
       let driverData = {
         is_active: 1,
         is_phone_verified: 0,
-        password_hash: hashedPassword
+        password_hash: hashedPassword  // CRITICAL: Ensure password is stored
       };
 
       if (identifier.includes('@')) {
@@ -135,24 +159,47 @@ class AuthService {
         driverData.email = identifier;
         driverData.name = identifier.split('@')[0]; // Use email prefix as name
         driverData.phone = `+auto-${Date.now()}`; // Generate unique phone
+        console.log(`[${new Date().toISOString()}] 📧 Auto-registering email user: ${identifier}`);
       } else if (identifier.match(/^\+?\d+[\d\-\s]*$/)) {
         // Phone identifier
         driverData.phone = identifier;
         driverData.name = `Driver ${identifier.slice(-4)}`; // Use last 4 digits
+        console.log(`[${new Date().toISOString()}] 📞 Auto-registering phone user: ${identifier}`);
       } else {
         // Name identifier
         driverData.name = identifier;
         driverData.phone = `+auto-${Date.now()}`; // Generate unique phone
+        console.log(`[${new Date().toISOString()}] 👤 Auto-registering name user: ${identifier}`);
       }
+
+      console.log(`[${new Date().toISOString()}] 💾 Creating driver with data:`, {
+        name: driverData.name,
+        phone: driverData.phone,
+        email: driverData.email || 'null',
+        has_password: !!driverData.password_hash,
+        password_length: driverData.password_hash ? driverData.password_hash.length : 0
+      });
 
       const { driverHelpers } = require('../database/index.js');
       const newDriver = await driverHelpers.createDriver(driverData);
-      console.log(`[${new Date().toISOString()}] ✅ Auto-registered new driver: ${identifier}`);
+      
+      // CRITICAL: Verify password was stored
+      if (!newDriver.password_hash) {
+        console.error(`[${new Date().toISOString()}] 🚨 CRITICAL: Password not stored for new driver ID: ${newDriver.id}`);
+        throw new Error('Password storage failed during auto-registration');
+      }
+      
+      console.log(`[${new Date().toISOString()}] ✅ Auto-registered driver successfully:`, {
+        id: newDriver.id,
+        name: newDriver.name,
+        identifier: identifier,
+        has_password: !!newDriver.password_hash
+      });
       
       return newDriver;
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Auto-registration error:`, error);
-      throw new Error('Failed to auto-register driver');
+      console.error(`[${new Date().toISOString()}] ❌ Auto-registration error for ${identifier}:`, error);
+      throw new Error(`Failed to auto-register driver: ${error.message}`);
     }
   }
 
@@ -164,20 +211,39 @@ class AuthService {
    */
   static async login(identifier, password) {
     try {
-      // Find existing driver
+      console.log(`[${new Date().toISOString()}] 🔐 Login attempt for: ${identifier}`);
+      
+      // CRITICAL FIX: Find existing driver first
       let driver = await this.findDriverByIdentifier(identifier);
 
-      // Auto-register if driver doesn't exist
-      if (!driver) {
-        console.log(`[${new Date().toISOString()}] ℹ️ Auto-registering new driver: ${identifier}`);
-        driver = await this.autoRegisterDriver(identifier, password);
+      if (driver) {
+        console.log(`[${new Date().toISOString()}] ✅ Existing driver found: ${driver.name} (ID: ${driver.id})`);
         
-        // Generate token for new driver
+        // Check if driver is active
+        if (!driver.is_active) {
+          throw new Error('Driver account is deactivated');
+        }
+
+        // CRITICAL: Verify password for existing user
+        if (!driver.password_hash) {
+          console.error(`[${new Date().toISOString()}] 🚨 CRITICAL: Existing driver has no password hash! ID: ${driver.id}`);
+          throw new Error('Driver account has no password set - contact administrator');
+        }
+        
+        const isValidPassword = await this.verifyPassword(password, driver.password_hash);
+        if (!isValidPassword) {
+          console.log(`[${new Date().toISOString()}] ❌ Invalid password for existing driver: ${identifier}`);
+          throw new Error('Invalid password');
+        }
+
+        console.log(`[${new Date().toISOString()}] ✅ Existing driver authenticated successfully: ${identifier}`);
+        
+        // Generate token
         const token = this.generateToken(driver);
         
         return {
           success: true,
-          message: 'Driver auto-registered and logged in successfully',
+          message: 'Login successful',
           token,
           driver: {
             id: driver.id,
@@ -187,33 +253,26 @@ class AuthService {
             is_active: driver.is_active,
             is_phone_verified: driver.is_phone_verified
           },
-          isNewUser: true
+          isNewUser: false
         };
       }
 
-      // Check if driver is active
-      if (!driver.is_active) {
-        throw new Error('Driver account is deactivated');
-      }
-
-      // Verify password
+      // CRITICAL FIX: Only auto-register if driver doesn't exist
+      console.log(`[${new Date().toISOString()}] ℹ️ No existing driver found - auto-registering: ${identifier}`);
+      driver = await this.autoRegisterDriver(identifier, password);
+      
+      // CRITICAL: Verify the new driver has password stored
       if (!driver.password_hash) {
-        throw new Error('Driver account has no password set');
+        console.error(`[${new Date().toISOString()}] 🚨 CRITICAL: Auto-registered driver missing password! ID: ${driver.id}`);
+        throw new Error('Auto-registration failed - password not stored');
       }
       
-      const isValidPassword = await this.verifyPassword(password, driver.password_hash);
-      if (!isValidPassword) {
-        throw new Error('Invalid password');
-      }
-
-      console.log(`[${new Date().toISOString()}] ✅ Driver logged in successfully: ${identifier}`);
-      
-      // Generate token
+      // Generate token for new driver
       const token = this.generateToken(driver);
       
       return {
         success: true,
-        message: 'Login successful',
+        message: 'Driver auto-registered and logged in successfully',
         token,
         driver: {
           id: driver.id,
@@ -223,11 +282,11 @@ class AuthService {
           is_active: driver.is_active,
           is_phone_verified: driver.is_phone_verified
         },
-        isNewUser: false
+        isNewUser: true
       };
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Login error for ${identifier}:`, error);
+      console.error(`[${new Date().toISOString()}] ❌ Login error for ${identifier}:`, error.message);
       throw error;
     }
   }
@@ -240,14 +299,20 @@ class AuthService {
   static async register(userData) {
     try {
       const { name, phone, email, password } = userData;
+      console.log(`[${new Date().toISOString()}] 📝 Registration attempt for: ${phone || email || name}`);
 
       if (!name || !phone || !password) {
         throw new Error('Name, phone, and password are required');
       }
 
-      // Check if driver already exists
+      if (password.length < 3) {
+        throw new Error('Password must be at least 3 characters long');
+      }
+
+      // CRITICAL: Check if driver already exists (prevent duplicates)
       const existingDriver = await this.findDriverByIdentifier(phone);
       if (existingDriver) {
+        console.log(`[${new Date().toISOString()}] ❌ Driver already exists with phone: ${phone} (ID: ${existingDriver.id})`);
         throw new Error('Driver with this phone number already exists');
       }
 
@@ -255,27 +320,48 @@ class AuthService {
       if (email) {
         const existingEmailDriver = await this.findDriverByIdentifier(email);
         if (existingEmailDriver) {
+          console.log(`[${new Date().toISOString()}] ❌ Driver already exists with email: ${email} (ID: ${existingEmailDriver.id})`);
           throw new Error('Driver with this email already exists');
         }
       }
 
-      // Hash password
+      // CRITICAL: Hash password properly
       const hashedPassword = await this.hashPassword(password);
+      console.log(`[${new Date().toISOString()}] ✅ Password hashed for registration (length: ${hashedPassword.length})`);
 
-      // Create driver
+      // CRITICAL: Create driver with all required fields
       const driverData = {
         name,
         phone,
         email,
-        password_hash: hashedPassword,
+        password_hash: hashedPassword,  // CRITICAL: Ensure password is included
         is_active: 1,
         is_phone_verified: 0
       };
 
+      console.log(`[${new Date().toISOString()}] 💾 Creating driver with registration data:`, {
+        name: driverData.name,
+        phone: driverData.phone,
+        email: driverData.email || 'null',
+        has_password: !!driverData.password_hash,
+        password_length: driverData.password_hash ? driverData.password_hash.length : 0
+      });
+
       const { driverHelpers } = require('../database/index.js');
       const newDriver = await driverHelpers.createDriver(driverData);
 
-      console.log(`[${new Date().toISOString()}] ✅ New driver registered: ${phone}`);
+      // CRITICAL: Verify password was stored
+      if (!newDriver.password_hash) {
+        console.error(`[${new Date().toISOString()}] 🚨 CRITICAL: Registration failed - password not stored for driver ID: ${newDriver.id}`);
+        throw new Error('Registration failed - password not stored properly');
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ Driver registered successfully:`, {
+        id: newDriver.id,
+        name: newDriver.name,
+        phone: newDriver.phone,
+        has_password: !!newDriver.password_hash
+      });
 
       return {
         success: true,
@@ -283,7 +369,7 @@ class AuthService {
         driverId: newDriver.id
       };
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Registration error:`, error);
+      console.error(`[${new Date().toISOString()}] ❌ Registration error:`, error.message);
       throw error;
     }
   }

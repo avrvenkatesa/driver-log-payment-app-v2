@@ -128,7 +128,12 @@ Preferred communication style: Simple, everyday language.
   - Protected route middleware with Bearer token validation
   - Complete authentication endpoints: login, register, me, create-test-account
   - Test account: +1234567890 / password123
-  - CRITICAL BUGS FIXED: Password storage, login logic, and new user authentication
+  - CRITICAL SECURITY BUGS FIXED (July 23, 2025):
+    ★ Password storage failure - all new users now properly store password_hash
+    ★ Duplicate user creation - identifiers now properly authenticate existing users
+    ★ Auto-registration logic - creates user once, authenticates thereafter
+    ★ Database pollution prevention - no more infinite user duplication
+    ★ Security vulnerabilities eliminated - all users have password protection
 - **Story 4 - Driver Dashboard & Status**: ✅ COMPLETED (July 23, 2025)
   - HTML dashboard at root route (/) with Material Design-inspired UI
   - GET /api/driver/status endpoint with shift detection logic
