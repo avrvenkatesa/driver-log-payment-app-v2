@@ -323,7 +323,7 @@ router.get('/shifts/daily/:date', authMiddleware, async (req, res) => {
       LIMIT ? OFFSET ?
     `;
 
-    const shifts = await dbConnection.all(shiftsQuery, [driverId, date, limit, offset]);
+    const shifts = await dbConnection.query(shiftsQuery, [driverId, date, limit, offset]);
 
     // Get total count for pagination
     const countQuery = `
@@ -417,7 +417,7 @@ router.get('/shifts/weekly/:year/:week', authMiddleware, async (req, res) => {
       LIMIT ? OFFSET ?
     `;
 
-    const shifts = await dbConnection.all(shiftsQuery, [driverId, startDateStr, endDateStr, limit, offset]);
+    const shifts = await dbConnection.query(shiftsQuery, [driverId, startDateStr, endDateStr, limit, offset]);
 
     // Get total count
     const countQuery = `
@@ -523,7 +523,7 @@ router.get('/shifts/monthly/:year/:month', authMiddleware, async (req, res) => {
       LIMIT ? OFFSET ?
     `;
 
-    const shifts = await dbConnection.all(shiftsQuery, [driverId, startDate, endDate, limit, offset]);
+    const shifts = await dbConnection.query(shiftsQuery, [driverId, startDate, endDate, limit, offset]);
 
     // Get total count
     const countQuery = `
@@ -634,7 +634,7 @@ router.get('/shifts/export', authMiddleware, async (req, res) => {
       ORDER BY clock_in_time ASC
     `;
 
-    const shifts = await dbConnection.all(shiftsQuery, [driverId, start, end]);
+    const shifts = await dbConnection.query(shiftsQuery, [driverId, start, end]);
 
     const exportData = shifts.map(shift => ({
       shift_id: shift.id,
