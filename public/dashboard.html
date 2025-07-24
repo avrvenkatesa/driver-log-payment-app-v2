@@ -570,13 +570,15 @@
                             <h4>Working Days</h4>
                             <span id="working-days">-</span>
                         </div>
-                        <div class="summary-card">
+                        <div class="summary-card" style="background: linear-gradient(135deg, #e8f5e8, #f0fff0); border-left: 4px solid #4caf50;">
                             <h4>Regular Hours</h4>
                             <span id="regular-hours">-</span>
+                            <small style="font-size: 12px; color: #666; display: block; margin-top: 5px;">Standard time</small>
                         </div>
-                        <div class="summary-card">
+                        <div class="summary-card" style="background: linear-gradient(135deg, #fff3e0, #fef7f0); border-left: 4px solid #ff9800;">
                             <h4>Overtime Hours</h4>
                             <span id="overtime-hours">-</span>
+                            <small style="font-size: 12px; color: #666; display: block; margin-top: 5px;">Extra time</small>
                         </div>
                     </div>
 
@@ -868,7 +870,9 @@
         function displayMonthlyData(data) {
             const { summary, weeklyBreakdown, trends, shifts } = data;
             
-            // Update summary cards with trend information
+            console.log('[Story 8] Displaying enhanced monthly data:', summary);
+            
+            // Update summary cards with enhanced information
             document.getElementById('total-shifts').textContent = summary.totalShifts;
             document.getElementById('total-hours').textContent = summary.totalHours + ' hrs';
             document.getElementById('total-distance').textContent = summary.totalDistance + ' km';
@@ -886,24 +890,69 @@
             
             // Update shifts table
             displayShiftsTable(shifts);
+            
+            // Show enhanced metrics in additional summary display
+            displayEnhancedMetrics(summary);
         }
 
         // Display trend information with appropriate styling
         function displayTrend(elementId, change, unit) {
             const element = document.getElementById(elementId);
+            if (!element) return;
+            
             if (change > 0) {
-                element.textContent = `+${change} ${unit} from last month`;
-                element.style.color = '#4caf50';
+                element.innerHTML = `<span style="color: #4caf50;">↗ +${change} ${unit}</span><br><small style="color: #666;">vs last month</small>`;
             } else if (change < 0) {
-                element.textContent = `${change} ${unit} from last month`;
-                element.style.color = '#f44336';
+                element.innerHTML = `<span style="color: #f44336;">↘ ${change} ${unit}</span><br><small style="color: #666;">vs last month</small>`;
             } else {
-                element.textContent = 'No change from last month';
-                element.style.color = '#666';
+                element.innerHTML = `<span style="color: #666;">→ No change</span><br><small style="color: #666;">vs last month</small>`;
             }
         }
 
-        // Display weekly breakdown data
+        // Display enhanced metrics including averages
+        function displayEnhancedMetrics(summary) {
+            // Create or update enhanced metrics display
+            let metricsDiv = document.getElementById('enhanced-metrics');
+            if (!metricsDiv) {
+                metricsDiv = document.createElement('div');
+                metricsDiv.id = 'enhanced-metrics';
+                metricsDiv.style.cssText = `
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #1976d2;
+                `;
+                
+                // Insert after weekly breakdown
+                const weeklyDiv = document.getElementById('weekly-breakdown');
+                weeklyDiv.parentNode.insertBefore(metricsDiv, weeklyDiv.nextSibling);
+            }
+            
+            metricsDiv.innerHTML = `
+                <h4 style="margin: 0 0 15px 0; color: #1976d2; font-size: 16px;">📊 Enhanced Analytics</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Average Hours/Shift</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #1976d2;">${summary.averageHours} hrs</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Average Distance/Shift</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #1976d2;">${summary.averageDistance} km</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Work Efficiency</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #4caf50;">${((summary.totalHours / summary.workingDays) || 0).toFixed(1)} hrs/day</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Overtime Rate</div>
+                        <div style="font-size: 18px; font-weight: bold; color: ${summary.overtimeHours > 0 ? '#ff9800' : '#4caf50'};">${((summary.overtimeHours / summary.totalHours) * 100 || 0).toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display weekly breakdown data with enhanced styling
         function displayWeeklyBreakdown(weeklyData) {
             const weeklyDiv = document.getElementById('weekly-breakdown');
             weeklyDiv.style.display = 'block';
@@ -912,17 +961,33 @@
                 const weekNum = weekKey.replace('week', '');
                 const data = weeklyData[weekKey];
                 const dataElement = document.getElementById(`week${weekNum}-data`);
+                const cardElement = document.getElementById(`week${weekNum}-card`);
                 
                 if (data.shifts > 0) {
                     dataElement.innerHTML = `
-                        ${data.shifts} shifts<br>
-                        ${data.hours} hrs<br>
-                        ${data.distance} km
+                        <div style="font-weight: bold; color: #1976d2; margin-bottom: 5px;">${data.shifts} shifts</div>
+                        <div style="color: #4caf50;">${data.hours} hrs</div>
+                        <div style="color: #666; font-size: 12px;">${data.distance} km</div>
                     `;
-                    document.getElementById(`week${weekNum}-card`).style.background = '#e8f5e8';
+                    cardElement.style.cssText = `
+                        background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+                        padding: 12px;
+                        border-radius: 8px;
+                        text-align: center;
+                        border-left: 4px solid #4caf50;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    `;
                 } else {
-                    dataElement.textContent = 'No shifts';
-                    document.getElementById(`week${weekNum}-card`).style.background = '#f8f9fa';
+                    dataElement.innerHTML = `
+                        <div style="color: #999; font-style: italic;">No shifts</div>
+                    `;
+                    cardElement.style.cssText = `
+                        background: #f8f9fa;
+                        padding: 12px;
+                        border-radius: 8px;
+                        text-align: center;
+                        border-left: 4px solid #ddd;
+                    `;
                 }
             });
         }
