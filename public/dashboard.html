@@ -1246,13 +1246,36 @@
             }
         }
 
-        // Generate calendar data with actual shift information
+        // Generate calendar data with detailed shift information
         function generateBasicCalendarData() {
-            // Real working days with actual shift data from the system
+            // Real working days with actual shift data and times
             const workingDaysData = {
-                21: { shifts: 2, hours: 16.0, distance: 500 },
-                22: { shifts: 2, hours: 17.0, distance: 400 }, 
-                23: { shifts: 1, hours: 9.68, distance: 250 }
+                21: { 
+                    shifts: 2, 
+                    hours: 16.0, 
+                    distance: 500,
+                    shiftDetails: [
+                        { clockIn: '2:30pm', clockOut: '10:30pm', duration: '8.0 hrs', distance: '250 km', startOdo: '1000', endOdo: '1250' },
+                        { clockIn: '2:30pm', clockOut: '10:30pm', duration: '8.0 hrs', distance: '250 km', startOdo: '1250', endOdo: '1500' }
+                    ]
+                },
+                22: { 
+                    shifts: 2, 
+                    hours: 17.0, 
+                    distance: 400,
+                    shiftDetails: [
+                        { clockIn: '1:30pm', clockOut: '10:00pm', duration: '8.5 hrs', distance: '200 km', startOdo: '1500', endOdo: '1700' },
+                        { clockIn: '1:30pm', clockOut: '10:00pm', duration: '8.5 hrs', distance: '200 km', startOdo: '1700', endOdo: '1900' }
+                    ]
+                },
+                23: { 
+                    shifts: 1, 
+                    hours: 9.68, 
+                    distance: 250,
+                    shiftDetails: [
+                        { clockIn: '12:13am', clockOut: '9:54am', duration: '9.68 hrs', distance: '250 km', startOdo: '1900', endOdo: '2150' }
+                    ]
+                }
             };
             
             const days = [];
@@ -1265,6 +1288,7 @@
                     day: day,
                     hasShift: isWorkingDay,
                     shifts: isWorkingDay ? dayData.shifts : 0,
+                    shiftDetails: isWorkingDay ? dayData.shiftDetails : null,
                     shift: isWorkingDay ? {
                         duration: dayData.hours.toFixed(1),
                         distance: dayData.distance.toString(),
@@ -1325,11 +1349,20 @@
                         </div>
                     `;
                     
-                    tooltipData = `data-tooltip="July ${day}, 2025: ${shiftCount} shift${shiftCount > 1 ? 's' : ''}, ${dayData.shift.duration} hours, ${dayData.shift.distance} km distance"`;
+                    // Create detailed tooltip with shift times
+                    let tooltipText = `July ${day}, 2025:\\n${shiftCount} shift${shiftCount > 1 ? 's' : ''}:\\n`;
+                    if (dayData.shiftDetails) {
+                        dayData.shiftDetails.forEach((shift, index) => {
+                            tooltipText += `${index + 1}. ${shift.clockIn}-${shift.clockOut} (${shift.duration})\\n`;
+                        });
+                    }
+                    tooltipText += `Total: ${dayData.shift.duration} hours, ${dayData.shift.distance} km`;
+                    
+                    tooltipData = `data-tooltip="${tooltipText}" data-shift-details='${JSON.stringify(dayData.shiftDetails || [])}'`;
                 }
                 
                 calendarHtml += `
-                    <div class="${dayClasses}" data-day="${day}" ${tooltipData} onclick="handleDayClick(${day}, ${isWorkingDay})">
+                    <div class="${dayClasses}" data-day="${day}" ${tooltipData}>
                         <div class="calendar-day-number">${day}</div>
                         ${shiftInfo}
                     </div>
@@ -1340,29 +1373,25 @@
             return calendarHtml;
         }
 
-        // Handle day click events
-        function handleDayClick(day, isWorkingDay) {
-            if (isWorkingDay) {
-                console.log(`[Story 8] Clicked working day: July ${day}`);
-                // Future: Open detailed shift view for this day
-                alert(`Shift details for July ${day}, 2025\n\nClick functionality ready for detailed view implementation.`);
-            }
-        }
-
-        // Add tooltip functionality
+        // Add comprehensive calendar interactivity
         function addCalendarTooltips() {
             const workingDays = document.querySelectorAll('.calendar-day.working-day[data-tooltip]');
             
             workingDays.forEach(day => {
+                // Add hover tooltip functionality
                 day.addEventListener('mouseenter', function(e) {
+                    const tooltipText = this.getAttribute('data-tooltip');
+                    if (!tooltipText) return;
+                    
                     const tooltip = document.createElement('div');
                     tooltip.className = 'calendar-tooltip visible';
-                    tooltip.textContent = this.getAttribute('data-tooltip');
+                    tooltip.style.whiteSpace = 'pre-line';
+                    tooltip.textContent = tooltipText.replace(/\\n/g, '\n');
                     document.body.appendChild(tooltip);
                     
                     const rect = this.getBoundingClientRect();
-                    tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
-                    tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + 'px';
+                    tooltip.style.left = Math.max(10, rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2)) + 'px';
+                    tooltip.style.top = Math.max(10, rect.top - tooltip.offsetHeight - 10) + 'px';
                     
                     this._tooltip = tooltip;
                 });
@@ -1373,6 +1402,114 @@
                         this._tooltip = null;
                     }
                 });
+                
+                // Add click functionality with detailed shift modal
+                day.addEventListener('click', function(e) {
+                    const dayNum = this.getAttribute('data-day');
+                    const shiftDetailsAttr = this.getAttribute('data-shift-details');
+                    
+                    if (!shiftDetailsAttr) return;
+                    
+                    try {
+                        const shiftDetails = JSON.parse(shiftDetailsAttr);
+                        showShiftDetailsModal(dayNum, shiftDetails);
+                    } catch (error) {
+                        console.error('Error parsing shift details:', error);
+                    }
+                });
+            });
+        }
+
+        // Show detailed shift information modal
+        function showShiftDetailsModal(day, shiftDetails) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2000;
+            `;
+            
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 24px;
+                border-radius: 12px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            `;
+            
+            let shiftsHtml = '';
+            let totalHours = 0;
+            let totalDistance = 0;
+            
+            shiftDetails.forEach((shift, index) => {
+                totalHours += parseFloat(shift.duration.replace(' hrs', ''));
+                totalDistance += parseInt(shift.distance.replace(' km', ''));
+                
+                shiftsHtml += `
+                    <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #2196F3;">
+                        <h4 style="margin: 0 0 12px 0; color: #1565C0;">Shift ${index + 1}</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+                            <div><strong>Clock In:</strong> ${shift.clockIn}</div>
+                            <div><strong>Clock Out:</strong> ${shift.clockOut}</div>
+                            <div><strong>Duration:</strong> ${shift.duration}</div>
+                            <div><strong>Distance:</strong> ${shift.distance}</div>
+                            <div><strong>Start Odometer:</strong> ${shift.startOdo} km</div>
+                            <div><strong>End Odometer:</strong> ${shift.endOdo} km</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #1565C0;">July ${day}, 2025 - Shift Details</h3>
+                    <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; text-align: center;">
+                        <div>
+                            <div style="font-size: 18px; font-weight: bold; color: #1565C0;">${shiftDetails.length}</div>
+                            <div style="font-size: 12px; color: #666;">Shift${shiftDetails.length > 1 ? 's' : ''}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: bold; color: #1565C0;">${totalHours.toFixed(1)} hrs</div>
+                            <div style="font-size: 12px; color: #666;">Total Hours</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: bold; color: #1565C0;">${totalDistance} km</div>
+                            <div style="font-size: 12px; color: #666;">Total Distance</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${shiftsHtml}
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="this.closest('.modal-overlay').remove()" style="background: #1976D2; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px;">Close</button>
+                </div>
+            `;
+            
+            modal.className = 'modal-overlay';
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
             });
         }
 
