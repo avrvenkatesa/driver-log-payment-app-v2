@@ -830,7 +830,7 @@
             
             const historyHtml = history.map(item => `
                 <div class="history-item">
-                    <div class="history-timestamp">${convertToIST(item.changed_at)}</div>
+                    <div class="history-timestamp">${item.changed_at} IST</div>
                     <div class="history-changes">
                         <span class="history-change">Salary: ₹${item.monthly_salary.toLocaleString()}</span>
                         <span class="history-change">Overtime: ₹${item.overtime_rate}/hour</span>

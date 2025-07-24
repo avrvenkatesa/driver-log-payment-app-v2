@@ -3,6 +3,30 @@ const router = express.Router();
 const payrollDB = require('../database/payroll');
 const { authMiddleware } = require('../auth/auth');
 
+// FIXED: Add IST timezone conversion for admin timestamps (same as driver routes)
+function convertToIST(utcTimestamp) {
+  if (!utcTimestamp) return null;
+  
+  const date = new Date(utcTimestamp);
+  
+  // Debug: Log the conversion process
+  console.log(`[IST Convert Admin] UTC: ${utcTimestamp} => Converting to IST`);
+  
+  const istString = date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  
+  console.log(`[IST Convert Admin] Result: ${istString}`);
+  return istString;
+}
+
 /**
  * Admin Routes for Payroll Configuration Management
  * Story 9: Payroll Configuration System
@@ -138,11 +162,17 @@ router.get('/payroll-config-history', authMiddleware, async (req, res) => {
     
     const result = await payrollDB.getConfigHistory(limit, offset);
     
-    console.log(`[${new Date().toISOString()}] ✅ Payroll config history retrieved (${result.history.length} records)`);
+    // FIXED: Apply IST conversion to all timestamps in history
+    const historyWithIST = result.history.map(config => ({
+      ...config,
+      changed_at: convertToIST(config.changed_at)
+    }));
+    
+    console.log(`[${new Date().toISOString()}] ✅ Payroll config history retrieved (${result.history.length} records) with IST conversion`);
     
     res.json({
       success: true,
-      data: result.history,
+      data: historyWithIST,
       pagination: result.pagination
     });
     
