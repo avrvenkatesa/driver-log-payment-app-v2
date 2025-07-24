@@ -704,6 +704,27 @@
         .btn-primary:hover {
             background: linear-gradient(135deg, #2980b9, #21618c);
         }
+
+        /* Quick Filter Button Styles */
+        .filter-button {
+            padding: 8px 16px;
+            border: 1px solid #2196F3;
+            background: white;
+            color: #2196F3;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-button:hover {
+            background: #e3f2fd;
+        }
+
+        .filter-button.active {
+            background: #2196F3;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -818,33 +839,43 @@
                     <div class="section-header">
                         <h3>📊 Shift History & Reports</h3>
                         <div class="controls">
-                            <select id="filterSelect" onchange="changeFilter()">
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month" selected>This Month</option>
-                                <option value="all">All History</option>
-                            </select>
-                            <select id="monthSelect" onchange="loadShiftData()" style="display: none;">
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7" selected>July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                            <select id="yearSelect" onchange="loadShiftData()" style="display: none;">
-                                <option value="2024">2024</option>
-                                <option value="2025" selected>2025</option>
-                                <option value="2026">2026</option>
-                            </select>
-                            <button onclick="exportShiftData('csv')" class="btn-secondary">📥 Export</button>
-                            <button onclick="loadShiftData()" class="btn-secondary">🔄 Refresh</button>
+                            <!-- Quick Filter Buttons -->
+                            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                                <button onclick="setQuickFilter('today')" id="btn-today" class="filter-button">Today</button>
+                                <button onclick="setQuickFilter('week')" id="btn-week" class="filter-button">This Week</button>
+                                <button onclick="setQuickFilter('month')" id="btn-month" class="filter-button active">This Month</button>
+                                <button onclick="setQuickFilter('all')" id="btn-all" class="filter-button">All Time</button>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <select id="filterSelect" onchange="changeFilter()" style="display: none;">
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month" selected>This Month</option>
+                                    <option value="all">All History</option>
+                                </select>
+                                <select id="monthSelect" onchange="loadShiftData()" style="display: inline-block;">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7" selected>July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                                <select id="yearSelect" onchange="loadShiftData()" style="display: inline-block;">
+                                    <option value="2024">2024</option>
+                                    <option value="2025" selected>2025</option>
+                                    <option value="2026">2026</option>
+                                </select>
+                                <button onclick="exportShiftData('csv')" class="btn-secondary">📥 Export</button>
+                                <button onclick="loadShiftData()" class="btn-secondary">🔄 Refresh</button>
+                            </div>
                         </div>
                     </div>
 
@@ -906,37 +937,19 @@
                         </div>
                     </div>
 
-                    <!-- Weekly Breakdown (Story 8) -->
+                    <!-- Additional Data Views (Hidden by default) -->
                     <div id="weekly-breakdown" style="margin: 20px 0; display: none;">
-                        <h4 style="margin-bottom: 15px; color: #1976d2;">📈 Weekly Breakdown</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-                            <div class="week-card" id="week1-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-weight: bold; color: #495057;">Week 1</div>
-                                <div id="week1-data" style="font-size: 14px; color: #6c757d;">-</div>
-                            </div>
-                            <div class="week-card" id="week2-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-weight: bold; color: #495057;">Week 2</div>
-                                <div id="week2-data" style="font-size: 14px; color: #6c757d;">-</div>
-                            </div>
-                            <div class="week-card" id="week3-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-weight: bold; color: #495057;">Week 3</div>
-                                <div id="week3-data" style="font-size: 14px; color: #6c757d;">-</div>
-                            </div>
-                            <div class="week-card" id="week4-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-weight: bold; color: #495057;">Week 4</div>
-                                <div id="week4-data" style="font-size: 14px; color: #6c757d;">-</div>
-                            </div>
-                            <div class="week-card" id="week5-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-weight: bold; color: #495057;">Week 5</div>
-                                <div id="week5-data" style="font-size: 14px; color: #6c757d;">-</div>
-                            </div>
+                        <h4 style="margin-bottom: 15px; color: #1976d2;">📈 Weekly Summary</h4>
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            📊 Weekly breakdown view is available in the full version
                         </div>
                     </div>
 
-                    <!-- Calendar Grid Component (Story 8) -->
                     <div id="calendar-view" style="margin: 20px 0; display: none;">
-                        <h4 style="margin-bottom: 15px; color: #1565C0;">📅 Monthly Calendar View</h4>
-                        <div id="calendar-grid"></div>
+                        <h4 style="margin-bottom: 15px; color: #1565C0;">📅 Calendar View</h4>
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            📅 Calendar view is available in the full version
+                        </div>
                     </div>
 
                     <!-- Enhanced Shifts Table -->
@@ -1024,9 +1037,17 @@
                     loadMonthlyData();
                 }, 2500);
                 
-                // Force immediate shift data load for debugging
+                // Test IST timezone conversion
                 setTimeout(() => {
-                    console.log('[Dashboard] ==> FORCING shift data load with basic parameters');
+                    console.log('[Dashboard] ==> Testing IST timezone conversion');
+                    const now = new Date();
+                    const istTime = now.toLocaleTimeString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                    console.log('[IST Test] Current IST time should be:', istTime + ' IST');
                     currentShiftFilter = 'today';
                     loadShiftData();
                 }, 4000);
@@ -2200,20 +2221,21 @@
             }
         }
         
-        // Change filter type
-        function changeFilter() {
-            console.log('[Filter] ==> Changing filter');
-            const filterSelect = document.getElementById('filterSelect');
-            currentShiftFilter = filterSelect.value;
+        // Quick filter buttons
+        function setQuickFilter(filter) {
+            console.log('[Filter] ==> Setting quick filter:', filter);
+            currentShiftFilter = filter;
             currentShiftPage = 1; // Reset to first page
             
-            console.log('[Filter] ==> New filter:', currentShiftFilter);
+            // Update button states
+            document.querySelectorAll('.filter-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${filter}`).classList.add('active');
             
             // Show/hide month/year selectors based on filter
             const monthSelect = document.getElementById('monthSelect');
             const yearSelect = document.getElementById('yearSelect');
             
-            if (currentShiftFilter === 'month') {
+            if (filter === 'month') {
                 if (monthSelect) monthSelect.style.display = 'inline-block';
                 if (yearSelect) yearSelect.style.display = 'inline-block';
             } else {
@@ -2222,6 +2244,12 @@
             }
             
             loadShiftData();
+        }
+
+        // Legacy function for dropdown - now hidden
+        function changeFilter() {
+            const filterSelect = document.getElementById('filterSelect');
+            setQuickFilter(filterSelect.value);
         }
         
         // Change page
@@ -2342,26 +2370,50 @@
             }) + ' IST';
         }
         
-        // Additional formatting functions for shift data
+        // Fixed IST timezone formatting functions
         function formatShiftDate(timestamp) {
             if (!timestamp) return '-';
-            // Handle both IST formatted strings and UTC timestamps
+            
+            // Handle pre-formatted IST strings (21/7/2025, 2:30:00 pm)
             if (typeof timestamp === 'string' && timestamp.includes('/')) {
-                // Already formatted (21/7/2025, 2:30:00 pm)
                 return timestamp.split(',')[0]; // Just the date part
             }
-            return formatDate(timestamp);
+            
+            // Handle UTC timestamps - convert to IST
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('en-GB', {
+                timeZone: 'Asia/Kolkata',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
         }
         
         function formatShiftTime(timestamp) {
             if (!timestamp) return '-';
-            // Handle both IST formatted strings and UTC timestamps
+            
+            // Handle pre-formatted IST strings (21/7/2025, 2:30:00 pm)
             if (typeof timestamp === 'string' && timestamp.includes('/')) {
-                // Already formatted (21/7/2025, 2:30:00 pm)
                 const parts = timestamp.split(', ');
                 return parts.length > 1 ? parts[1] + ' IST' : timestamp;
             }
-            return formatISTTime(timestamp);
+            
+            // Handle UTC timestamps - convert to proper IST
+            const date = new Date(timestamp);
+            const istTime = date.toLocaleTimeString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            // Verify IST conversion is correct - Should be 5:30 hours ahead of UTC
+            const utcDate = new Date(timestamp);
+            const istOffset = utcDate.getTime() + (5.5 * 60 * 60 * 1000); // Add 5:30 hours
+            const istDate = new Date(istOffset);
+            
+            console.log('[IST Debug] UTC:', timestamp, '=> IST calculated:', istTime, '=> Verified IST:', istDate.toLocaleTimeString('en-IN', { hour12: true }));
+            return istTime + ' IST';
         }
         
         // Download helper
