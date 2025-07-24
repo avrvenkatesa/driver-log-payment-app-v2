@@ -1004,16 +1004,35 @@
         let currentPageSize = 10;
         
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('[Dashboard] DOM loaded, initializing...');
-            console.log('[Dashboard] Auth token present:', !!authToken);
+            console.log('[Dashboard] ==> DOM loaded, initializing...');
+            console.log('[Dashboard] ==> Auth token present:', !!authToken);
+            console.log('[Dashboard] ==> Current shift filter:', currentShiftFilter);
             
             if (authToken) {
+                console.log('[Dashboard] ==> Loading dashboard and shift data...');
                 loadDashboard();
-                // Load shift data after dashboard initialization
+                
+                // Load shift data immediately after dashboard - with extra debugging
                 setTimeout(() => {
+                    console.log('[Dashboard] ==> Triggering initial shift data load');
                     loadShiftData();
-                }, 1000);
+                }, 1500);
+                
+                // Load monthly data as backup for testing
+                setTimeout(() => {
+                    console.log('[Dashboard] ==> Loading monthly data as backup');
+                    loadMonthlyData();
+                }, 2500);
+                
+                // Force immediate shift data load for debugging
+                setTimeout(() => {
+                    console.log('[Dashboard] ==> FORCING shift data load with basic parameters');
+                    currentShiftFilter = 'today';
+                    loadShiftData();
+                }, 4000);
+                
             } else {
+                console.log('[Dashboard] ==> No auth token, showing login');
                 showLogin();
             }
             
@@ -1021,8 +1040,9 @@
             setInterval(() => {
                 if (authToken && document.getElementById('dashboard-container').style.display !== 'none') {
                     loadDashboard();
-                    // Refresh shift data less frequently to avoid overwhelming
+                    // Refresh shift data periodically
                     if (Math.random() < 0.3) { // 30% chance to refresh shift data
+                        console.log('[Dashboard] ==> Auto-refreshing shift data');
                         loadShiftData();
                     }
                 }
@@ -1994,9 +2014,12 @@
         
         // ===== ENHANCED SHIFT DATA MANAGEMENT =====
         
-        // Load shift data based on current filter
+        // Enhanced shift data loading with comprehensive debugging
         async function loadShiftData() {
-            console.log('[Shift Data] Loading shifts with filter:', currentShiftFilter);
+            console.log('[Shift Data] ==> Loading shifts with filter:', currentShiftFilter);
+            console.log('[Shift Data] ==> Current page:', currentShiftPage, 'Page size:', currentPageSize);
+            console.log('[Shift Data] ==> Auth token available:', !!authToken);
+            
             showShiftLoading();
             hideShiftError();
             
@@ -2021,64 +2044,124 @@
                         endpoint = `/api/driver/shifts/monthly/${selectedYear}/${selectedMonth}?page=${currentShiftPage}&limit=${currentPageSize}`;
                         break;
                     case 'all':
-                        endpoint = `/api/driver/shifts/monthly/${year}/1?page=${currentShiftPage}&limit=${currentPageSize}&all=true`;
+                        // Use monthly endpoint with broader date range for all shifts
+                        endpoint = `/api/driver/shifts/monthly/${year}/${month}?page=${currentShiftPage}&limit=100`;
                         break;
                     default:
                         endpoint = `/api/driver/shifts/monthly/${year}/${month}?page=${currentShiftPage}&limit=${currentPageSize}`;
                 }
 
+                console.log('[Shift Data] ==> API Endpoint:', endpoint);
+
                 const response = await fetch(endpoint, {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
                     }
                 });
 
+                console.log('[Shift Data] ==> Response status:', response.status);
+                console.log('[Shift Data] ==> Response headers:', Object.fromEntries(response.headers.entries()));
+
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: Failed to load shift data`);
+                    const errorText = await response.text();
+                    console.error('[Shift Data] ==> Error response body:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
                 const data = await response.json();
+                console.log('[Shift Data] ==> Full API Response:', data);
+                console.log('[Shift Data] ==> Response success:', data.success);
+                console.log('[Shift Data] ==> Response data keys:', data.data ? Object.keys(data.data) : 'No data object');
+                
+                if (data.data && data.data.shifts) {
+                    console.log('[Shift Data] ==> Shifts array length:', data.data.shifts.length);
+                    console.log('[Shift Data] ==> Sample shift:', data.data.shifts[0]);
+                } else {
+                    console.log('[Shift Data] ==> No shifts data found in response');
+                }
                 
                 if (data.success) {
                     displayShiftData(data.data);
                     updateShiftPagination(data.data.pagination || {});
                     updateResultsInfo(data.data);
                 } else {
+                    console.error('[Shift Data] ==> API returned success: false, message:', data.message);
                     throw new Error(data.message || 'Failed to load shift data');
                 }
 
             } catch (error) {
-                console.error('[Shift Data] Error loading shifts:', error);
+                console.error('[Shift Data] ==> CRITICAL ERROR:', error);
+                console.error('[Shift Data] ==> Error stack:', error.stack);
+                
+                // Try fallback to monthly data if main shift data fails
+                console.log('[Shift Data] ==> Trying fallback to monthly data...');
+                try {
+                    const fallbackResponse = await fetch('/api/driver/shifts/monthly/2025/7', {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (fallbackResponse.ok) {
+                        const fallbackData = await fallbackResponse.json();
+                        console.log('[Shift Data] ==> Fallback data loaded:', fallbackData);
+                        if (fallbackData.success && fallbackData.data) {
+                            displayShiftData(fallbackData.data);
+                            updateShiftPagination(fallbackData.data.pagination || {});
+                            updateResultsInfo(fallbackData.data);
+                            console.log('[Shift Data] ==> Fallback successful');
+                            return;
+                        }
+                    }
+                } catch (fallbackError) {
+                    console.error('[Shift Data] ==> Fallback also failed:', fallbackError);
+                }
+                
                 showShiftError(error.message);
             } finally {
                 hideShiftLoading();
             }
         }
         
-        // Display shift data in table
+        // Enhanced shift data display with debugging
         function displayShiftData(data) {
+            console.log('[Display] ==> Displaying shift data:', data);
+            
             const tableBody = document.getElementById('shifts-table-body');
+            if (!tableBody) {
+                console.error('[Display] ==> CRITICAL: shifts-table-body element not found!');
+                return;
+            }
+            
             const shifts = data.shifts || [];
+            console.log('[Display] ==> Processing shifts array length:', shifts.length);
             
             if (shifts.length === 0) {
+                console.log('[Display] ==> No shifts to display, showing empty message');
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
-                            📭 No shifts found for this period
+                            📭 No shifts found for this period<br>
+                            <small style="color: #666; margin-top: 10px;">Filter: ${currentShiftFilter}</small>
                         </td>
                     </tr>
                 `;
                 return;
             }
             
-            tableBody.innerHTML = shifts.map(shift => {
+            console.log('[Display] ==> Rendering', shifts.length, 'shifts');
+            
+            tableBody.innerHTML = shifts.map((shift, index) => {
+                console.log(`[Display] ==> Processing shift ${index}:`, shift);
                 const statusClass = shift.status === 'active' ? 'status-active' : 'status-completed';
                 return `
                     <tr>
-                        <td>${formatDate(shift.clock_in_time)}</td>
-                        <td>${formatISTTime(shift.clock_in_time)}</td>
-                        <td>${shift.clock_out_time ? formatISTTime(shift.clock_out_time) : '-'}</td>
-                        <td>${shift.duration_hours ? shift.duration_hours + ' hrs' : '-'}</td>
+                        <td>${formatShiftDate(shift.clock_in_time)}</td>
+                        <td>${formatShiftTime(shift.clock_in_time)}</td>
+                        <td>${shift.clock_out_time ? formatShiftTime(shift.clock_out_time) : '-'}</td>
+                        <td>${shift.duration_hours ? shift.duration_hours + ' hrs' : (shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(1) + ' hrs' : '-')}</td>
                         <td>${shift.total_distance || 0} km</td>
                         <td>${shift.start_odometer}</td>
                         <td>${shift.end_odometer || '-'}</td>
@@ -2086,6 +2169,8 @@
                     </tr>
                 `;
             }).join('');
+            
+            console.log('[Display] ==> Table HTML updated successfully');
         }
         
         // Update pagination controls
@@ -2117,20 +2202,23 @@
         
         // Change filter type
         function changeFilter() {
+            console.log('[Filter] ==> Changing filter');
             const filterSelect = document.getElementById('filterSelect');
             currentShiftFilter = filterSelect.value;
             currentShiftPage = 1; // Reset to first page
+            
+            console.log('[Filter] ==> New filter:', currentShiftFilter);
             
             // Show/hide month/year selectors based on filter
             const monthSelect = document.getElementById('monthSelect');
             const yearSelect = document.getElementById('yearSelect');
             
             if (currentShiftFilter === 'month') {
-                monthSelect.style.display = 'inline-block';
-                yearSelect.style.display = 'inline-block';
+                if (monthSelect) monthSelect.style.display = 'inline-block';
+                if (yearSelect) yearSelect.style.display = 'inline-block';
             } else {
-                monthSelect.style.display = 'none';
-                yearSelect.style.display = 'none';
+                if (monthSelect) monthSelect.style.display = 'none';
+                if (yearSelect) yearSelect.style.display = 'none';
             }
             
             loadShiftData();
@@ -2254,6 +2342,28 @@
             }) + ' IST';
         }
         
+        // Additional formatting functions for shift data
+        function formatShiftDate(timestamp) {
+            if (!timestamp) return '-';
+            // Handle both IST formatted strings and UTC timestamps
+            if (typeof timestamp === 'string' && timestamp.includes('/')) {
+                // Already formatted (21/7/2025, 2:30:00 pm)
+                return timestamp.split(',')[0]; // Just the date part
+            }
+            return formatDate(timestamp);
+        }
+        
+        function formatShiftTime(timestamp) {
+            if (!timestamp) return '-';
+            // Handle both IST formatted strings and UTC timestamps
+            if (typeof timestamp === 'string' && timestamp.includes('/')) {
+                // Already formatted (21/7/2025, 2:30:00 pm)
+                const parts = timestamp.split(', ');
+                return parts.length > 1 ? parts[1] + ' IST' : timestamp;
+            }
+            return formatISTTime(timestamp);
+        }
+        
         // Download helper
         function downloadFile(content, filename, mimeType) {
             const blob = new Blob([content], { type: mimeType });
@@ -2266,6 +2376,15 @@
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+        }
+        
+        // Get ISO week number
+        function getWeekNumber(date) {
+            const tempDate = new Date(date.getTime());
+            tempDate.setHours(0, 0, 0, 0);
+            tempDate.setDate(tempDate.getDate() + 3 - (tempDate.getDay() + 6) % 7);
+            const week1 = new Date(tempDate.getFullYear(), 0, 4);
+            return 1 + Math.round(((tempDate.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
         }
 
         // ====== LEGACY SHIFT HISTORY FUNCTIONALITY (Story 8) ======
