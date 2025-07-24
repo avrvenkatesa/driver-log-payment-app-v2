@@ -705,7 +705,7 @@
                         </div>
                         <div class="info-row">
                             <span class="info-label">Start Odometer:</span>
-                            <span class="info-value" id="start-odometer">-</span>
+                            <span class="info-value" id="start-odometer-display">-</span>
                         </div>
                     </div>
                     <button class="btn" onclick="refreshStatus()">Refresh Status</button>
@@ -739,14 +739,14 @@
                             <label for="start-odometer">Start Odometer Reading:</label>
                             <input type="number" id="start-odometer" name="startOdometer" required placeholder="Enter odometer reading" min="0">
                         </div>
-                        <button class="btn" onclick="clockIn()" id="clock-in-btn">🕐 Clock In</button>
+                        <button type="button" class="btn" onclick="clockIn()" id="clock-in-btn">🕐 Clock In</button>
                     </div>
                     <div id="clock-out-form" style="display: none;">
                         <div class="form-group">
                             <label for="end-odometer">End Odometer Reading:</label>
                             <input type="number" id="end-odometer" name="endOdometer" required placeholder="Enter odometer reading" min="0">
                         </div>
-                        <button class="btn" onclick="clockOut()" id="clock-out-btn">🕕 Clock Out</button>
+                        <button type="button" class="btn" onclick="clockOut()" id="clock-out-btn">🕕 Clock Out</button>
                     </div>
                     <div id="clock-message" style="text-align: center; padding: 20px; color: #7f8c8d;">
                         Loading shift actions...
@@ -1061,7 +1061,7 @@
                 document.getElementById('active-shift-info').style.display = 'block';
                 document.getElementById('clock-in-time').textContent = formatDateTime(data.shift.currentShift.clockInTime);
                 document.getElementById('shift-duration').textContent = formatDuration(data.shift.currentShift.currentDuration);
-                document.getElementById('start-odometer').textContent = data.shift.currentShift.startOdometer + ' km';
+                document.getElementById('start-odometer-display').textContent = data.shift.currentShift.startOdometer + ' km';
                 
                 // Show clock-out form, hide clock-in form
                 document.getElementById('clock-in-form').style.display = 'none';
@@ -1796,18 +1796,40 @@
             showLogin();
         }
         
-        // Clock in function
+        // Clock in function with enhanced debugging
         async function clockIn() {
-            const startOdometer = document.getElementById('start-odometer').value;
+            console.log('🕐 Clock-in function called!');
+            console.log('Auth token available:', !!authToken);
+            
+            const startOdometerElement = document.getElementById('start-odometer');
+            console.log('Start odometer element found:', !!startOdometerElement);
+            
+            if (!startOdometerElement) {
+                console.error('❌ start-odometer element not found!');
+                showError('Error: Odometer input field not found');
+                return;
+            }
+            
+            const startOdometer = startOdometerElement.value;
+            console.log('Start odometer value:', startOdometer);
             
             if (!startOdometer || startOdometer < 0) {
+                console.log('❌ Invalid odometer reading:', startOdometer);
                 showError('Please enter a valid odometer reading');
                 return;
             }
             
             try {
-                document.getElementById('clock-in-btn').disabled = true;
-                document.getElementById('clock-in-btn').textContent = 'Clocking In...';
+                console.log('⏳ Starting clock-in process...');
+                
+                const clockInBtn = document.getElementById('clock-in-btn');
+                if (clockInBtn) {
+                    clockInBtn.disabled = true;
+                    clockInBtn.textContent = 'Clocking In...';
+                }
+                
+                console.log('📡 Making API call to /api/driver/clock-in');
+                console.log('Request data:', { startOdometer: parseInt(startOdometer) });
                 
                 const response = await fetch('/api/driver/clock-in', {
                     method: 'POST',
@@ -1818,20 +1840,31 @@
                     body: JSON.stringify({ startOdometer: parseInt(startOdometer) })
                 });
                 
+                console.log('📡 API response status:', response.status);
+                console.log('📡 API response ok:', response.ok);
+                
                 const data = await response.json();
+                console.log('📡 API response data:', data);
                 
                 if (data.success) {
+                    console.log('✅ Clock-in successful!');
                     showSuccess('Successfully clocked in! Your shift has started.');
-                    document.getElementById('start-odometer').value = '';
+                    startOdometerElement.value = '';
                     loadDashboard(); // Refresh dashboard to show updated status
                 } else {
+                    console.log('❌ Clock-in failed:', data.message);
                     showError('Clock-in failed: ' + data.message);
                 }
             } catch (error) {
-                showError('Network error: Unable to clock in');
+                console.error('❌ Network error during clock-in:', error);
+                showError('Network error: Unable to clock in - ' + error.message);
             } finally {
-                document.getElementById('clock-in-btn').disabled = false;
-                document.getElementById('clock-in-btn').textContent = '🕐 Clock In';
+                console.log('🔄 Resetting clock-in button...');
+                const clockInBtn = document.getElementById('clock-in-btn');
+                if (clockInBtn) {
+                    clockInBtn.disabled = false;
+                    clockInBtn.textContent = '🕐 Clock In';
+                }
             }
         }
         
