@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const payrollDB = require('../database/payroll');
-const { authMiddleware } = require('../auth/auth');
+const { authMiddleware, requireAdminOnly, requireDriverOrAdmin } = require('../auth/auth');
 
 // FIXED: Add IST timezone conversion for admin timestamps (same as driver routes)
 function convertToIST(utcTimestamp) {
@@ -49,7 +49,7 @@ async function initializePayrollSystem() {
  * GET /api/admin/payroll-config
  * Get current payroll configuration
  */
-router.get('/payroll-config', authMiddleware, async (req, res) => {
+router.get('/payroll-config', requireAdminOnly, async (req, res) => {
   try {
     console.log(`[${new Date().toISOString()}] GET /api/admin/payroll-config - IP: ${req.ip}`);
     
@@ -76,7 +76,7 @@ router.get('/payroll-config', authMiddleware, async (req, res) => {
  * POST /api/admin/payroll-config
  * Save new payroll configuration
  */
-router.post('/payroll-config', authMiddleware, async (req, res) => {
+router.post('/payroll-config', requireAdminOnly, async (req, res) => {
   try {
     console.log(`[${new Date().toISOString()}] POST /api/admin/payroll-config - IP: ${req.ip}`);
     console.log(`[${new Date().toISOString()}] Request body:`, req.body);
@@ -145,7 +145,7 @@ router.post('/payroll-config', authMiddleware, async (req, res) => {
  * GET /api/admin/payroll-config-history
  * Get payroll configuration history with pagination
  */
-router.get('/payroll-config-history', authMiddleware, async (req, res) => {
+router.get('/payroll-config-history', requireAdminOnly, async (req, res) => {
   try {
     console.log(`[${new Date().toISOString()}] GET /api/admin/payroll-config-history - IP: ${req.ip}`);
     
@@ -190,7 +190,7 @@ router.get('/payroll-config-history', authMiddleware, async (req, res) => {
  * GET /api/admin/config
  * Get simplified current configuration (for other systems)
  */
-router.get('/config', authMiddleware, async (req, res) => {
+router.get('/config', requireAdminOnly, async (req, res) => {
   try {
     console.log(`[${new Date().toISOString()}] GET /api/admin/config - IP: ${req.ip}`);
     
@@ -217,7 +217,7 @@ router.get('/config', authMiddleware, async (req, res) => {
  * GET /api/admin/payroll-config/impact
  * Calculate impact of potential configuration changes (preview mode)
  */
-router.post('/payroll-config/impact', authMiddleware, async (req, res) => {
+router.post('/payroll-config/impact', requireAdminOnly, async (req, res) => {
   try {
     console.log(`[${new Date().toISOString()}] POST /api/admin/payroll-config/impact - IP: ${req.ip}`);
     
@@ -261,7 +261,7 @@ router.post('/payroll-config/impact', authMiddleware, async (req, res) => {
  * GET /api/admin/payroll-config/health
  * Health check for payroll configuration system
  */
-router.get('/payroll-config/health', authMiddleware, async (req, res) => {
+router.get('/payroll-config/health', requireAdminOnly, async (req, res) => {
   try {
     const health = await payrollDB.healthCheck();
     

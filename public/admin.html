@@ -510,6 +510,17 @@
                 return;
             }
             
+            // RBAC: Check if user is admin before allowing access
+            const userRole = getUserRoleFromToken();
+            if (userRole !== 'admin') {
+                showAlert('Access denied. Admin privileges required to access this panel.', 'error');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+                return;
+            }
+            
+            console.log('[RBAC] Admin access granted for user with role:', userRole);
             loadCurrentConfig();
             loadConfigHistory();
         });
@@ -863,6 +874,22 @@
                     const alert = container.querySelector('.alert');
                     if (alert) alert.remove();
                 }, 5000);
+            }
+        }
+        
+        // RBAC: Extract user role from JWT token
+        function getUserRoleFromToken() {
+            if (!authToken) return 'driver';
+            
+            try {
+                const tokenParts = authToken.split('.');
+                if (tokenParts.length !== 3) return 'driver';
+                
+                const payload = JSON.parse(atob(tokenParts[1]));
+                return payload.role || 'driver';
+            } catch (error) {
+                console.error('[RBAC] Error parsing token:', error);
+                return 'driver';
             }
         }
     </script>

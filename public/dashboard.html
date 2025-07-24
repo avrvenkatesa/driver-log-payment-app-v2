@@ -807,8 +807,17 @@
                         <span class="info-value" id="driver-email">Loading...</span>
                     </div>
                     <div class="info-row">
+                        <span class="info-label">Role:</span>
+                        <span class="info-value" id="user-role">Loading...</span>
+                    </div>
+                    <div class="info-row">
                         <span class="info-label">Account Status:</span>
                         <span class="info-value" id="driver-status">Loading...</span>
+                    </div>
+                    <!-- RBAC: Admin Controls (hidden for drivers) -->
+                    <div id="admin-controls" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #3498db;">
+                        <button class="btn" onclick="openAdminPanel()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); margin-bottom: 10px;">🔧 Admin Panel</button>
+                        <button class="btn" onclick="viewAllDrivers()" style="background: linear-gradient(135deg, #f39c12, #e67e22); margin-bottom: 10px;">👥 View All Drivers</button>
                     </div>
                     <button class="btn" onclick="logout()">Logout</button>
                 </div>
@@ -1152,6 +1161,18 @@
             document.getElementById('driver-phone').textContent = data.driver.phone || 'Not provided';
             document.getElementById('driver-email').textContent = data.driver.email || 'Not provided';
             document.getElementById('driver-status').textContent = data.driver.isActive ? 'Active' : 'Inactive';
+            
+            // RBAC: Show role and admin controls if user is admin
+            const userRole = getUserRoleFromToken();
+            document.getElementById('user-role').textContent = userRole.charAt(0).toUpperCase() + userRole.slice(1);
+            
+            if (userRole === 'admin') {
+                document.getElementById('admin-controls').style.display = 'block';
+                console.log('[RBAC] Admin controls displayed for admin user');
+            } else {
+                document.getElementById('admin-controls').style.display = 'none';
+                console.log('[RBAC] Admin controls hidden for driver user');
+            }
             
             // Update shift status
             const hasActiveShift = data.shift.hasActiveShift;
@@ -2038,6 +2059,44 @@
             setTimeout(() => {
                 errorContainer.innerHTML = '';
             }, 5000);
+        }
+        
+        // RBAC: Extract user role from JWT token
+        function getUserRoleFromToken() {
+            if (!authToken) return 'driver';
+            
+            try {
+                const tokenParts = authToken.split('.');
+                if (tokenParts.length !== 3) return 'driver';
+                
+                const payload = JSON.parse(atob(tokenParts[1]));
+                return payload.role || 'driver';
+            } catch (error) {
+                console.error('[RBAC] Error parsing token:', error);
+                return 'driver';
+            }
+        }
+        
+        // RBAC: Open admin panel (only for admins)
+        function openAdminPanel() {
+            const userRole = getUserRoleFromToken();
+            if (userRole !== 'admin') {
+                showError('Access denied. Admin privileges required.');
+                return;
+            }
+            console.log('[RBAC] Opening admin panel for admin user');
+            window.open('/admin', '_blank');
+        }
+        
+        // RBAC: View all drivers (admin monitoring feature)
+        function viewAllDrivers() {
+            const userRole = getUserRoleFromToken();
+            if (userRole !== 'admin') {
+                showError('Access denied. Admin privileges required.');
+                return;
+            }
+            console.log('[RBAC] Admin viewing all drivers');
+            showSuccess('Admin monitoring feature - View all drivers functionality coming soon!');
         }
         
         // ===== ENHANCED SHIFT DATA MANAGEMENT =====

@@ -1,5 +1,5 @@
 const express = require('express');
-const { authMiddleware } = require('../auth/auth');
+const { authMiddleware, requireDriverOrAdmin } = require('../auth/auth');
 const { driverHelpers, shiftHelpers } = require('../database/index');
 const dbConnection = require('../database/connection');
 
@@ -54,7 +54,7 @@ function formatISTTimestamp(utcTimestamp) {
  * Get current driver status and active shift information
  * GET /api/driver/status
  */
-router.get('/status', authMiddleware, async (req, res) => {
+router.get('/status', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     
@@ -142,7 +142,7 @@ router.get('/status', authMiddleware, async (req, res) => {
  * Clock in - Start a new shift
  * POST /api/driver/clock-in
  */
-router.post('/clock-in', authMiddleware, async (req, res) => {
+router.post('/clock-in', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { startOdometer } = req.body;
@@ -222,7 +222,7 @@ router.post('/clock-in', authMiddleware, async (req, res) => {
  * Clock out - Complete current shift
  * POST /api/driver/clock-out
  */
-router.post('/clock-out', authMiddleware, async (req, res) => {
+router.post('/clock-out', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { endOdometer } = req.body;
@@ -305,7 +305,7 @@ router.post('/clock-out', authMiddleware, async (req, res) => {
  * Get driver profile information
  * GET /api/driver/profile
  */
-router.get('/profile', authMiddleware, async (req, res) => {
+router.get('/profile', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const driver = await driverHelpers.getDriverById(driverId);
@@ -337,7 +337,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
  * Get daily shift history for a specific date
  * GET /api/driver/shifts/daily/:date (YYYY-MM-DD format)
  */
-router.get('/shifts/daily/:date', authMiddleware, async (req, res) => {
+router.get('/shifts/daily/:date', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { date } = req.params;
@@ -434,7 +434,7 @@ router.get('/shifts/daily/:date', authMiddleware, async (req, res) => {
  * Get weekly shift history 
  * GET /api/driver/shifts/weekly/:year/:week (ISO week numbers)
  */
-router.get('/shifts/weekly/:year/:week', authMiddleware, async (req, res) => {
+router.get('/shifts/weekly/:year/:week', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { year, week } = req.params;
@@ -531,7 +531,7 @@ router.get('/shifts/weekly/:year/:week', authMiddleware, async (req, res) => {
  * Get enhanced monthly shift summary with calendar view
  * GET /api/driver/shifts/monthly/:year/:month (Story 8 Enhancement)
  */
-router.get('/shifts/monthly/:year/:month', authMiddleware, async (req, res) => {
+router.get('/shifts/monthly/:year/:month', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { year, month } = req.params;
@@ -770,7 +770,7 @@ function generateWeeklyBreakdown(year, month, shifts) {
  * Export monthly shift report (Story 8 Enhancement)
  * GET /api/driver/shifts/monthly/:year/:month/export?format=csv|pdf
  */
-router.get('/shifts/monthly/:year/:month/export', authMiddleware, async (req, res) => {
+router.get('/shifts/monthly/:year/:month/export', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { year, month } = req.params;
@@ -883,7 +883,7 @@ router.get('/shifts/monthly/:year/:month/export', authMiddleware, async (req, re
  * Export shift data with date range filtering
  * GET /api/driver/shifts/export?start=date&end=date&format=csv|json
  */
-router.get('/shifts/export', authMiddleware, async (req, res) => {
+router.get('/shifts/export', requireDriverOrAdmin, async (req, res) => {
   try {
     const driverId = req.driver.id;
     const { start, end, format = 'json' } = req.query;

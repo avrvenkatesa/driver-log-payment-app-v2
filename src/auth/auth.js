@@ -42,21 +42,25 @@ class AuthService {
   }
 
   /**
-   * Generate JWT token for driver
-   * @param {Object} driver - Driver object
+   * Generate JWT token for user (driver or admin)
+   * @param {Object} user - User object
    * @returns {string} - JWT token
    */
-  static generateToken(driver) {
+  static generateToken(user) {
     try {
       const payload = {
-        driverId: driver.id,
-        name: driver.name,
-        phone: driver.phone,
-        email: driver.email,
-        isActive: driver.is_active,
+        userId: user.id,
+        driverId: user.id, // Backward compatibility
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role || 'driver', // RBAC: Include user role
+        isActive: user.is_active,
         aud: 'driver-log-app',
         iss: 'driver-log-pro'
       };
+
+      console.log(`[${new Date().toISOString()}] 🔐 Generating JWT token for ${user.role || 'driver'}: ${user.name}`);
 
       return jwt.sign(payload, JWT_SECRET, { 
         expiresIn: JWT_EXPIRES_IN,
@@ -250,6 +254,7 @@ class AuthService {
             name: driver.name,
             phone: driver.phone,
             email: driver.email,
+            role: driver.role || 'driver', // RBAC: Include role in response
             is_active: driver.is_active,
             is_phone_verified: driver.is_phone_verified
           },
@@ -279,6 +284,7 @@ class AuthService {
           name: driver.name,
           phone: driver.phone,
           email: driver.email,
+          role: driver.role || 'driver', // RBAC: Include role in response
           is_active: driver.is_active,
           is_phone_verified: driver.is_phone_verified
         },
@@ -411,7 +417,11 @@ class AuthService {
 }
 
 /**
- * Authentication middleware for protected routes
+ * RBAC: Role-Based Access Control Middleware Functions
+ */
+
+/**
+ * Basic authentication middleware for protected routes
  */
 const authMiddleware = async (req, res, next) => {
   try {
@@ -428,14 +438,21 @@ const authMiddleware = async (req, res, next) => {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const decoded = AuthService.verifyToken(token);
     
-    // Add driver info to request object
-    req.driver = {
-      id: decoded.driverId,
+    // Add user info to request object (includes role for RBAC)
+    req.user = {
+      id: decoded.userId || decoded.driverId, // Support both formats
+      driverId: decoded.driverId, // Backward compatibility
       name: decoded.name,
       phone: decoded.phone,
       email: decoded.email,
+      role: decoded.role || 'driver', // RBAC: Default to driver role
       isActive: decoded.isActive
     };
+    
+    // Backward compatibility - keep req.driver
+    req.driver = req.user;
+    
+    console.log(`[${new Date().toISOString()}] 🔐 Authenticated ${req.user.role}: ${req.user.name} (ID: ${req.user.id})`);
     
     next();
   } catch (error) {
@@ -448,7 +465,81 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
+/**
+ * RBAC: Admin-only access middleware
+ * Blocks drivers from accessing admin endpoints
+ */
+const requireAdminOnly = async (req, res, next) => {
+  try {
+    // First run standard authentication
+    await new Promise((resolve, reject) => {
+      authMiddleware(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    // Check if user has admin role
+    if (req.user.role !== 'admin') {
+      console.log(`[${new Date().toISOString()}] 🚫 Access denied: ${req.user.role} "${req.user.name}" attempted admin access`);
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Admin access required. Only administrators can access this resource.'
+      });
+    }
+    
+    console.log(`[${new Date().toISOString()}] ✅ Admin access granted: ${req.user.name}`);
+    next();
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Admin middleware error:`, error.message);
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Authentication required'
+    });
+  }
+};
+
+/**
+ * RBAC: Driver or Admin access middleware
+ * Allows both drivers and admins (admin can monitor driver functions)
+ */
+const requireDriverOrAdmin = async (req, res, next) => {
+  try {
+    // First run standard authentication
+    await new Promise((resolve, reject) => {
+      authMiddleware(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    // Both drivers and admins can access
+    if (req.user.role === 'driver' || req.user.role === 'admin') {
+      console.log(`[${new Date().toISOString()}] ✅ Driver/Admin access granted: ${req.user.role} "${req.user.name}"`);
+      next();
+    } else {
+      console.log(`[${new Date().toISOString()}] 🚫 Access denied: Unknown role "${req.user.role}" for user "${req.user.name}"`);
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Driver or admin access required'
+      });
+    }
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Driver/Admin middleware error:`, error.message);
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Authentication required'
+    });
+  }
+};
+
 module.exports = {
   AuthService,
-  authMiddleware
+  authMiddleware,
+  requireAdminOnly,
+  requireDriverOrAdmin
 };
