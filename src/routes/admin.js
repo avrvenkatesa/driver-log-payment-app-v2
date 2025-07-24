@@ -59,6 +59,25 @@ router.post('/payroll-config', authMiddleware, async (req, res) => {
     
     const { monthly_salary, overtime_rate, fuel_allowance, working_hours, notes } = req.body;
     
+    // Get current configuration to check for changes
+    const currentConfig = await payrollDB.getCurrentConfig();
+    
+    // Check if any values have changed
+    const hasChanges = 
+      parseFloat(monthly_salary) !== currentConfig.monthly_salary ||
+      parseFloat(overtime_rate) !== currentConfig.overtime_rate ||
+      parseFloat(fuel_allowance) !== currentConfig.fuel_allowance ||
+      parseFloat(working_hours || 8) !== currentConfig.working_hours;
+    
+    // If there are changes, notes field is mandatory
+    if (hasChanges && (!notes || notes.trim().length === 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Configuration changes detected. Notes field is mandatory when modifying payroll configuration.',
+        details: 'Please provide a reason for the configuration change in the notes field.'
+      });
+    }
+    
     // Add admin identifier (from JWT token if available)
     const configData = {
       monthly_salary,
@@ -66,7 +85,7 @@ router.post('/payroll-config', authMiddleware, async (req, res) => {
       fuel_allowance,
       working_hours,
       changed_by: req.user?.name || req.user?.phone || 'ADMIN',
-      notes
+      notes: notes || ''
     };
     
     // Calculate potential impact before saving

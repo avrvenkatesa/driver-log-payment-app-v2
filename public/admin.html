@@ -436,9 +436,9 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="notes">Notes</label>
+                        <label for="notes">Notes <span id="notes-required" class="required" style="display: none;">*</span></label>
                         <textarea id="notes" name="notes" placeholder="Reason for configuration change..." maxlength="500" rows="3"></textarea>
-                        <small class="form-help">Optional (max 500 characters)</small>
+                        <small id="notes-help" class="form-help">Optional (max 500 characters)</small>
                     </div>
                     
                     <!-- Impact Analysis Display -->
@@ -576,6 +576,12 @@
             // Hide impact analysis
             document.getElementById('impact-analysis').style.display = 'none';
             
+            // Reset notes field validation
+            updateNotesValidation(false);
+            
+            // Add change listeners to form fields
+            addFormChangeListeners();
+            
             // Scroll to form
             document.getElementById('config-form-card').scrollIntoView({ behavior: 'smooth' });
         }
@@ -661,6 +667,56 @@
             container.style.display = 'block';
         }
         
+        // Add form change listeners to detect configuration changes
+        function addFormChangeListeners() {
+            const fields = ['monthly_salary', 'overtime_rate', 'fuel_allowance', 'working_hours'];
+            
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                field.addEventListener('input', checkForChanges);
+                field.addEventListener('change', checkForChanges);
+            });
+        }
+        
+        // Check if form values have changed from current config
+        function checkForChanges() {
+            if (!currentConfig) return;
+            
+            const formSalary = parseFloat(document.getElementById('monthly_salary').value) || 0;
+            const formOvertime = parseFloat(document.getElementById('overtime_rate').value) || 0;
+            const formFuel = parseFloat(document.getElementById('fuel_allowance').value) || 0;
+            const formHours = parseFloat(document.getElementById('working_hours').value) || 8;
+            
+            const hasChanges = 
+                formSalary !== currentConfig.monthly_salary ||
+                formOvertime !== currentConfig.overtime_rate ||
+                formFuel !== currentConfig.fuel_allowance ||
+                formHours !== currentConfig.working_hours;
+            
+            updateNotesValidation(hasChanges);
+        }
+        
+        // Update notes field validation based on whether changes are detected
+        function updateNotesValidation(hasChanges) {
+            const notesField = document.getElementById('notes');
+            const notesRequired = document.getElementById('notes-required');
+            const notesHelp = document.getElementById('notes-help');
+            
+            if (hasChanges) {
+                notesField.required = true;
+                notesRequired.style.display = 'inline';
+                notesHelp.textContent = 'Required when making changes (max 500 characters)';
+                notesHelp.style.color = '#e74c3c';
+                notesField.style.borderColor = '#e74c3c';
+            } else {
+                notesField.required = false;
+                notesRequired.style.display = 'none';
+                notesHelp.textContent = 'Optional (max 500 characters)';
+                notesHelp.style.color = '#7f8c8d';
+                notesField.style.borderColor = '#ddd';
+            }
+        }
+        
         // Handle form submission
         document.getElementById('payroll-config-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -668,6 +724,19 @@
             try {
                 const formData = new FormData(e.target);
                 const configData = Object.fromEntries(formData);
+                
+                // Client-side validation for changes and notes
+                const hasChanges = 
+                    parseFloat(configData.monthly_salary) !== currentConfig.monthly_salary ||
+                    parseFloat(configData.overtime_rate) !== currentConfig.overtime_rate ||
+                    parseFloat(configData.fuel_allowance) !== currentConfig.fuel_allowance ||
+                    parseFloat(configData.working_hours || 8) !== currentConfig.working_hours;
+                
+                if (hasChanges && (!configData.notes || configData.notes.trim().length === 0)) {
+                    showAlert('Configuration changes detected. Please provide a reason in the notes field.', 'error');
+                    document.getElementById('notes').focus();
+                    return;
+                }
                 
                 const response = await fetch('/api/admin/payroll-config', {
                     method: 'POST',
