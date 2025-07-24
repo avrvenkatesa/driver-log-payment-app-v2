@@ -2187,8 +2187,8 @@
                 return `
                     <tr>
                         <td>${formatShiftDate(shift.clock_in_time)}</td>
-                        <td>${formatShiftTime(shift.clock_in_time)}</td>
-                        <td>${shift.clock_out_time ? formatShiftTime(shift.clock_out_time) : '-'}</td>
+                        <td>${displayShiftTime(shift.clock_in_time)}</td>
+                        <td>${shift.clock_out_time ? displayShiftTime(shift.clock_out_time) : '-'}</td>
                         <td>${shift.duration_hours ? shift.duration_hours + ' hrs' : (shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(1) + ' hrs' : '-')}</td>
                         <td>${shift.total_distance || 0} km</td>
                         <td>${shift.start_odometer}</td>
@@ -2366,15 +2366,31 @@
             });
         }
         
+        // CORRECTED IST Display Function - apply this fix
         function formatISTTime(timestamp) {
             if (!timestamp) return '-';
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString('en-IN', {
-                timeZone: 'Asia/Kolkata',
+            
+            // Remove any existing timezone suffix and clean the timestamp
+            const cleanTime = timestamp.replace(' UTC', '').replace(' IST', '');
+            
+            // Parse as UTC timestamp (database stores UTC)
+            const utcDate = new Date(cleanTime + ' UTC');
+            
+            // Convert to IST by adding 5.5 hours
+            const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+            
+            // Format for display
+            return istDate.toLocaleString('en-IN', {
+                hour12: true,
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: true
+                second: '2-digit'
             }) + ' IST';
+        }
+
+        // Use this function for ALL timestamp displays in shift history
+        function displayShiftTime(timestamp) {
+            return formatISTTime(timestamp);
         }
         
         // FIXED: No double timezone conversion
@@ -2404,32 +2420,8 @@
         }
         
         function formatShiftTime(timestamp) {
-            if (!timestamp) return '-';
-            
-            // CRITICAL FIX: Check if this is already IST-formatted from backend
-            if (typeof timestamp === 'string' && timestamp.includes('/')) {
-                const parts = timestamp.split(', ');
-                const timeWithIST = parts.length > 1 ? parts[1] + ' IST' : timestamp + ' IST';
-                console.log('[Time Fix] Already IST formatted:', timestamp, '=>', timeWithIST);
-                return timeWithIST;
-            }
-            
-            // Only convert if this is a raw UTC timestamp
-            if (typeof timestamp === 'string' && timestamp.includes('Z')) {
-                console.log('[Time Fix] Converting UTC to IST:', timestamp);
-                const date = new Date(timestamp);
-                const istTime = date.toLocaleTimeString('en-IN', {
-                    timeZone: 'Asia/Kolkata',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                });
-                console.log('[Time Fix] UTC converted to IST:', timestamp, '=>', istTime);
-                return istTime + ' IST';
-            }
-            
-            // Fallback
-            return formatISTTime(timestamp);
+            // Use the corrected display function for all timestamps
+            return displayShiftTime(timestamp);
         }
         
         // Download helper
