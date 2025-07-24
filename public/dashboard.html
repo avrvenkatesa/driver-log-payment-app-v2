@@ -376,6 +376,93 @@
             cursor: not-allowed;
         }
 
+        /* Calendar Grid Styles */
+        .calendar-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e0e0e0;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
+        }
+
+        .calendar-header-day {
+            background: #1565C0;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e0e0e0;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+        }
+
+        .calendar-day {
+            background: white;
+            min-height: 80px;
+            padding: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background: #f5f5f5;
+        }
+
+        .calendar-day.weekend {
+            background: #fafafa;
+        }
+
+        .calendar-day.working-day {
+            background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+            border: 2px solid #4CAF50;
+        }
+
+        .calendar-day.working-day:hover {
+            background: linear-gradient(135deg, #dcedc8, #e8f5e8);
+        }
+
+        .calendar-day-number {
+            font-weight: bold;
+            color: #424242;
+            margin-bottom: 4px;
+        }
+
+        .calendar-day.weekend .calendar-day-number {
+            color: #9E9E9E;
+        }
+
+        .calendar-day.working-day .calendar-day-number {
+            color: #2E7D32;
+        }
+
+        .calendar-shift-info {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.2;
+        }
+
+        .calendar-day.working-day .calendar-shift-info {
+            color: #1B5E20;
+            font-weight: 500;
+        }
+
         .pagination button:not(:disabled):hover {
             background: #e9e9e9;
         }
@@ -617,6 +704,12 @@
                                 <div id="week5-data" style="font-size: 14px; color: #6c757d;">-</div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Calendar Grid Component (Story 8) -->
+                    <div id="calendar-view" style="margin: 20px 0; display: none;">
+                        <h4 style="margin-bottom: 15px; color: #1565C0;">📅 Monthly Calendar View</h4>
+                        <div id="calendar-grid"></div>
                     </div>
 
                     <!-- Shifts Table -->
@@ -898,6 +991,9 @@
             // Display weekly breakdown
             displayWeeklyBreakdown(weeklyBreakdown);
             
+            // Display calendar view (Story 8)
+            displayCalendarView(data.calendar);
+            
             // Update shifts table
             displayShiftsTable(shifts);
             
@@ -1055,6 +1151,74 @@
                     `;
                 }
             });
+        }
+
+        // Display calendar view with working days highlighted (Story 8)
+        function displayCalendarView(calendarData) {
+            const calendarDiv = document.getElementById('calendar-view');
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarDiv.style.display = 'block';
+            
+            console.log('[Story 8] Displaying calendar view:', calendarData);
+            
+            // Create calendar header
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            calendarGrid.innerHTML = `
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        ${daysOfWeek.map(day => `<div class="calendar-header-day">${day}</div>`).join('')}
+                    </div>
+                    <div class="calendar-grid">
+                        ${generateCalendarDays(calendarData)}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate calendar days with shift information
+        function generateCalendarDays(calendarData) {
+            const { year, month, days } = calendarData;
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
+            
+            let calendarHtml = '';
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                calendarHtml += '<div class="calendar-day"></div>';
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayData = days.find(d => d.day === day);
+                const dayOfWeek = new Date(year, month - 1, day).getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const isWorkingDay = dayData && dayData.hasShift;
+                
+                let dayClasses = 'calendar-day';
+                if (isWeekend) dayClasses += ' weekend';
+                if (isWorkingDay) dayClasses += ' working-day';
+                
+                let shiftInfo = '';
+                if (isWorkingDay && dayData.shift) {
+                    shiftInfo = `
+                        <div class="calendar-shift-info">
+                            <div>✓ Shift: ${dayData.shift.duration} hrs</div>
+                            <div>📍 ${dayData.shift.distance} km</div>
+                        </div>
+                    `;
+                }
+                
+                calendarHtml += `
+                    <div class="${dayClasses}" data-day="${day}">
+                        <div class="calendar-day-number">${day}</div>
+                        ${shiftInfo}
+                    </div>
+                `;
+            }
+            
+            return calendarHtml;
         }
 
         // Display shifts in table format
