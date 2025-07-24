@@ -268,11 +268,12 @@ class ShiftHelpers {
         throw new Error(`End odometer (${endOdometer}) must be greater than or equal to start odometer (${activeShift.start_odometer})`);
       }
 
-      // Record timestamp in IST
-      const clockOutTime = new Date().toLocaleString('en-US', {
-        timeZone: 'Asia/Kolkata'
-      });
-      const clockOutISO = new Date(clockOutTime).toISOString();
+      // Ensure UTC storage as specified for clock-out
+      const now = new Date();
+      const utcTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+      const clockOutISO = now.toISOString();
+      
+      console.log(`[${new Date().toISOString()}] 📝 Storing UTC clock-out timestamp: ${clockOutISO}`);
 
       // Calculate total distance
       const totalDistance = endOdometer - activeShift.start_odometer;
