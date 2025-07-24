@@ -180,6 +180,8 @@ Preferred communication style: Simple, everyday language.
   - Enhanced validation: Notes field becomes mandatory when configuration values change
   - Client and server-side validation with proper error handling and user feedback
   - Mobile-responsive design with real-time form validation and visual feedback
+  - IST timezone conversion: All timestamps properly display in Indian Standard Time (UTC+5:30)
+  - Professional timestamp formatting: DD/MM/YYYY, HH:MM:SS AM/PM IST format using Intl.DateTimeFormat
   - Ready for integration with payroll calculation systems
 - **Real-time Features**: Polling-based updates, WebSocket ready for enhancement
 - **Production Deployment**: Build configuration complete, hosting platform TBD

@@ -800,19 +800,23 @@
         function convertToIST(utcTimestamp) {
             const utcDate = new Date(utcTimestamp);
             
-            // IST is UTC+5:30
-            const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
-            const istDate = new Date(utcDate.getTime() + istOffset);
+            // Use proper timezone conversion with Intl.DateTimeFormat
+            const options = {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            };
             
-            // Format: DD/MM/YYYY, HH:MM:SS IST
-            const day = istDate.getUTCDate().toString().padStart(2, '0');
-            const month = (istDate.getUTCMonth() + 1).toString().padStart(2, '0');
-            const year = istDate.getUTCFullYear();
-            const hours = istDate.getUTCHours().toString().padStart(2, '0');
-            const minutes = istDate.getUTCMinutes().toString().padStart(2, '0');
-            const seconds = istDate.getUTCSeconds().toString().padStart(2, '0');
+            const formatter = new Intl.DateTimeFormat('en-IN', options);
+            const formattedDate = formatter.format(utcDate);
             
-            return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} IST`;
+            // Add IST suffix for clarity
+            return formattedDate + ' IST';
         }
         
         // Display configuration history
