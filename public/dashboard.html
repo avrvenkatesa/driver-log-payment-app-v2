@@ -908,19 +908,45 @@
         let currentShifts = [];
         let currentSummary = {};
 
-        // Initialize dashboard - Mobile Enhanced
+        // Initialize dashboard - Mobile Enhanced with DOM Verification
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[Mobile Debug] DOM loaded, viewport:', window.innerWidth + 'x' + window.innerHeight);
             console.log('[Mobile Debug] User agent:', navigator.userAgent);
             console.log('[Mobile Debug] Auth token present:', !!authToken);
             
+            // Verify critical DOM elements exist before proceeding
+            const criticalElements = ['calendar-view', 'calendar-grid', 'weekly-breakdown', 'monthly-stats'];
+            const missingElements = [];
+            
+            criticalElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    missingElements.push(id);
+                } else {
+                    console.log(`[Mobile Debug] Element found: ${id}`);
+                }
+            });
+            
+            if (missingElements.length > 0) {
+                console.warn('[Mobile Debug] Missing DOM elements:', missingElements);
+            }
+            
             if (authToken) {
                 loadDashboard();
-                // Load enhanced monthly data after dashboard loads (Story 8) - longer delay for mobile
+                // Load enhanced monthly data after dashboard loads (Story 8) - longer delay for mobile + DOM verification
                 const isMobile = window.innerWidth <= 768;
-                const delay = isMobile ? 2000 : 1000;
-                console.log('[Mobile Debug] Loading monthly data with delay:', delay + 'ms');
-                setTimeout(() => loadMonthlyData(), delay);
+                const baseDelay = isMobile ? 2000 : 1000;
+                const extraDelay = missingElements.length > 0 ? 1000 : 0; // Extra delay if DOM issues
+                const totalDelay = baseDelay + extraDelay;
+                
+                console.log('[Mobile Debug] Loading monthly data with delay:', totalDelay + 'ms');
+                setTimeout(() => {
+                    // Double-check DOM elements exist at execution time
+                    const calendarDiv = document.getElementById('calendar-view');
+                    const calendarGrid = document.getElementById('calendar-grid');
+                    console.log('[Mobile Debug] Final DOM check - calendar-view:', !!calendarDiv, 'calendar-grid:', !!calendarGrid);
+                    loadMonthlyData();
+                }, totalDelay);
             } else {
                 showLogin();
             }
@@ -1440,16 +1466,37 @@
             }
         }
 
-        // Display calendar view with working days highlighted (Story 8)
+        // Display calendar view with working days highlighted (Story 8) - Mobile Fixed
         function displayCalendarView(calendarData) {
+            console.log('[Story 8 Mobile] Starting calendar display...');
+            
+            // Check for required DOM elements first
             const calendarDiv = document.getElementById('calendar-view');
             const calendarGrid = document.getElementById('calendar-grid');
-            calendarDiv.style.display = 'block';
             
-            console.log('[Story 8] Displaying calendar view:', calendarData);
+            if (!calendarDiv) {
+                console.error('[Story 8 Mobile] Calendar div (calendar-view) not found in DOM');
+                return;
+            }
+            
+            if (!calendarGrid) {
+                console.error('[Story 8 Mobile] Calendar grid (calendar-grid) not found in DOM');
+                // Try to create the missing element structure
+                calendarDiv.innerHTML = `
+                    <div id="calendar-grid" style="background: #fee; border: 1px solid #fcc; padding: 20px; text-align: center; border-radius: 8px;">
+                        <strong>⚠️ Calendar container missing on mobile</strong><br>
+                        <small>DOM element 'calendar-grid' not found</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Set display and log mobile status
+            calendarDiv.style.display = 'block';
+            console.log('[Story 8 Mobile] Calendar elements found, viewport:', window.innerWidth + 'x' + window.innerHeight);
             
             // Always use the basic calendar data for now since API may not have calendar structure
-            console.log('[Story 8] Using fallback calendar data with working days');
+            console.log('[Story 8 Mobile] Using fallback calendar data with working days');
             calendarData = {
                 year: 2025,
                 month: 7,
@@ -1461,23 +1508,44 @@
             
             try {
                 const calendarDaysHtml = generateCalendarDays(calendarData);
-                console.log('[Story 8] Generated calendar HTML length:', calendarDaysHtml.length);
+                console.log('[Story 8 Mobile] Generated calendar HTML length:', calendarDaysHtml.length);
                 
-                calendarGrid.innerHTML = `
-                    <div class="calendar-container">
-                        <div class="calendar-header">
-                            ${daysOfWeek.map(day => `<div class="calendar-header-day">${day}</div>`).join('')}
+                // Safely set innerHTML with additional mobile check
+                if (calendarGrid && typeof calendarGrid.innerHTML !== 'undefined') {
+                    calendarGrid.innerHTML = `
+                        <div class="calendar-container">
+                            <div class="calendar-header">
+                                ${daysOfWeek.map(day => `<div class="calendar-header-day">${day}</div>`).join('')}
+                            </div>
+                            <div class="calendar-grid">
+                                ${calendarDaysHtml}
+                            </div>
                         </div>
-                        <div class="calendar-grid">
-                            ${calendarDaysHtml}
-                        </div>
-                    </div>
-                `;
+                    `;
+                    console.log('[Story 8 Mobile] Calendar HTML successfully set');
+                } else {
+                    throw new Error('Calendar grid element lost innerHTML property');
+                }
                 
                 // No tooltip functionality needed for direct display
             } catch (error) {
-                console.error('[Story 8] Error generating calendar:', error);
-                calendarGrid.innerHTML = '<div style="color: red;">Error loading calendar</div>';
+                console.error('[Story 8 Mobile] Error generating calendar:', error);
+                
+                // Safe error display with null check
+                const errorHtml = `
+                    <div style="color: red; background: #fee; border: 1px solid #fcc; padding: 15px; border-radius: 8px; text-align: center;">
+                        <strong>❌ Mobile Calendar Error:</strong><br>
+                        <code>${error.message}</code><br>
+                        <small>Device: ${navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'}</small><br>
+                        <small>Viewport: ${window.innerWidth}x${window.innerHeight}</small>
+                    </div>
+                `;
+                
+                if (calendarGrid && typeof calendarGrid.innerHTML !== 'undefined') {
+                    calendarGrid.innerHTML = errorHtml;
+                } else {
+                    console.error('[Story 8 Mobile] Cannot display error - calendar grid is null');
+                }
             }
         }
 
