@@ -2366,26 +2366,40 @@
             });
         }
         
-        // CORRECTED IST Display Function - apply this fix
+        // FIXED IST Display Function - handles backend formatted timestamps
         function formatISTTime(timestamp) {
             if (!timestamp) return '-';
             
-            // Remove any existing timezone suffix and clean the timestamp
-            const cleanTime = timestamp.replace(' UTC', '').replace(' IST', '');
+            console.log('[formatISTTime] Input:', timestamp);
             
-            // Parse as UTC timestamp (database stores UTC)
-            const utcDate = new Date(cleanTime + ' UTC');
+            // Handle backend pre-formatted IST strings (24/07/2025, 07:32:15 pm)
+            if (typeof timestamp === 'string' && timestamp.includes('/') && timestamp.includes(',')) {
+                const parts = timestamp.split(', ');
+                if (parts.length >= 2) {
+                    const timeWithIST = parts[1] + ' IST';
+                    console.log('[formatISTTime] Pre-formatted backend:', timeWithIST);
+                    return timeWithIST;
+                }
+            }
             
-            // Convert to IST by adding 5.5 hours
-            const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+            // Handle raw UTC timestamps (2025-07-24T14:02:15.000Z)
+            if (typeof timestamp === 'string' && timestamp.includes('Z')) {
+                console.log('[formatISTTime] Raw UTC timestamp detected');
+                const utcDate = new Date(timestamp);
+                const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+                const formatted = istDate.toLocaleString('en-IN', {
+                    hour12: true,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                }) + ' IST';
+                console.log('[formatISTTime] UTC converted:', formatted);
+                return formatted;
+            }
             
-            // Format for display
-            return istDate.toLocaleString('en-IN', {
-                hour12: true,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            }) + ' IST';
+            // Fallback
+            console.log('[formatISTTime] Fallback used for:', timestamp);
+            return timestamp + ' IST';
         }
 
         // Use this function for ALL timestamp displays in shift history
@@ -2397,26 +2411,32 @@
         function formatShiftDate(timestamp) {
             if (!timestamp) return '-';
             
-            // Check if this is already an IST-formatted string from backend
-            if (typeof timestamp === 'string' && timestamp.includes('/')) {
-                console.log('[Date Fix] Already IST formatted:', timestamp);
-                return timestamp.split(',')[0]; // Just the date part
+            console.log('[formatShiftDate] Input:', timestamp);
+            
+            // Handle backend pre-formatted IST strings (24/07/2025, 07:32:15 pm)
+            if (typeof timestamp === 'string' && timestamp.includes('/') && timestamp.includes(',')) {
+                const datePart = timestamp.split(',')[0];
+                console.log('[formatShiftDate] Pre-formatted backend date:', datePart);
+                return datePart;
             }
             
-            // Check if this is a UTC timestamp that needs conversion
+            // Handle raw UTC timestamps (2025-07-24T14:02:15.000Z)
             if (typeof timestamp === 'string' && timestamp.includes('Z')) {
-                console.log('[Date Fix] Converting UTC to IST:', timestamp);
+                console.log('[formatShiftDate] Raw UTC timestamp detected');
                 const date = new Date(timestamp);
-                return date.toLocaleDateString('en-GB', {
+                const formatted = date.toLocaleDateString('en-GB', {
                     timeZone: 'Asia/Kolkata',
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric'
                 });
+                console.log('[formatShiftDate] UTC converted date:', formatted);
+                return formatted;
             }
             
-            // Fallback for other formats
-            return formatDate(timestamp);
+            // Fallback
+            console.log('[formatShiftDate] Fallback used for:', timestamp);
+            return timestamp;
         }
         
         function formatShiftTime(timestamp) {
