@@ -73,6 +73,11 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/dashboard.html');
 });
 
+// Admin panel route - serve the admin HTML
+app.get('/admin', (req, res) => {
+  res.sendFile(__dirname + '/public/admin.html');
+});
+
 // Health check endpoint with enhanced response
 app.get('/api/health', (req, res) => {
   try {
@@ -118,6 +123,18 @@ try {
   const driverRoutes = require('./src/routes/driver.js');
   app.use('/api/driver', driverRoutes);
   log('✅ Driver routes registered at /api/driver');
+  
+  // Admin routes (Story 9: Payroll Configuration)
+  const { router: adminRoutes, initializePayrollSystem } = require('./src/routes/admin.js');
+  app.use('/api/admin', adminRoutes);
+  log('✅ Admin routes registered at /api/admin');
+  
+  // Initialize payroll configuration system
+  initializePayrollSystem().then(() => {
+    log('✅ Payroll configuration system initialized successfully');
+  }).catch(err => {
+    log(`❌ Error initializing payroll system: ${err.message}`);
+  });
   
   // Test database availability
   if (driverHelpers) {
