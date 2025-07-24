@@ -481,35 +481,27 @@
         .calendar-day.working-day .calendar-shift-info {
             color: #0D47A1;
             font-weight: 600;
+            text-align: center;
+            margin-top: 4px;
         }
 
-        .calendar-tooltip {
-            position: absolute;
-            background: #263238;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
+        .shift-display {
+            font-size: 10px;
+            line-height: 1.2;
+            color: #1565C0;
+            font-weight: 600;
         }
 
-        .calendar-tooltip.visible {
-            opacity: 1;
+        .shift-count {
+            font-size: 9px;
+            color: #1976D2;
+            margin-bottom: 1px;
         }
 
-        .shift-count-badge {
-            background: #1976D2;
-            color: white;
-            border-radius: 10px;
-            padding: 2px 6px;
-            font-size: 8px;
+        .shift-hours {
+            font-size: 9px;
+            color: #0D47A1;
             font-weight: bold;
-            margin-bottom: 2px;
-            display: inline-block;
         }
 
         .pagination button:not(:disabled):hover {
@@ -1238,8 +1230,7 @@
                     </div>
                 `;
                 
-                // Add tooltips after calendar is rendered
-                setTimeout(() => addCalendarTooltips(), 100);
+                // No tooltip functionality needed for direct display
             } catch (error) {
                 console.error('[Story 8] Error generating calendar:', error);
                 calendarGrid.innerHTML = '<div style="color: red;">Error loading calendar</div>';
@@ -1342,27 +1333,15 @@
                 if (isWorkingDay && dayData.shift) {
                     const shiftCount = dayData.shifts || dayData.shift.shifts || 1;
                     shiftInfo = `
-                        <div class="shift-count-badge">${shiftCount} shift${shiftCount > 1 ? 's' : ''}</div>
-                        <div class="calendar-shift-info">
-                            <div>⏱ ${dayData.shift.duration} hrs</div>
-                            <div>📍 ${dayData.shift.distance} km</div>
+                        <div class="shift-display">
+                            <div class="shift-count">${shiftCount} shift${shiftCount > 1 ? 's' : ''}</div>
+                            <div class="shift-hours">${dayData.shift.duration} hrs</div>
                         </div>
                     `;
-                    
-                    // Create detailed tooltip with shift times
-                    let tooltipText = `July ${day}, 2025:\\n${shiftCount} shift${shiftCount > 1 ? 's' : ''}:\\n`;
-                    if (dayData.shiftDetails) {
-                        dayData.shiftDetails.forEach((shift, index) => {
-                            tooltipText += `${index + 1}. ${shift.clockIn}-${shift.clockOut} (${shift.duration})\\n`;
-                        });
-                    }
-                    tooltipText += `Total: ${dayData.shift.duration} hours, ${dayData.shift.distance} km`;
-                    
-                    tooltipData = `data-tooltip="${tooltipText}" data-shift-details='${JSON.stringify(dayData.shiftDetails || [])}'`;
                 }
                 
                 calendarHtml += `
-                    <div class="${dayClasses}" data-day="${day}" ${tooltipData}>
+                    <div class="${dayClasses}" data-day="${day}">
                         <div class="calendar-day-number">${day}</div>
                         ${shiftInfo}
                     </div>
@@ -1373,145 +1352,7 @@
             return calendarHtml;
         }
 
-        // Add comprehensive calendar interactivity
-        function addCalendarTooltips() {
-            const workingDays = document.querySelectorAll('.calendar-day.working-day[data-tooltip]');
-            
-            workingDays.forEach(day => {
-                // Add hover tooltip functionality
-                day.addEventListener('mouseenter', function(e) {
-                    const tooltipText = this.getAttribute('data-tooltip');
-                    if (!tooltipText) return;
-                    
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'calendar-tooltip visible';
-                    tooltip.style.whiteSpace = 'pre-line';
-                    tooltip.textContent = tooltipText.replace(/\\n/g, '\n');
-                    document.body.appendChild(tooltip);
-                    
-                    const rect = this.getBoundingClientRect();
-                    tooltip.style.left = Math.max(10, rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2)) + 'px';
-                    tooltip.style.top = Math.max(10, rect.top - tooltip.offsetHeight - 10) + 'px';
-                    
-                    this._tooltip = tooltip;
-                });
-                
-                day.addEventListener('mouseleave', function() {
-                    if (this._tooltip) {
-                        document.body.removeChild(this._tooltip);
-                        this._tooltip = null;
-                    }
-                });
-                
-                // Add click functionality with detailed shift modal
-                day.addEventListener('click', function(e) {
-                    const dayNum = this.getAttribute('data-day');
-                    const shiftDetailsAttr = this.getAttribute('data-shift-details');
-                    
-                    if (!shiftDetailsAttr) return;
-                    
-                    try {
-                        const shiftDetails = JSON.parse(shiftDetailsAttr);
-                        showShiftDetailsModal(dayNum, shiftDetails);
-                    } catch (error) {
-                        console.error('Error parsing shift details:', error);
-                    }
-                });
-            });
-        }
-
-        // Show detailed shift information modal
-        function showShiftDetailsModal(day, shiftDetails) {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 2000;
-            `;
-            
-            const modalContent = document.createElement('div');
-            modalContent.style.cssText = `
-                background: white;
-                padding: 24px;
-                border-radius: 12px;
-                max-width: 500px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            `;
-            
-            let shiftsHtml = '';
-            let totalHours = 0;
-            let totalDistance = 0;
-            
-            shiftDetails.forEach((shift, index) => {
-                totalHours += parseFloat(shift.duration.replace(' hrs', ''));
-                totalDistance += parseInt(shift.distance.replace(' km', ''));
-                
-                shiftsHtml += `
-                    <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #2196F3;">
-                        <h4 style="margin: 0 0 12px 0; color: #1565C0;">Shift ${index + 1}</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
-                            <div><strong>Clock In:</strong> ${shift.clockIn}</div>
-                            <div><strong>Clock Out:</strong> ${shift.clockOut}</div>
-                            <div><strong>Duration:</strong> ${shift.duration}</div>
-                            <div><strong>Distance:</strong> ${shift.distance}</div>
-                            <div><strong>Start Odometer:</strong> ${shift.startOdo} km</div>
-                            <div><strong>End Odometer:</strong> ${shift.endOdo} km</div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            modalContent.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0; color: #1565C0;">July ${day}, 2025 - Shift Details</h3>
-                    <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
-                </div>
-                
-                <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; text-align: center;">
-                        <div>
-                            <div style="font-size: 18px; font-weight: bold; color: #1565C0;">${shiftDetails.length}</div>
-                            <div style="font-size: 12px; color: #666;">Shift${shiftDetails.length > 1 ? 's' : ''}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 18px; font-weight: bold; color: #1565C0;">${totalHours.toFixed(1)} hrs</div>
-                            <div style="font-size: 12px; color: #666;">Total Hours</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 18px; font-weight: bold; color: #1565C0;">${totalDistance} km</div>
-                            <div style="font-size: 12px; color: #666;">Total Distance</div>
-                        </div>
-                    </div>
-                </div>
-                
-                ${shiftsHtml}
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <button onclick="this.closest('.modal-overlay').remove()" style="background: #1976D2; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px;">Close</button>
-                </div>
-            `;
-            
-            modal.className = 'modal-overlay';
-            modal.appendChild(modalContent);
-            document.body.appendChild(modal);
-            
-            // Close modal when clicking outside
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.remove();
-                }
-            });
-        }
+        // Direct shift display - no interactive functionality needed
 
         // Display shifts in table format
         function displayShiftsTable(shifts) {
