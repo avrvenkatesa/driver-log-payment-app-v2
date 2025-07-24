@@ -511,14 +511,28 @@
                     <div class="section-header">
                         <h3>📊 Shift History & Reports</h3>
                         <div class="controls">
-                            <select id="date-filter" onchange="filterShifts()">
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month" selected>This Month</option>
-                                <option value="custom">Custom Range</option>
+                            <select id="monthSelect" onchange="loadMonthlyData()">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7" selected>July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
                             </select>
-                            <button onclick="exportShifts()" class="btn-secondary">📥 Export</button>
-                            <button onclick="refreshShifts()" class="btn-secondary">🔄 Refresh</button>
+                            <select id="yearSelect" onchange="loadMonthlyData()">
+                                <option value="2024">2024</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                            <button onclick="exportMonthlyData('csv')" class="btn-secondary">📥 CSV</button>
+                            <button onclick="exportMonthlyData('json')" class="btn-secondary">📋 JSON</button>
+                            <button onclick="loadMonthlyData()" class="btn-secondary">🔄 Refresh</button>
                         </div>
                     </div>
 
@@ -535,23 +549,61 @@
                         <button onclick="applyCustomRange()" class="btn-primary">Apply Range</button>
                     </div>
 
-                    <!-- Summary Cards -->
+                    <!-- Enhanced Summary Cards (Story 8) -->
                     <div class="summary-cards">
                         <div class="summary-card">
                             <h4>Total Shifts</h4>
                             <span id="total-shifts">-</span>
+                            <small id="shifts-trend" style="color: #4caf50; font-size: 12px; display: block;"></small>
                         </div>
                         <div class="summary-card">
                             <h4>Total Hours</h4>
                             <span id="total-hours">-</span>
+                            <small id="hours-trend" style="color: #4caf50; font-size: 12px; display: block;"></small>
                         </div>
                         <div class="summary-card">
                             <h4>Total Distance</h4>
                             <span id="total-distance">- km</span>
+                            <small id="distance-trend" style="color: #4caf50; font-size: 12px; display: block;"></small>
                         </div>
                         <div class="summary-card">
                             <h4>Working Days</h4>
                             <span id="working-days">-</span>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Regular Hours</h4>
+                            <span id="regular-hours">-</span>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Overtime Hours</h4>
+                            <span id="overtime-hours">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Breakdown (Story 8) -->
+                    <div id="weekly-breakdown" style="margin: 20px 0; display: none;">
+                        <h4 style="margin-bottom: 15px; color: #1976d2;">📈 Weekly Breakdown</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                            <div class="week-card" id="week1-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #495057;">Week 1</div>
+                                <div id="week1-data" style="font-size: 14px; color: #6c757d;">-</div>
+                            </div>
+                            <div class="week-card" id="week2-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #495057;">Week 2</div>
+                                <div id="week2-data" style="font-size: 14px; color: #6c757d;">-</div>
+                            </div>
+                            <div class="week-card" id="week3-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #495057;">Week 3</div>
+                                <div id="week3-data" style="font-size: 14px; color: #6c757d;">-</div>
+                            </div>
+                            <div class="week-card" id="week4-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #495057;">Week 4</div>
+                                <div id="week4-data" style="font-size: 14px; color: #6c757d;">-</div>
+                            </div>
+                            <div class="week-card" id="week5-card" style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #495057;">Week 5</div>
+                                <div id="week5-data" style="font-size: 14px; color: #6c757d;">-</div>
+                            </div>
                         </div>
                     </div>
 
@@ -605,8 +657,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             if (authToken) {
                 loadDashboard();
-                // Load shift history after dashboard loads
-                setTimeout(() => loadShiftHistory(), 1000);
+                // Load enhanced monthly data after dashboard loads (Story 8)
+                setTimeout(() => loadMonthlyData(), 1000);
             } else {
                 showLogin();
             }
@@ -769,6 +821,175 @@
         
         function refreshStatus() {
             loadDashboard();
+        }
+
+        // Story 8: Enhanced Monthly Data Loading
+        async function loadMonthlyData() {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            
+            try {
+                const response = await fetch(`/api/driver/shifts/monthly/${year}/${month}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load monthly data');
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayMonthlyData(data.data);
+                } else {
+                    showError('Failed to load monthly data: ' + data.message);
+                }
+            } catch (error) {
+                showError('Error loading monthly data: ' + error.message);
+            }
+        }
+
+        // Display enhanced monthly data with Story 8 features
+        function displayMonthlyData(data) {
+            const { summary, weeklyBreakdown, trends, shifts } = data;
+            
+            // Update summary cards with trend information
+            document.getElementById('total-shifts').textContent = summary.totalShifts;
+            document.getElementById('total-hours').textContent = summary.totalHours + ' hrs';
+            document.getElementById('total-distance').textContent = summary.totalDistance + ' km';
+            document.getElementById('working-days').textContent = summary.workingDays;
+            document.getElementById('regular-hours').textContent = summary.regularHours + ' hrs';
+            document.getElementById('overtime-hours').textContent = summary.overtimeHours + ' hrs';
+            
+            // Display trends with color coding
+            displayTrend('shifts-trend', trends.comparison.shiftsChange, 'shifts');
+            displayTrend('hours-trend', trends.comparison.hoursChange, 'hours');
+            displayTrend('distance-trend', trends.comparison.distanceChange, 'km');
+            
+            // Display weekly breakdown
+            displayWeeklyBreakdown(weeklyBreakdown);
+            
+            // Update shifts table
+            displayShiftsTable(shifts);
+        }
+
+        // Display trend information with appropriate styling
+        function displayTrend(elementId, change, unit) {
+            const element = document.getElementById(elementId);
+            if (change > 0) {
+                element.textContent = `+${change} ${unit} from last month`;
+                element.style.color = '#4caf50';
+            } else if (change < 0) {
+                element.textContent = `${change} ${unit} from last month`;
+                element.style.color = '#f44336';
+            } else {
+                element.textContent = 'No change from last month';
+                element.style.color = '#666';
+            }
+        }
+
+        // Display weekly breakdown data
+        function displayWeeklyBreakdown(weeklyData) {
+            const weeklyDiv = document.getElementById('weekly-breakdown');
+            weeklyDiv.style.display = 'block';
+            
+            Object.keys(weeklyData).forEach(weekKey => {
+                const weekNum = weekKey.replace('week', '');
+                const data = weeklyData[weekKey];
+                const dataElement = document.getElementById(`week${weekNum}-data`);
+                
+                if (data.shifts > 0) {
+                    dataElement.innerHTML = `
+                        ${data.shifts} shifts<br>
+                        ${data.hours} hrs<br>
+                        ${data.distance} km
+                    `;
+                    document.getElementById(`week${weekNum}-card`).style.background = '#e8f5e8';
+                } else {
+                    dataElement.textContent = 'No shifts';
+                    document.getElementById(`week${weekNum}-card`).style.background = '#f8f9fa';
+                }
+            });
+        }
+
+        // Display shifts in table format
+        function displayShiftsTable(shifts) {
+            const tableBody = document.getElementById('shifts-table-body');
+            
+            if (shifts.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="loading-row">No shifts found for this period</td></tr>';
+                return;
+            }
+            
+            tableBody.innerHTML = shifts.map(shift => `
+                <tr>
+                    <td>${shift.shift_date}</td>
+                    <td>${shift.clock_in_time}</td>
+                    <td>${shift.clock_out_time || '-'}</td>
+                    <td>${shift.duration_hours || '-'} hrs</td>
+                    <td>${shift.total_distance || 0} km</td>
+                    <td>${shift.start_odometer}</td>
+                    <td>${shift.end_odometer || '-'}</td>
+                    <td><span class="status-badge status-completed">${shift.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Export monthly data
+        async function exportMonthlyData(format) {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            
+            try {
+                const response = await fetch(`/api/driver/shifts/monthly/${year}/${month}/export?format=${format}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to export data');
+                }
+                
+                if (format === 'csv') {
+                    const csvData = await response.text();
+                    const blob = new Blob([csvData], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `monthly_shifts_${year}_${month}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const jsonData = await response.json();
+                    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `monthly_shifts_${year}_${month}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+                
+                showSuccess(`Monthly report exported successfully as ${format.toUpperCase()}`);
+            } catch (error) {
+                showError('Error exporting data: ' + error.message);
+            }
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div style="background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin: 10px 0;">${message}</div>`;
+            setTimeout(() => {
+                errorContainer.innerHTML = '';
+            }, 3000);
         }
         
         function logout() {

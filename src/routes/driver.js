@@ -482,8 +482,8 @@ router.get('/shifts/weekly/:year/:week', authMiddleware, async (req, res) => {
 });
 
 /**
- * Get monthly shift summary
- * GET /api/driver/shifts/monthly/:year/:month
+ * Get enhanced monthly shift summary with calendar view
+ * GET /api/driver/shifts/monthly/:year/:month (Story 8 Enhancement)
  */
 router.get('/shifts/monthly/:year/:month', authMiddleware, async (req, res) => {
   try {
@@ -509,7 +509,244 @@ router.get('/shifts/monthly/:year/:month', authMiddleware, async (req, res) => {
     const nextYear = monthNum === 12 ? parseInt(year) + 1 : year;
     const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
 
-    // Get shifts for the month
+    // Calculate previous month for trends
+    const prevMonth = monthNum === 1 ? 12 : monthNum - 1;
+    const prevYear = monthNum === 1 ? parseInt(year) - 1 : year;
+    const prevStartDate = `${prevYear}-${prevMonth.toString().padStart(2, '0')}-01`;
+    const prevEndDate = startDate;
+
+    // Get all shifts for the month (unlimited for calendar generation)
+    const allShiftsQuery = `
+      SELECT 
+        id, clock_in_time, clock_out_time, start_odometer, end_odometer,
+        total_distance, shift_duration_minutes, status, created_at
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND clock_in_time >= ? 
+      AND clock_in_time < ?
+      AND status = 'completed'
+      ORDER BY clock_in_time ASC
+    `;
+
+    const allShifts = await dbConnection.query(allShiftsQuery, [driverId, startDate, endDate]);
+
+    // Get paginated shifts for display
+    const paginatedShifts = allShifts.slice(offset, offset + limit);
+
+    // Get previous month summary for trends
+    const prevSummaryQuery = `
+      SELECT 
+        COUNT(*) as totalShifts,
+        COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
+        COALESCE(SUM(total_distance), 0) as totalDistance
+      FROM shifts 
+      WHERE driver_id = ? 
+      AND clock_in_time >= ? 
+      AND clock_in_time < ?
+      AND status = 'completed'
+    `;
+    const prevSummary = await dbConnection.get(prevSummaryQuery, [driverId, prevStartDate, prevEndDate]);
+
+    // Calculate comprehensive summary statistics
+    const totalShifts = allShifts.length;
+    const totalMinutes = allShifts.reduce((sum, shift) => sum + (shift.shift_duration_minutes || 0), 0);
+    const totalDistance = allShifts.reduce((sum, shift) => sum + (shift.total_distance || 0), 0);
+    const workingDays = new Set(allShifts.map(shift => new Date(shift.clock_in_time).toDateString())).size;
+
+    // Generate calendar data structure
+    const calendar = generateCalendarData(year, monthNum, allShifts);
+
+    // Generate weekly breakdown
+    const weeklyBreakdown = generateWeeklyBreakdown(year, monthNum, allShifts);
+
+    // Calculate overtime hours (basic logic: >8 hours per day = overtime)
+    let overtimeMinutes = 0;
+    let regularMinutes = 0;
+    
+    const dailyShifts = {};
+    allShifts.forEach(shift => {
+      const date = new Date(shift.clock_in_time).toDateString();
+      if (!dailyShifts[date]) dailyShifts[date] = 0;
+      dailyShifts[date] += shift.shift_duration_minutes || 0;
+    });
+
+    Object.values(dailyShifts).forEach(dayMinutes => {
+      if (dayMinutes > 480) { // 8 hours = 480 minutes
+        overtimeMinutes += dayMinutes - 480;
+        regularMinutes += 480;
+      } else {
+        regularMinutes += dayMinutes;
+      }
+    });
+
+    // Calculate trends comparison
+    const trends = {
+      previousMonth: {
+        totalShifts: prevSummary.totalShifts || 0,
+        totalHours: prevSummary.totalMinutes ? (prevSummary.totalMinutes / 60).toFixed(2) : "0.00",
+        totalDistance: prevSummary.totalDistance || 0
+      },
+      comparison: {
+        shiftsChange: totalShifts - (prevSummary.totalShifts || 0),
+        hoursChange: parseFloat(((totalMinutes - (prevSummary.totalMinutes || 0)) / 60).toFixed(2)),
+        distanceChange: totalDistance - (prevSummary.totalDistance || 0)
+      }
+    };
+
+    res.json({
+      success: true,
+      data: {
+        shifts: paginatedShifts.map(shift => ({
+          ...shift,
+          clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
+          duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null,
+          shift_date: new Date(shift.clock_in_time).toLocaleDateString('en-IN')
+        })),
+        summary: {
+          totalShifts,
+          totalHours: (totalMinutes / 60).toFixed(2),
+          totalDistance,
+          averageHours: totalShifts > 0 ? (totalMinutes / totalShifts / 60).toFixed(2) : "0.00",
+          averageDistance: totalShifts > 0 ? Math.round(totalDistance / totalShifts) : 0,
+          workingDays,
+          overtimeHours: (overtimeMinutes / 60).toFixed(2),
+          regularHours: (regularMinutes / 60).toFixed(2),
+          month: monthNum,
+          year: parseInt(year),
+          monthName: new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'long' })
+        },
+        calendar,
+        weeklyBreakdown,
+        trends,
+        pagination: {
+          page,
+          limit,
+          total: totalShifts,
+          hasNext: offset + limit < totalShifts,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Error getting enhanced monthly shifts:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Database Error',
+      message: 'Failed to retrieve monthly shifts summary'
+    });
+  }
+});
+
+// Helper function to generate calendar data structure
+function generateCalendarData(year, month, shifts) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const calendar = { days: [] };
+  
+  // Group shifts by date
+  const shiftsByDate = {};
+  shifts.forEach(shift => {
+    const date = new Date(shift.clock_in_time).toISOString().split('T')[0];
+    if (!shiftsByDate[date]) {
+      shiftsByDate[date] = [];
+    }
+    shiftsByDate[date].push(shift);
+  });
+
+  // Generate calendar days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    const dayShifts = shiftsByDate[date] || [];
+    const dayOfWeek = new Date(year, month - 1, day).getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+    
+    const totalHours = dayShifts.reduce((sum, shift) => sum + (shift.shift_duration_minutes || 0), 0) / 60;
+    const totalDistance = dayShifts.reduce((sum, shift) => sum + (shift.total_distance || 0), 0);
+    
+    let status = 'off';
+    if (totalHours > 0) {
+      status = totalHours >= 8 ? 'working' : 'partial';
+    }
+
+    calendar.days.push({
+      date,
+      shifts: dayShifts.map(shift => ({
+        id: shift.id,
+        clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
+        duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null,
+        total_distance: shift.total_distance || 0
+      })),
+      totalHours: parseFloat(totalHours.toFixed(2)),
+      totalDistance,
+      status,
+      isWeekend
+    });
+  }
+  
+  return calendar;
+}
+
+// Helper function to generate weekly breakdown
+function generateWeeklyBreakdown(year, month, shifts) {
+  const weeks = {};
+  const daysInMonth = new Date(year, month, 0).getDate();
+  
+  // Initialize weeks
+  for (let week = 1; week <= 5; week++) {
+    weeks[`week${week}`] = {
+      shifts: 0,
+      hours: "0.00",
+      distance: 0
+    };
+  }
+  
+  shifts.forEach(shift => {
+    const shiftDate = new Date(shift.clock_in_time);
+    const dayOfMonth = shiftDate.getDate();
+    const weekNumber = Math.ceil(dayOfMonth / 7);
+    const weekKey = `week${weekNumber}`;
+    
+    if (weeks[weekKey]) {
+      weeks[weekKey].shifts += 1;
+      weeks[weekKey].distance += shift.total_distance || 0;
+      
+      const currentHours = parseFloat(weeks[weekKey].hours) + (shift.shift_duration_minutes || 0) / 60;
+      weeks[weekKey].hours = currentHours.toFixed(2);
+    }
+  });
+  
+  return weeks;
+}
+
+/**
+ * Export monthly shift report (Story 8 Enhancement)
+ * GET /api/driver/shifts/monthly/:year/:month/export?format=csv|pdf
+ */
+router.get('/shifts/monthly/:year/:month/export', authMiddleware, async (req, res) => {
+  try {
+    const driverId = req.driver.id;
+    const { year, month } = req.params;
+    const { format = 'csv' } = req.query;
+
+    // Validate month (1-12)
+    const monthNum = parseInt(month);
+    if (monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid month',
+        message: 'Month must be between 1 and 12'
+      });
+    }
+
+    // Calculate start and end dates for the month
+    const startDate = `${year}-${month.padStart(2, '0')}-01`;
+    const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
+    const nextYear = monthNum === 12 ? parseInt(year) + 1 : year;
+    const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+
+    // Get all shifts for the month
     const shiftsQuery = `
       SELECT 
         id, clock_in_time, clock_out_time, start_odometer, end_odometer,
@@ -519,78 +756,79 @@ router.get('/shifts/monthly/:year/:month', authMiddleware, async (req, res) => {
       AND clock_in_time >= ? 
       AND clock_in_time < ?
       AND status = 'completed'
-      ORDER BY clock_in_time DESC 
-      LIMIT ? OFFSET ?
+      ORDER BY clock_in_time ASC
     `;
 
-    const shifts = await dbConnection.query(shiftsQuery, [driverId, startDate, endDate, limit, offset]);
+    const shifts = await dbConnection.query(shiftsQuery, [driverId, startDate, endDate]);
+    const monthName = new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'long' });
 
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM shifts 
-      WHERE driver_id = ? 
-      AND clock_in_time >= ? 
-      AND clock_in_time < ?
-      AND status = 'completed'
-    `;
-    const countResult = await dbConnection.get(countQuery, [driverId, startDate, endDate]);
-    const total = countResult.total || 0;
+    const exportData = shifts.map(shift => ({
+      shift_id: shift.id,
+      date: new Date(shift.clock_in_time).toLocaleDateString('en-IN'),
+      clock_in: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      clock_out: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+      duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : 0,
+      start_odometer: shift.start_odometer,
+      end_odometer: shift.end_odometer || 0,
+      distance_km: shift.total_distance || 0
+    }));
 
-    // Calculate comprehensive summary statistics
-    const summaryQuery = `
-      SELECT 
-        COUNT(*) as totalShifts,
-        COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
-        COALESCE(SUM(total_distance), 0) as totalDistance,
-        COALESCE(AVG(shift_duration_minutes), 0) as avgMinutes,
-        COALESCE(AVG(total_distance), 0) as avgDistance,
-        COUNT(DISTINCT DATE(clock_in_time)) as workingDays
-      FROM shifts 
-      WHERE driver_id = ? 
-      AND clock_in_time >= ? 
-      AND clock_in_time < ?
-      AND status = 'completed'
-    `;
-    const summary = await dbConnection.get(summaryQuery, [driverId, startDate, endDate]);
+    // Calculate summary
+    const totalHours = shifts.reduce((sum, shift) => sum + (shift.shift_duration_minutes || 0), 0) / 60;
+    const totalDistance = shifts.reduce((sum, shift) => sum + (shift.total_distance || 0), 0);
+    const workingDays = new Set(shifts.map(shift => new Date(shift.clock_in_time).toDateString())).size;
 
-    res.json({
-      success: true,
-      data: {
-        shifts: shifts.map(shift => ({
-          ...shift,
-          clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-          clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
-          duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null,
-          shift_date: new Date(shift.clock_in_time).toLocaleDateString('en-IN')
-        })),
-        summary: {
-          totalShifts: summary.totalShifts || 0,
-          totalHours: summary.totalMinutes ? (summary.totalMinutes / 60).toFixed(2) : 0,
-          totalDistance: summary.totalDistance || 0,
-          averageHours: summary.avgMinutes ? (summary.avgMinutes / 60).toFixed(2) : 0,
-          averageDistance: summary.avgDistance ? Math.round(summary.avgDistance) : 0,
-          workingDays: summary.workingDays || 0,
-          month: monthNum,
+    if (format === 'csv') {
+      // Enhanced CSV export with summary
+      const csvHeader = `${monthName} ${year} - Monthly Shift Summary\n` +
+                       `Total Shifts: ${shifts.length}, Total Hours: ${totalHours.toFixed(2)}, Total Distance: ${totalDistance} km, Working Days: ${workingDays}\n\n` +
+                       'Shift ID,Date,Clock In,Clock Out,Duration (Hours),Start Odometer,End Odometer,Distance (KM)\n';
+      
+      const csvRows = exportData.map(row => 
+        `${row.shift_id},${row.date},"${row.clock_in}","${row.clock_out}",${row.duration_hours},${row.start_odometer},${row.end_odometer},${row.distance_km}`
+      ).join('\n');
+      
+      const csv = csvHeader + csvRows;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="monthly_shifts_${monthName}_${year}.csv"`);
+      res.send(csv);
+    } else if (format === 'pdf') {
+      // PDF format (basic implementation)
+      res.status(501).json({
+        success: false,
+        error: 'Not Implemented',
+        message: 'PDF export is planned for future implementation'
+      });
+    } else {
+      // JSON format with comprehensive data
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="monthly_shifts_${monthName}_${year}.json"`);
+      res.json({
+        success: true,
+        data: {
+          month: monthName,
           year: parseInt(year),
-          monthName: new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'long' })
-        },
-        pagination: {
-          page,
-          limit,
-          total,
-          hasNext: offset + limit < total,
-          hasPrev: page > 1
+          summary: {
+            totalShifts: shifts.length,
+            totalHours: totalHours.toFixed(2),
+            totalDistance,
+            workingDays,
+            averageHours: shifts.length > 0 ? (totalHours / shifts.length).toFixed(2) : "0.00",
+            averageDistance: shifts.length > 0 ? Math.round(totalDistance / shifts.length) : 0
+          },
+          shifts: exportData,
+          exportedAt: new Date().toISOString()
         }
-      }
-    });
+      });
+    }
 
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Error getting monthly shifts:`, error.message);
+    console.error(`[${new Date().toISOString()}] ❌ Error exporting monthly shifts:`, error.message);
     res.status(500).json({
       success: false,
       error: 'Database Error',
-      message: 'Failed to retrieve monthly shifts'
+      message: 'Failed to export monthly shifts'
     });
   }
 });

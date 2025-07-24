@@ -118,4 +118,5 @@ Thumbs.db
 
 # Vite config timestamps
 vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
+vite.config.ts.timestamp-*attached_assets/*.pdf
+attached_assets/
