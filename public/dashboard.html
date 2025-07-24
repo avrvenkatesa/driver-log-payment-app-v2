@@ -962,30 +962,85 @@
             `;
         }
 
-        // Display weekly breakdown data with enhanced styling
+        // Display weekly breakdown data with Story 8 enhancements
         function displayWeeklyBreakdown(weeklyData) {
             const weeklyDiv = document.getElementById('weekly-breakdown');
             weeklyDiv.style.display = 'block';
+            
+            // Find most productive week (highest total hours)
+            let mostProductiveWeek = null;
+            let maxHours = 0;
+            
+            Object.keys(weeklyData).forEach(weekKey => {
+                const data = weeklyData[weekKey];
+                if (data.hours > maxHours) {
+                    maxHours = data.hours;
+                    mostProductiveWeek = weekKey;
+                }
+            });
+            
+            // Calculate week-over-week trends
+            const weeks = ['week1', 'week2', 'week3', 'week4'];
+            const trends = {};
+            
+            for (let i = 1; i < weeks.length; i++) {
+                const currentWeek = weeks[i];
+                const previousWeek = weeks[i - 1];
+                const current = weeklyData[currentWeek];
+                const previous = weeklyData[previousWeek];
+                
+                if (current.shifts > 0 && previous.shifts > 0) {
+                    trends[currentWeek] = {
+                        shifts: current.shifts - previous.shifts,
+                        hours: (current.hours - previous.hours).toFixed(2),
+                        distance: current.distance - previous.distance,
+                        shiftsPercent: (((current.shifts - previous.shifts) / previous.shifts) * 100).toFixed(1),
+                        hoursPercent: (((current.hours - previous.hours) / previous.hours) * 100).toFixed(1),
+                        distancePercent: (((current.distance - previous.distance) / previous.distance) * 100).toFixed(1)
+                    };
+                }
+            }
             
             Object.keys(weeklyData).forEach(weekKey => {
                 const weekNum = weekKey.replace('week', '');
                 const data = weeklyData[weekKey];
                 const dataElement = document.getElementById(`week${weekNum}-data`);
                 const cardElement = document.getElementById(`week${weekNum}-card`);
+                const isMostProductive = weekKey === mostProductiveWeek && data.shifts > 0;
+                const trend = trends[weekKey];
                 
                 if (data.shifts > 0) {
+                    let trendHtml = '';
+                    if (trend) {
+                        const shiftsArrow = trend.shifts > 0 ? '↗️' : trend.shifts < 0 ? '↘️' : '→';
+                        const hoursArrow = trend.hours > 0 ? '↗️' : trend.hours < 0 ? '↘️' : '→';
+                        const distanceArrow = trend.distance > 0 ? '↗️' : trend.distance < 0 ? '↘️' : '→';
+                        
+                        trendHtml = `
+                            <div style="margin-top: 8px; font-size: 10px; color: #666; border-top: 1px solid #e0e0e0; padding-top: 6px;">
+                                <div>${shiftsArrow} ${trend.shifts > 0 ? '+' : ''}${trend.shifts} shifts (${trend.shiftsPercent > 0 ? '+' : ''}${trend.shiftsPercent}%)</div>
+                                <div>${hoursArrow} ${trend.hours > 0 ? '+' : ''}${trend.hours} hrs (${trend.hoursPercent > 0 ? '+' : ''}${trend.hoursPercent}%)</div>
+                                <div>${distanceArrow} ${trend.distance > 0 ? '+' : ''}${trend.distance} km (${trend.distancePercent > 0 ? '+' : ''}${trend.distancePercent}%)</div>
+                            </div>
+                        `;
+                    }
+                    
                     dataElement.innerHTML = `
-                        <div style="font-weight: bold; color: #1976d2; margin-bottom: 5px;">${data.shifts} shifts</div>
-                        <div style="color: #4caf50;">${data.hours} hrs</div>
-                        <div style="color: #666; font-size: 12px;">${data.distance} km</div>
+                        ${isMostProductive ? '<div style="background: #FFD700; color: #B8860B; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-bottom: 5px; display: inline-block;">⭐ Most Productive</div>' : ''}
+                        <div style="font-weight: bold; color: #1565C0; margin-bottom: 5px;">${data.shifts} shifts</div>
+                        <div style="color: #2E7D32; font-weight: 600;">${data.hours} hrs</div>
+                        <div style="color: #757575; font-size: 12px;">${data.distance} km</div>
+                        ${trendHtml}
                     `;
+                    
                     cardElement.style.cssText = `
-                        background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+                        background: ${isMostProductive ? 'linear-gradient(135deg, #fff9c4, #ffeaa7)' : 'linear-gradient(135deg, #e8f5e8, #f0fff0)'};
                         padding: 12px;
                         border-radius: 8px;
                         text-align: center;
-                        border-left: 4px solid #4caf50;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        border-left: 4px solid ${isMostProductive ? '#FFD700' : '#4CAF50'};
+                        box-shadow: 0 2px 6px rgba(0,0,0,${isMostProductive ? '0.15' : '0.1'});
+                        position: relative;
                     `;
                 } else {
                     dataElement.innerHTML = `
