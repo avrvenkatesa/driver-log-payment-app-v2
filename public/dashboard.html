@@ -828,25 +828,38 @@
             const month = document.getElementById('monthSelect').value;
             const year = document.getElementById('yearSelect').value;
             
+            console.log(`[Story 8] Loading monthly data for ${year}/${month}...`);
+            
             try {
-                const response = await fetch(`/api/driver/shifts/monthly/${year}/${month}`, {
+                const url = `/api/driver/shifts/monthly/${year}/${month}`;
+                console.log(`[Story 8] Fetching: ${url}`);
+                console.log(`[Story 8] Auth token: ${authToken ? 'Present' : 'Missing'}`);
+                
+                const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
                 });
                 
+                console.log(`[Story 8] Response status: ${response.status}`);
+                
                 if (!response.ok) {
-                    throw new Error('Failed to load monthly data');
+                    const errorText = await response.text();
+                    console.error(`[Story 8] Error response: ${errorText}`);
+                    throw new Error(`Failed to load monthly data: ${response.status} ${response.statusText}`);
                 }
                 
                 const data = await response.json();
+                console.log(`[Story 8] Data received:`, data);
                 
                 if (data.success) {
                     displayMonthlyData(data.data);
+                    console.log(`[Story 8] Monthly data displayed successfully`);
                 } else {
                     showError('Failed to load monthly data: ' + data.message);
                 }
             } catch (error) {
+                console.error(`[Story 8] Error:`, error);
                 showError('Error loading monthly data: ' + error.message);
             }
         }
