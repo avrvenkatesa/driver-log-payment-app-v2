@@ -5,6 +5,44 @@ const dbConnection = require('../database/connection');
 
 const router = express.Router();
 
+// Universal IST timezone conversion utility
+function convertToIST(utcTimestamp) {
+  if (!utcTimestamp) return null;
+  
+  const date = new Date(utcTimestamp);
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+// Format IST timestamp for API responses
+function formatISTTimestamp(utcTimestamp) {
+  if (!utcTimestamp) return null;
+  
+  const date = new Date(utcTimestamp);
+  return {
+    utc: utcTimestamp,
+    ist: convertToIST(utcTimestamp),
+    formatted: date.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  };
+}
+
 /**
  * Get current driver status and active shift information
  * GET /api/driver/status
@@ -68,7 +106,7 @@ router.get('/status', authMiddleware, async (req, res) => {
           hasActiveShift: !!activeShift,
           currentShift: activeShift ? {
             shiftId: activeShift.id,
-            clockInTime: activeShift.clock_in_time,
+            clockInTime: formatISTTimestamp(activeShift.clock_in_time),
             startOdometer: activeShift.start_odometer,
             currentDuration: currentShiftDuration,
             status: activeShift.status
@@ -76,7 +114,7 @@ router.get('/status', authMiddleware, async (req, res) => {
           todayShiftsCount,
           status: activeShift ? 'clocked_in' : 'clocked_out'
         },
-        timestamp: new Date().toISOString()
+        timestamp: formatISTTimestamp(new Date().toISOString())
       }
     };
     
@@ -136,7 +174,7 @@ router.post('/clock-in', authMiddleware, async (req, res) => {
       shift: {
         shiftId: shift.id,
         driverId: shift.driver_id,
-        clockInTime: shift.clock_in_time,
+        clockInTime: formatISTTimestamp(shift.clock_in_time),
         startOdometer: shift.start_odometer,
         status: shift.status
       }
@@ -215,8 +253,8 @@ router.post('/clock-out', authMiddleware, async (req, res) => {
       shift: {
         shiftId: completedShift.id,
         driverId: completedShift.driver_id,
-        clockInTime: completedShift.clock_in_time,
-        clockOutTime: completedShift.clock_out_time,
+        clockInTime: formatISTTimestamp(completedShift.clock_in_time),
+        clockOutTime: formatISTTimestamp(completedShift.clock_out_time),
         startOdometer: completedShift.start_odometer,
         endOdometer: completedShift.end_odometer,
         totalDistance: completedShift.total_distance,
