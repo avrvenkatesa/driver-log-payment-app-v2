@@ -5,12 +5,16 @@ const dbConnection = require('../database/connection');
 
 const router = express.Router();
 
-// Universal IST timezone conversion utility
+// FIXED: Universal IST timezone conversion utility
 function convertToIST(utcTimestamp) {
   if (!utcTimestamp) return null;
   
   const date = new Date(utcTimestamp);
-  return date.toLocaleString('en-IN', {
+  
+  // Debug: Log the conversion process
+  console.log(`[IST Convert] UTC: ${utcTimestamp} => Converting to IST`);
+  
+  const istString = date.toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
     year: 'numeric',
     month: '2-digit',
@@ -20,6 +24,9 @@ function convertToIST(utcTimestamp) {
     second: '2-digit',
     hour12: true
   });
+  
+  console.log(`[IST Convert] Result: ${istString}`);
+  return istString;
 }
 
 // Format IST timestamp for API responses
@@ -392,8 +399,9 @@ router.get('/shifts/daily/:date', authMiddleware, async (req, res) => {
       data: {
         shifts: shifts.map(shift => ({
           ...shift,
-          clock_in_time: new Date(shift.clock_in_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-          clock_out_time: shift.clock_out_time ? new Date(shift.clock_out_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null,
+          // CRITICAL FIX: Use proper convertToIST function to avoid double conversion
+          clock_in_time: convertToIST(shift.clock_in_time),
+          clock_out_time: shift.clock_out_time ? convertToIST(shift.clock_out_time) : null,
           duration_hours: shift.shift_duration_minutes ? (shift.shift_duration_minutes / 60).toFixed(2) : null
         })),
         summary: {

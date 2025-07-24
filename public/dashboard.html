@@ -1037,9 +1037,9 @@
                     loadMonthlyData();
                 }, 2500);
                 
-                // Test IST timezone conversion
+                // Test timezone fix - Current time verification
                 setTimeout(() => {
-                    console.log('[Dashboard] ==> Testing IST timezone conversion');
+                    console.log('[Dashboard] ==> TIMEZONE FIX: Testing current time display');
                     const now = new Date();
                     const istTime = now.toLocaleTimeString('en-IN', {
                         timeZone: 'Asia/Kolkata',
@@ -1047,7 +1047,14 @@
                         minute: '2-digit',
                         hour12: true
                     });
-                    console.log('[IST Test] Current IST time should be:', istTime + ' IST');
+                    const utcTime = now.toLocaleTimeString('en-US', {
+                        timeZone: 'UTC',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                    console.log('[TIMEZONE FIX] Current UTC:', utcTime, '=> IST should be:', istTime);
+                    console.log('[TIMEZONE FIX] If shift shows 7:32 PM but actual IST is 2:00 PM, there\'s double conversion');
                     currentShiftFilter = 'today';
                     loadShiftData();
                 }, 4000);
@@ -2370,50 +2377,59 @@
             }) + ' IST';
         }
         
-        // Fixed IST timezone formatting functions
+        // FIXED: No double timezone conversion
         function formatShiftDate(timestamp) {
             if (!timestamp) return '-';
             
-            // Handle pre-formatted IST strings (21/7/2025, 2:30:00 pm)
+            // Check if this is already an IST-formatted string from backend
             if (typeof timestamp === 'string' && timestamp.includes('/')) {
+                console.log('[Date Fix] Already IST formatted:', timestamp);
                 return timestamp.split(',')[0]; // Just the date part
             }
             
-            // Handle UTC timestamps - convert to IST
-            const date = new Date(timestamp);
-            return date.toLocaleDateString('en-GB', {
-                timeZone: 'Asia/Kolkata',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
+            // Check if this is a UTC timestamp that needs conversion
+            if (typeof timestamp === 'string' && timestamp.includes('Z')) {
+                console.log('[Date Fix] Converting UTC to IST:', timestamp);
+                const date = new Date(timestamp);
+                return date.toLocaleDateString('en-GB', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+            
+            // Fallback for other formats
+            return formatDate(timestamp);
         }
         
         function formatShiftTime(timestamp) {
             if (!timestamp) return '-';
             
-            // Handle pre-formatted IST strings (21/7/2025, 2:30:00 pm)
+            // CRITICAL FIX: Check if this is already IST-formatted from backend
             if (typeof timestamp === 'string' && timestamp.includes('/')) {
                 const parts = timestamp.split(', ');
-                return parts.length > 1 ? parts[1] + ' IST' : timestamp;
+                const timeWithIST = parts.length > 1 ? parts[1] + ' IST' : timestamp + ' IST';
+                console.log('[Time Fix] Already IST formatted:', timestamp, '=>', timeWithIST);
+                return timeWithIST;
             }
             
-            // Handle UTC timestamps - convert to proper IST
-            const date = new Date(timestamp);
-            const istTime = date.toLocaleTimeString('en-IN', {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
+            // Only convert if this is a raw UTC timestamp
+            if (typeof timestamp === 'string' && timestamp.includes('Z')) {
+                console.log('[Time Fix] Converting UTC to IST:', timestamp);
+                const date = new Date(timestamp);
+                const istTime = date.toLocaleTimeString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                console.log('[Time Fix] UTC converted to IST:', timestamp, '=>', istTime);
+                return istTime + ' IST';
+            }
             
-            // Verify IST conversion is correct - Should be 5:30 hours ahead of UTC
-            const utcDate = new Date(timestamp);
-            const istOffset = utcDate.getTime() + (5.5 * 60 * 60 * 1000); // Add 5:30 hours
-            const istDate = new Date(istOffset);
-            
-            console.log('[IST Debug] UTC:', timestamp, '=> IST calculated:', istTime, '=> Verified IST:', istDate.toLocaleTimeString('en-IN', { hour12: true }));
-            return istTime + ' IST';
+            // Fallback
+            return formatISTTime(timestamp);
         }
         
         // Download helper
