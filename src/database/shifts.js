@@ -32,11 +32,10 @@ class ShiftHelpers {
         throw new Error(`Start odometer (${start_odometer}) must be greater than or equal to previous shift's end odometer (${previousShift.end_odometer})`);
       }
 
-      // Record timestamp in IST
-      const clockInTime = new Date().toLocaleString('en-US', {
-        timeZone: 'Asia/Kolkata'
-      });
-      const clockInISO = new Date(clockInTime).toISOString();
+      // Ensure UTC storage as specified
+      const now = new Date();
+      const utcTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+      const clockInISO = now.toISOString();
 
       const sql = `
         INSERT INTO shifts (
@@ -51,6 +50,8 @@ class ShiftHelpers {
       `;
       
       const params = [driver_id, clockInISO, start_odometer, clockInISO, clockInISO];
+      
+      console.log(`[${new Date().toISOString()}] 📝 Storing UTC timestamp: ${clockInISO}`);
       const result = await dbConnection.run(sql, params);
       
       console.log(`[${new Date().toISOString()}] ✅ Shift created: Driver ${driver_id}, Shift ID: ${result.lastID}`);
@@ -143,11 +144,12 @@ class ShiftHelpers {
         throw new Error(`End odometer (${end_odometer}) must be greater than or equal to start odometer (${currentShift.start_odometer})`);
       }
 
-      // Record timestamp in IST
-      const clockOutTime = new Date().toLocaleString('en-US', {
-        timeZone: 'Asia/Kolkata'
-      });
-      const clockOutISO = new Date(clockOutTime).toISOString();
+      // Ensure UTC storage as specified
+      const now = new Date();
+      const utcTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+      const clockOutISO = now.toISOString();
+      
+      console.log(`[${new Date().toISOString()}] 📝 Storing UTC clock-out timestamp: ${clockOutISO}`);
 
       // Calculate duration and distance
       const clockInTime = new Date(currentShift.clock_in_time);
