@@ -403,6 +403,7 @@
                             <span class="config-value" id="current-hours">Loading...</span>
                         </div>
                     </div>
+                    <div class="config-last-changed" style="font-size: 0.9em; color: #666; font-style: italic; margin: 10px 0;">Last updated: Loading...</div>
                     <button id="edit-config-btn" class="btn-primary" onclick="showConfigForm()">⚙️ Edit Configuration</button>
                 </div>
             </div>
@@ -560,6 +561,14 @@
             document.getElementById('current-overtime').textContent = `₹${config.overtime_rate}/hour`;
             document.getElementById('current-fuel').textContent = `₹${config.fuel_allowance}/day`;
             document.getElementById('current-hours').textContent = `${config.working_hours} hours/day`;
+            
+            // Update last changed timestamp in IST
+            if (config.changed_at) {
+                const lastChangedElement = document.querySelector('.config-last-changed');
+                if (lastChangedElement) {
+                    lastChangedElement.textContent = `Last updated: ${convertToIST(config.changed_at)}`;
+                }
+            }
         }
         
         // Show configuration form
@@ -787,6 +796,25 @@
             }
         }
         
+        // Convert UTC timestamp to IST (Indian Standard Time)
+        function convertToIST(utcTimestamp) {
+            const utcDate = new Date(utcTimestamp);
+            
+            // IST is UTC+5:30
+            const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+            const istDate = new Date(utcDate.getTime() + istOffset);
+            
+            // Format: DD/MM/YYYY, HH:MM:SS IST
+            const day = istDate.getUTCDate().toString().padStart(2, '0');
+            const month = (istDate.getUTCMonth() + 1).toString().padStart(2, '0');
+            const year = istDate.getUTCFullYear();
+            const hours = istDate.getUTCHours().toString().padStart(2, '0');
+            const minutes = istDate.getUTCMinutes().toString().padStart(2, '0');
+            const seconds = istDate.getUTCSeconds().toString().padStart(2, '0');
+            
+            return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} IST`;
+        }
+        
         // Display configuration history
         function displayConfigHistory(history) {
             const container = document.getElementById('config-history-list');
@@ -798,7 +826,7 @@
             
             const historyHtml = history.map(item => `
                 <div class="history-item">
-                    <div class="history-timestamp">${new Date(item.changed_at).toLocaleString('en-IN')}</div>
+                    <div class="history-timestamp">${convertToIST(item.changed_at)}</div>
                     <div class="history-changes">
                         <span class="history-change">Salary: ₹${item.monthly_salary.toLocaleString()}</span>
                         <span class="history-change">Overtime: ₹${item.overtime_rate}/hour</span>
