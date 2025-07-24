@@ -257,25 +257,35 @@
         }
 
         .summary-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #ffffff;
+            color: #424242;
             padding: 20px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .summary-card h4 {
             margin: 0 0 10px 0;
             font-size: 14px;
-            opacity: 0.9;
-            font-weight: 500;
+            color: #424242;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .summary-card span {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
             display: block;
+            color: #1565c0;
         }
 
         .table-container {
@@ -570,15 +580,15 @@
                             <h4>Working Days</h4>
                             <span id="working-days">-</span>
                         </div>
-                        <div class="summary-card" style="background: linear-gradient(135deg, #e8f5e8, #f0fff0); border-left: 4px solid #4caf50;">
+                        <div class="summary-card" style="border-left: 4px solid #4CAF50;">
                             <h4>Regular Hours</h4>
-                            <span id="regular-hours">-</span>
-                            <small style="font-size: 12px; color: #666; display: block; margin-top: 5px;">Standard time</small>
+                            <span id="regular-hours" style="color: #2E7D32;">-</span>
+                            <small style="font-size: 12px; color: #757575; display: block; margin-top: 5px;">Standard time</small>
                         </div>
-                        <div class="summary-card" style="background: linear-gradient(135deg, #fff3e0, #fef7f0); border-left: 4px solid #ff9800;">
+                        <div class="summary-card" style="border-left: 4px solid #FF9800;">
                             <h4>Overtime Hours</h4>
-                            <span id="overtime-hours">-</span>
-                            <small style="font-size: 12px; color: #666; display: block; margin-top: 5px;">Extra time</small>
+                            <span id="overtime-hours" style="color: #E65100;">-</span>
+                            <small style="font-size: 12px; color: #757575; display: block; margin-top: 5px;">Extra time</small>
                         </div>
                     </div>
 
@@ -895,17 +905,17 @@
             displayEnhancedMetrics(summary);
         }
 
-        // Display trend information with appropriate styling
+        // Display trend information with improved styling and contrast
         function displayTrend(elementId, change, unit) {
             const element = document.getElementById(elementId);
             if (!element) return;
             
             if (change > 0) {
-                element.innerHTML = `<span style="color: #4caf50;">↗ +${change} ${unit}</span><br><small style="color: #666;">vs last month</small>`;
+                element.innerHTML = `<span style="color: #2196F3; font-weight: bold; font-size: 13px;">↗ +${change} ${unit}</span><br><small style="color: #757575; font-size: 11px;">vs last month</small>`;
             } else if (change < 0) {
-                element.innerHTML = `<span style="color: #f44336;">↘ ${change} ${unit}</span><br><small style="color: #666;">vs last month</small>`;
+                element.innerHTML = `<span style="color: #F44336; font-weight: bold; font-size: 13px;">↘ ${change} ${unit}</span><br><small style="color: #757575; font-size: 11px;">vs last month</small>`;
             } else {
-                element.innerHTML = `<span style="color: #666;">→ No change</span><br><small style="color: #666;">vs last month</small>`;
+                element.innerHTML = `<span style="color: #9E9E9E; font-weight: bold; font-size: 13px;">→ No change</span><br><small style="color: #757575; font-size: 11px;">vs last month</small>`;
             }
         }
 
@@ -930,23 +940,23 @@
             }
             
             metricsDiv.innerHTML = `
-                <h4 style="margin: 0 0 15px 0; color: #1976d2; font-size: 16px;">📊 Enhanced Analytics</h4>
+                <h4 style="margin: 0 0 15px 0; color: #1565C0; font-size: 16px; font-weight: 600;">📊 Enhanced Analytics</h4>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Average Hours/Shift</div>
-                        <div style="font-size: 18px; font-weight: bold; color: #1976d2;">${summary.averageHours} hrs</div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #e0e0e0;">
+                        <div style="font-size: 14px; color: #424242; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Average Hours/Shift</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #1565C0;">${summary.averageHours} hrs</div>
                     </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Average Distance/Shift</div>
-                        <div style="font-size: 18px; font-weight: bold; color: #1976d2;">${summary.averageDistance} km</div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #e0e0e0;">
+                        <div style="font-size: 14px; color: #424242; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Average Distance/Shift</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #1565C0;">${summary.averageDistance} km</div>
                     </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Work Efficiency</div>
-                        <div style="font-size: 18px; font-weight: bold; color: #4caf50;">${((summary.totalHours / summary.workingDays) || 0).toFixed(1)} hrs/day</div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #e0e0e0;">
+                        <div style="font-size: 14px; color: #424242; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Work Efficiency</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #2E7D32;">${((summary.totalHours / summary.workingDays) || 0).toFixed(1)} hrs/day</div>
                     </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Overtime Rate</div>
-                        <div style="font-size: 18px; font-weight: bold; color: ${summary.overtimeHours > 0 ? '#ff9800' : '#4caf50'};">${((summary.overtimeHours / summary.totalHours) * 100 || 0).toFixed(1)}%</div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #e0e0e0;">
+                        <div style="font-size: 14px; color: #424242; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Overtime Rate</div>
+                        <div style="font-size: 24px; font-weight: bold; color: ${summary.overtimeHours > 0 ? '#E65100' : '#2E7D32'};">${((summary.overtimeHours / summary.totalHours) * 100 || 0).toFixed(1)}%</div>
                     </div>
                 </div>
             `;
