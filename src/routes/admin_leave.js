@@ -292,7 +292,7 @@ router.patch('/leave-requests/:id/approve', requireAdminOnly, async (req, res) =
       });
     }
 
-    const result = await adminLeaveDb.updateLeaveRequestStatus(
+    const result = await updateLeaveRequestStatus(
       leaveRequestId,
       'approved',
       notes || '',
@@ -341,7 +341,7 @@ router.patch('/leave-requests/:id/reject', requireAdminOnly, async (req, res) =>
       });
     }
 
-    const result = await adminLeaveDb.updateLeaveRequestStatus(
+    const result = await updateLeaveRequestStatus(
       leaveRequestId,
       'rejected',
       notes,
