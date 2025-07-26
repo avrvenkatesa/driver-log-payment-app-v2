@@ -1226,6 +1226,26 @@
     <div id="driver-management-section" class="card" style="display: none;">
         <h3>👥 Driver Management System</h3>
         
+        <!-- Driver Summary Cards -->
+        <div class="summary-cards" style="margin-bottom: 25px;">
+            <div class="summary-card" style="background: #2196F3; color: white;">
+                <h4>Total Drivers</h4>
+                <span id="total-drivers-count">-</span>
+            </div>
+            <div class="summary-card" style="background: #4CAF50; color: white;">
+                <h4>Active Drivers</h4>
+                <span id="active-drivers-count">-</span>
+            </div>
+            <div class="summary-card" style="background: #f44336; color: white;">
+                <h4>Inactive Drivers</h4>
+                <span id="inactive-drivers-count">-</span>
+            </div>
+            <div class="summary-card" style="background: #17a2b8; color: white;">
+                <h4>Verified Drivers</h4>
+                <span id="verified-drivers-count">-</span>
+            </div>
+        </div>
+        
         <!-- Driver Management Controls -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -2474,7 +2494,19 @@
                 return;
             }
             console.log('[RBAC] Admin viewing all drivers');
-            showSuccess('Admin monitoring feature - View all drivers functionality coming soon!');
+            
+            // Show the driver management section
+            const section = document.getElementById('driver-management-section');
+            if (section) {
+                section.style.display = 'block';
+                loadDriverList();
+                showSuccess('Loading driver management interface...');
+                
+                // Scroll to the driver management section
+                section.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError('Driver management interface not found.');
+            }
         }
         
         // ===== ENHANCED SHIFT DATA MANAGEMENT =====
@@ -3761,6 +3793,7 @@
                 
                 if (result.success) {
                     displayDriverList(result.data.drivers, result.data.pagination);
+                    updateDriverSummary(result.data.summary);
                 } else {
                     throw new Error(result.message || 'Failed to load drivers');
                 }
@@ -3808,9 +3841,9 @@
                         <td style="padding: 12px 8px; border-bottom: 1px solid #dee2e6;">${statusBadge}</td>
                         <td style="padding: 12px 8px; border-bottom: 1px solid #dee2e6;">
                             <div style="font-size: 12px; line-height: 1.4;">
-                                <div><strong>${driver.totalShifts || 0}</strong> shifts</div>
-                                <div><strong>${driver.totalHours || 0}</strong> hours</div>
-                                <div><strong>${driver.totalDistance || 0}</strong> km</div>
+                                <div><strong>${driver.metrics?.totalShifts || 0}</strong> shifts</div>
+                                <div><strong>${driver.metrics?.totalHours || 0}</strong> hours</div>
+                                <div><strong>${driver.metrics?.totalDistance || 0}</strong> km</div>
                             </div>
                         </td>
                         <td style="padding: 12px 8px; border-bottom: 1px solid #dee2e6;">
@@ -3842,6 +3875,18 @@
             
             document.getElementById('driver-pagination').style.display = 
                 totalDriverPages > 1 ? 'flex' : 'none';
+        }
+
+        // Update driver summary cards
+        function updateDriverSummary(summary) {
+            console.log('[Driver Management] Updating summary cards:', summary);
+            
+            if (summary) {
+                document.getElementById('total-drivers-count').textContent = summary.totalDrivers || 0;
+                document.getElementById('active-drivers-count').textContent = summary.activeDrivers || 0;
+                document.getElementById('inactive-drivers-count').textContent = summary.inactiveDrivers || 0;
+                document.getElementById('verified-drivers-count').textContent = summary.verifiedDrivers || 0;
+            }
         }
 
         // Search drivers
