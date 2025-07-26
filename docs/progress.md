@@ -592,4 +592,218 @@ sqlite3 database/driver_logs.db "SELECT COUNT(DISTINCT driver_id) FROM shifts;"
 # Test RBAC security
 DRIVER_TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d '{"identifier":"+1234567890","password":"password123"}' | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 curl -H "Authorization: Bearer $DRIVER_TOKEN" "http://localhost:5000/api/admin/shifts?filter=today"
+`
+``
+# Story 15: Leave Management (Admin) - Development Progress
+
+**Story:** As an administrator, I want to approve or reject leave requests, so that leave is properly managed.
+
+**Status:** ✅ **COMPLETE** - Ready for Production  
+**Completion Date:** July 26, 2025  
+**Developer:** Replit Implementation  
+**Reviewer:** Claude Assistant  
+
+---
+
+## **📊 Development Summary**
+
+### **Acceptance Criteria Completion:**
+- **AC-1**: ✅ Leave requests management endpoint (comprehensive API with filtering)
+- **AC-2**: ✅ Leave approval/rejection endpoints (complete workflow with audit trail)
+- **AC-3**: ✅ Admin leave management UI (professional interface with action capabilities)
+- **AC-4**: ✅ Leave status updates (proper workflow with timestamps and tracking)
+- **AC-5**: ✅ Leave notes capability (documentation and communication system)
+- **AC-6**: ✅ Driver notification (real-time status updates and admin notes visibility)
+
+**Success Rate:** 100% (6/6 acceptance criteria)
+
+---
+
+## **🔧 Technical Implementation**
+
+### **Backend APIs Implemented:**
 ```
+✅ GET /api/admin/leave-requests
+   - Comprehensive leave requests management with driver information
+   - Status filtering (all, pending, approved, rejected)
+   - Professional pagination and summary statistics
+   - Complete audit trail and metadata
+
+✅ PUT /api/admin/leave-request/:id
+   - Status update functionality (approve/reject)
+   - Notes and reason documentation capability
+   - Admin identification and timestamp tracking
+   - Business logic validation (only pending requests modifiable)
+```
+
+### **Frontend UI Components:**
+```
+✅ Admin Leave Management Interface
+   - Professional leave requests list with driver details
+   - Status badges with color coding (pending/approved/rejected/cancelled)
+   - Action buttons for approve/reject functionality
+   - Notes input capability for admin decisions
+   - Real-time updates after admin actions
+
+✅ Leave Request Details Display
+   - Complete driver information (name, phone, email)
+   - Leave details (date, type, reason, status)
+   - Request timestamps and submission history
+   - Admin decision tracking and audit trail
+```
+
+---
+
+## **🎯 Business Value Delivered**
+
+### **Complete Leave Management Workflow:**
+- **Driver Submission**: Drivers request leave via Story 12 foundation
+- **Admin Review**: Comprehensive admin interface for leave processing
+- **Decision Processing**: Approve/reject with notes and audit trail
+- **Driver Notification**: Real-time status updates and admin communication
+- **Balance Integration**: Automatic annual leave balance adjustments
+
+### **Administrative Capabilities:**
+- **Leave Oversight**: View all leave requests with comprehensive filtering
+- **Decision Making**: Professional approval/rejection workflow with documentation
+- **Audit Trail**: Complete tracking of all administrative decisions
+- **Driver Communication**: Notes system for transparent decision communication
+- **Business Logic**: Intelligent validation and status management
+
+---
+
+## **📋 Testing Results**
+
+### **API Testing Results:**
+```bash
+# Complete API workflow verified:
+✅ Leave Requests API: 8 total requests with comprehensive data
+✅ Status Filtering: Pending filter returns 3 requests correctly
+✅ Approval Process: ID 3 (John Martinez) approved successfully
+✅ Rejection Process: ID 4 (System Administrator) rejected successfully  
+✅ Status Updates: Real-time reflection of admin decisions
+✅ Business Logic: Prevents modification of non-pending requests
+✅ Admin Authentication: Proper RBAC enforcement
+```
+
+### **Leave Management Data Verified:**
+```json
+{
+  "summary": {
+    "totalRequests": 8,
+    "pendingRequests": 1,
+    "approvedRequests": 1, 
+    "rejectedRequests": 1,
+    "cancelledRequests": 5
+  },
+  "approvedExample": {
+    "id": 3,
+    "driverName": "John Martinez Updated",
+    "leaveDate": "2025-07-30",
+    "status": "approved",
+    "approvedBy": "System Administrator",
+    "approvedAt": "2025-07-26 20:41:01",
+    "notes": "Approved for medical appointment - coverage arranged"
+  }
+}
+```
+
+### **Driver Notification Verification:**
+```
+✅ Status visibility: Driver sees approved status immediately
+✅ Admin notes: "Approved for medical appointment - coverage arranged" visible to driver
+✅ Leave balance: Annual balance updated (used: 1, remaining: 11)
+✅ Professional display: Formatted timestamps and relative time
+✅ Real-time sync: Complete synchronization between admin and driver views
+```
+
+---
+
+## **🚀 Production Deployment**
+
+### **Quality Assurance:**
+- **Code Quality**: Enterprise-level implementation with comprehensive error handling
+- **Business Logic**: Robust validation preventing invalid status transitions
+- **Security**: Complete RBAC implementation with admin-only access
+- **User Experience**: Professional admin interface with intuitive workflow
+- **Data Integrity**: Complete audit trail with timestamps and admin tracking
+- **Performance**: Efficient API endpoints with proper pagination
+
+### **Current Leave Management Data:**
+```
+Active Leave Requests:
+├── Pending: 1 request (ID 5 - System Administrator)
+├── Approved: 1 request (ID 3 - John Martinez)
+├── Rejected: 1 request (ID 4 - System Administrator)  
+└── Cancelled: 5 requests (previous submissions)
+
+Annual Leave Impact:
+├── John Martinez: 1 day used, 11 remaining
+└── Balance updates: Automatic with approved requests
+```
+
+---
+
+## **🔄 Integration Points**
+
+### **Dependencies Satisfied:**
+- **Story 12**: Leave Management Foundation (driver leave submission system)
+- **Story 13**: Driver Management (admin interface consistency and RBAC)
+- **Stories 1-11**: Complete authentication, database, and core functionality
+
+### **Seamless Integration Achieved:**
+- **Annual Leave Balance**: Real-time updates with approved requests
+- **Driver Communication**: Complete workflow from submission to approval
+- **Admin Interface**: Consistent styling with existing admin panels
+- **Authentication**: Unified RBAC system across all admin functions
+
+### **Future Integration Ready:**
+- **Advanced Reporting**: Leave analytics and trend analysis
+- **Email Notifications**: Enhanced notification system capability
+- **Mobile Notifications**: Push notification integration
+- **Payroll Integration**: Leave impact on payroll calculations
+
+---
+
+## **📝 Technical Notes**
+
+### **Key Implementation Details:**
+- **Workflow Management**: Complete leave lifecycle from submission to approval
+- **Audit Trail**: Comprehensive tracking with admin identification and timestamps
+- **Business Logic**: Intelligent validation preventing invalid state transitions
+- **Real-time Updates**: Immediate synchronization across admin and driver interfaces
+- **Data Validation**: Robust input validation and error handling
+
+### **Database Integration:**
+- **Leave Requests Table**: Enhanced with approval metadata and admin tracking
+- **Foreign Key Relationships**: Proper integration with drivers table
+- **Status Management**: Controlled workflow with validation constraints
+- **Annual Balance Calculation**: Automated balance updates with approved requests
+
+---
+
+## **🎉 Story 15 Completion**
+
+**Status:** ✅ **PRODUCTION READY**
+
+This story delivers a complete, enterprise-level leave management system with:
+- ✅ **Comprehensive Admin API** (leave processing with complete workflow)
+- ✅ **Professional Admin Interface** (intuitive UI with action capabilities)
+- ✅ **Complete Audit Trail** (full tracking of decisions with timestamps)
+- ✅ **Real-time Communication** (driver notifications with admin notes)
+- ✅ **Business Integration** (annual leave balance automation)
+- ✅ **Production Quality** (robust validation, error handling, professional UX)
+
+**Ready for commit, merge, and production deployment! 🚀**
+
+---
+
+**Completed Leave Management Workflow:**
+1. **Driver Submits**: Leave request via Story 12 interface
+2. **Admin Reviews**: Professional admin interface with all request details
+3. **Admin Decides**: Approve/reject with notes and documentation
+4. **System Updates**: Status, balance, and audit trail automatically updated
+5. **Driver Notified**: Real-time status and admin notes visibility
+6. **Balance Adjusted**: Annual leave balance automatically recalculated
+
+**Next Development Priority:** Story 16 (Internationalization) or Story 17 (Manual Shift Management)
