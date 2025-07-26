@@ -2,8 +2,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Database file path
-const DB_PATH = path.join(__dirname, '../../database/driver_logs.db');
+// Database file path - using the correct company.db in root directory
+const DB_PATH = path.join(__dirname, '../../company.db');
 
 /**
  * Database connection pool manager

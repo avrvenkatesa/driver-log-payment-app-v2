@@ -46,7 +46,7 @@ class LeaveDatabase {
      * @returns {Promise<Object>} Created leave request with ID
      */
     async submitLeaveRequest(leaveData) {
-        return new Promise((resolve, reject) => {
+        try {
             const { driver_id, leave_date, leave_type, reason } = leaveData;
             
             const insertQuery = `
@@ -56,40 +56,39 @@ class LeaveDatabase {
             
             const currentTimestamp = new Date().toISOString();
             
-            dbConnection.query(insertQuery, [
+            const result = await dbConnection.run(insertQuery, [
                 driver_id,
                 leave_date,
                 leave_type || 'annual',
                 reason || null,
                 currentTimestamp
-            ], (err, result) => {
-                if (err) {
-                    console.error(`[${new Date().toISOString()}] ❌ Error submitting leave request:`, err);
-                    
-                    // Handle duplicate date constraint violation
-                    if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('UNIQUE')) {
-                        reject({
-                            code: 'DUPLICATE_DATE',
-                            message: 'You already have a leave request for this date',
-                            details: { leave_date, driver_id }
-                        });
-                    } else {
-                        reject(err);
-                    }
-                } else {
-                    console.log(`[${new Date().toISOString()}] ✅ Leave request submitted: ID ${result.lastID}`);
-                    resolve({
-                        id: result.lastID,
-                        driver_id,
-                        leave_date,
-                        leave_type: leave_type || 'annual',
-                        reason,
-                        status: 'pending',
-                        requested_at: currentTimestamp
-                    });
-                }
-            });
-        });
+            ]);
+            
+            console.log(`[${new Date().toISOString()}] ✅ Leave request submitted: ID ${result.lastID}`);
+            return {
+                id: result.lastID,
+                driver_id,
+                leave_date,
+                leave_type: leave_type || 'annual',
+                reason,
+                status: 'pending',
+                requested_at: currentTimestamp
+            };
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error submitting leave request:`, error);
+            
+            // Handle duplicate date constraint violation
+            if (error.code === 'SQLITE_CONSTRAINT' && error.message.includes('UNIQUE')) {
+                throw {
+                    code: 'DUPLICATE_DATE',
+                    message: 'You already have a leave request for this date',
+                    details: { leave_date: leaveData.leave_date, driver_id: leaveData.driver_id }
+                };
+            } else {
+                throw error;
+            }
+        }
     }
     
     /**
@@ -99,7 +98,7 @@ class LeaveDatabase {
      * @returns {Promise<Array>} Leave requests array
      */
     async getDriverLeaveRequests(driverId, year = new Date().getFullYear()) {
-        return new Promise((resolve, reject) => {
+        try {
             const selectQuery = `
                 SELECT 
                     id,
@@ -118,16 +117,15 @@ class LeaveDatabase {
                 ORDER BY leave_date DESC
             `;
             
-            dbConnection.query(selectQuery, [driverId, year.toString()], (err, rows) => {
-                if (err) {
-                    console.error(`[${new Date().toISOString()}] ❌ Error fetching leave requests:`, err);
-                    reject(err);
-                } else {
-                    console.log(`[${new Date().toISOString()}] ✅ Found ${rows.length} leave requests for driver ${driverId} in ${year}`);
-                    resolve(rows);
-                }
-            });
-        });
+            const rows = await dbConnection.query(selectQuery, [driverId, year.toString()]);
+            
+            console.log(`[${new Date().toISOString()}] ✅ Found ${rows.length} leave requests for driver ${driverId} in ${year}`);
+            return rows;
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error fetching leave requests:`, error);
+            throw error;
+        }
     }
     
     /**
@@ -137,7 +135,7 @@ class LeaveDatabase {
      * @returns {Promise<Object>} Leave balance information
      */
     async calculateAnnualLeaveBalance(driverId, year = new Date().getFullYear()) {
-        return new Promise((resolve, reject) => {
+        try {
             const balanceQuery = `
                 SELECT 
                     COUNT(*) as used_annual_days
@@ -148,27 +146,26 @@ class LeaveDatabase {
                   AND status = 'approved'
             `;
             
-            dbConnection.query(balanceQuery, [driverId, year.toString()], (err, rows) => {
-                if (err) {
-                    console.error(`[${new Date().toISOString()}] ❌ Error calculating leave balance:`, err);
-                    reject(err);
-                } else {
-                    const usedDays = rows[0]?.used_annual_days || 0;
-                    const totalDays = 12; // Maximum annual leave days
-                    const remainingDays = Math.max(0, totalDays - usedDays);
-                    
-                    const balance = {
-                        total: totalDays,
-                        used: usedDays,
-                        remaining: remainingDays,
-                        year: year
-                    };
-                    
-                    console.log(`[${new Date().toISOString()}] ✅ Leave balance calculated for driver ${driverId}:`, balance);
-                    resolve(balance);
-                }
-            });
-        });
+            const rows = await dbConnection.query(balanceQuery, [driverId, year.toString()]);
+            
+            const usedDays = rows[0]?.used_annual_days || 0;
+            const totalDays = 12; // Maximum annual leave days
+            const remainingDays = Math.max(0, totalDays - usedDays);
+            
+            const balance = {
+                total: totalDays,
+                used: usedDays,
+                remaining: remainingDays,
+                year: year
+            };
+            
+            console.log(`[${new Date().toISOString()}] ✅ Leave balance calculated for driver ${driverId}:`, balance);
+            return balance;
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error calculating leave balance:`, error);
+            throw error;
+        }
     }
     
     /**
@@ -178,23 +175,21 @@ class LeaveDatabase {
      * @returns {Promise<Object|null>} Existing leave request or null
      */
     async checkExistingLeaveRequest(driverId, leaveDate) {
-        return new Promise((resolve, reject) => {
+        try {
             const checkQuery = `
                 SELECT id, leave_date, leave_type, status
                 FROM leave_requests
                 WHERE driver_id = ? AND leave_date = ?
             `;
             
-            dbConnection.query(checkQuery, [driverId, leaveDate], (err, rows) => {
-                if (err) {
-                    console.error(`[${new Date().toISOString()}] ❌ Error checking existing leave request:`, err);
-                    reject(err);
-                } else {
-                    const existingRequest = rows.length > 0 ? rows[0] : null;
-                    resolve(existingRequest);
-                }
-            });
-        });
+            const rows = await dbConnection.query(checkQuery, [driverId, leaveDate]);
+            const existingRequest = rows.length > 0 ? rows[0] : null;
+            return existingRequest;
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error checking existing leave request:`, error);
+            throw error;
+        }
     }
     
     /**
