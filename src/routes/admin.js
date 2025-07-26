@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const payrollDB = require('../database/payroll');
+const adminDriversDB = require('../database/admin_drivers');
 const { authMiddleware, requireAdminOnly, requireDriverOrAdmin } = require('../auth/auth');
 
 // FIXED: Add IST timezone conversion for admin timestamps (same as driver routes)
@@ -368,6 +369,216 @@ router.delete('/leave-request/:id', requireAdminOnly, async (req, res) => {
             details: error.message
         });
     }
+});
+
+/**
+ * STORY 13: DRIVER MANAGEMENT (ADMIN) ENDPOINTS
+ * Comprehensive driver management system for administrators
+ */
+
+/**
+ * GET /api/admin/drivers
+ * Get comprehensive driver list with metrics and pagination
+ * Query parameters: search, status, page, limit
+ */
+router.get('/drivers', requireAdminOnly, async (req, res) => {
+  const requestId = Date.now();
+  
+  try {
+    console.log(`[${requestId}] [Admin Drivers API] ==> GET /api/admin/drivers`);
+    console.log(`[${requestId}] [Admin Drivers API] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+    
+    const {
+      search = '',
+      status = 'all',
+      page = 1,
+      limit = 10
+    } = req.query;
+    
+    const options = {
+      search: search.toString().trim(),
+      status: status.toString(),
+      page: parseInt(page) || 1,
+      limit: Math.min(parseInt(limit) || 10, 50) // Max 50 per page
+    };
+    
+    console.log(`[${requestId}] [Admin Drivers API] ==> Query options:`, options);
+    
+    const result = await adminDriversDB.getDriversList(options);
+    
+    // Convert timestamps to IST for display
+    const driversWithIST = result.drivers.map(driver => ({
+      ...driver,
+      created_at: convertToIST(driver.created_at),
+      last_active: convertToIST(driver.last_active),
+      metrics: {
+        ...driver.metrics,
+        lastShiftDate: driver.metrics.lastShiftDate ? convertToIST(driver.metrics.lastShiftDate) : null
+      }
+    }));
+    
+    const response = {
+      ...result,
+      drivers: driversWithIST
+    };
+    
+    console.log(`[${requestId}] [Admin Drivers API] ==> Retrieved ${driversWithIST.length} drivers`);
+    console.log(`[${requestId}] [Admin Drivers API] ==> Summary: ${result.summary.totalDrivers} total, ${result.summary.activeDrivers} active`);
+    
+    res.json({
+      success: true,
+      data: response
+    });
+    
+  } catch (error) {
+    console.error(`[${requestId}] [Admin Drivers API] ==> Error getting drivers list:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve drivers list',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/driver/:driverId/status
+ * Update driver status (activate/deactivate)
+ */
+router.put('/driver/:driverId/status', requireAdminOnly, async (req, res) => {
+  const requestId = Date.now();
+  
+  try {
+    const { driverId } = req.params;
+    const { is_active, reason = 'Status updated by admin' } = req.body;
+    
+    console.log(`[${requestId}] [Admin Drivers API] ==> PUT /api/admin/driver/${driverId}/status`);
+    console.log(`[${requestId}] [Admin Drivers API] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+    console.log(`[${requestId}] [Admin Drivers API] ==> New status: ${is_active ? 'active' : 'inactive'}`);
+    
+    // Validate request
+    if (typeof is_active !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request',
+        message: 'is_active must be a boolean value'
+      });
+    }
+    
+    if (!driverId || isNaN(parseInt(driverId))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid driver ID',
+        message: 'Driver ID must be a valid number'
+      });
+    }
+    
+    const result = await adminDriversDB.updateDriverStatus(
+      parseInt(driverId),
+      is_active,
+      reason.toString(),
+      req.user.id
+    );
+    
+    // Convert timestamp to IST
+    const resultWithIST = {
+      ...result,
+      updated_at: convertToIST(result.updated_at)
+    };
+    
+    console.log(`[${requestId}] [Admin Drivers API] ==> Driver status updated successfully: ${result.name}`);
+    
+    res.json({
+      success: true,
+      message: 'Driver status updated successfully',
+      data: resultWithIST
+    });
+    
+  } catch (error) {
+    console.error(`[${requestId}] [Admin Drivers API] ==> Error updating driver status:`, error.message);
+    
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'Driver not found',
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update driver status',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/driver/:driverId/details
+ * Get detailed driver information with metrics and history
+ */
+router.get('/driver/:driverId/details', requireAdminOnly, async (req, res) => {
+  const requestId = Date.now();
+  
+  try {
+    const { driverId } = req.params;
+    
+    console.log(`[${requestId}] [Admin Drivers API] ==> GET /api/admin/driver/${driverId}/details`);
+    console.log(`[${requestId}] [Admin Drivers API] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+    
+    if (!driverId || isNaN(parseInt(driverId))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid driver ID',
+        message: 'Driver ID must be a valid number'
+      });
+    }
+    
+    const result = await adminDriversDB.getDriverDetails(parseInt(driverId));
+    
+    // Convert timestamps to IST
+    const detailsWithIST = {
+      driver: {
+        ...result.driver,
+        created_at: convertToIST(result.driver.created_at),
+        updated_at: convertToIST(result.driver.updated_at)
+      },
+      metrics: {
+        ...result.metrics,
+        lastShiftDate: result.metrics.lastShiftDate ? convertToIST(result.metrics.lastShiftDate) : null
+      },
+      recentShifts: result.recentShifts,
+      leaveRequests: result.leaveRequests.map(lr => ({
+        ...lr,
+        leave_date: lr.leave_date, // Keep as date string
+        requested_at: convertToIST(lr.requested_at)
+      }))
+    };
+    
+    console.log(`[${requestId}] [Admin Drivers API] ==> Retrieved details for driver: ${result.driver.name}`);
+    console.log(`[${requestId}] [Admin Drivers API] ==> Metrics: ${result.metrics.totalShifts} shifts, ${result.metrics.totalHours}h`);
+    
+    res.json({
+      success: true,
+      data: detailsWithIST
+    });
+    
+  } catch (error) {
+    console.error(`[${requestId}] [Admin Drivers API] ==> Error getting driver details:`, error.message);
+    
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'Driver not found',
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve driver details',
+      details: error.message
+    });
+  }
 });
 
 // Export both the router and initialization function
