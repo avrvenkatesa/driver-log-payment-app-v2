@@ -729,6 +729,54 @@
             background: #ffebee;
             color: #d32f2f;
         }
+        
+        /* Confirmation dialog animations and styles */
+        #leave-confirmation-dialog {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        #leave-confirmation-dialog > div {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: scale(0.9) translateY(-20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1) translateY(0); 
+            }
+        }
+        
+        /* Dialog button hover effects */
+        #leave-confirmation-dialog button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        
+        /* Enhanced table styles for timestamp display */
+        .timestamp-cell {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .timestamp-date {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .timestamp-relative {
+            color: #666;
+            font-size: 12px;
+        }
 
         .btn-primary {
             background: linear-gradient(135deg, #3498db, #2980b9);
@@ -1137,6 +1185,41 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Request Confirmation Dialog -->
+    <div id="leave-confirmation-dialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 8px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin: 0 0 20px 0; color: #1976d2; text-align: center;">📅 Confirm Leave Request</h3>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 25px;">
+                <div style="margin-bottom: 12px;">
+                    <strong style="color: #333;">Leave Date:</strong>
+                    <span id="confirm-leave-date" style="color: #666; margin-left: 10px;"></span>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <strong style="color: #333;">Leave Type:</strong>
+                    <span id="confirm-leave-type" style="color: #666; margin-left: 10px;"></span>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <strong style="color: #333;">Reason:</strong>
+                    <div id="confirm-leave-reason" style="color: #666; margin-top: 5px; padding: 10px; background: #e9ecef; border-radius: 4px; min-height: 40px;"></div>
+                </div>
+                <div style="margin-bottom: 0;">
+                    <strong style="color: #333;">Submission Time:</strong>
+                    <span id="confirm-submission-time" style="color: #666; margin-left: 10px;"></span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="cancelLeaveRequest()" style="padding: 12px 24px; border: 1px solid #ccc; background: #f8f9fa; color: #666; border-radius: 6px; cursor: pointer; font-size: 14px; min-width: 120px;">
+                    ← Go Back to Edit
+                </button>
+                <button onclick="confirmLeaveRequest()" style="padding: 12px 24px; border: none; background: #1976d2; color: white; border-radius: 6px; cursor: pointer; font-size: 14px; min-width: 120px; font-weight: 500;">
+                    ✓ Confirm Request
+                </button>
             </div>
         </div>
     </div>
@@ -2948,12 +3031,12 @@
             }
         }
         
-        // Submit leave request
+        // Store form data for confirmation
+        let pendingLeaveRequest = null;
+        
+        // Submit leave request - now with confirmation dialog
         async function submitLeaveRequest(event) {
             event.preventDefault();
-            
-            const submitBtn = document.getElementById('submit-leave-btn');
-            const originalText = submitBtn.textContent;
             
             try {
                 // Client-side validation for reason field
@@ -2963,16 +3046,99 @@
                     return;
                 }
                 
-                submitBtn.textContent = 'Submitting...';
-                submitBtn.disabled = true;
-                
+                // Capture form data
                 const formData = {
                     leave_date: document.getElementById('leave-date').value,
                     leave_type: document.getElementById('leave-type').value,
                     reason: reason.trim()
                 };
                 
-                console.log('[Leave] Submitting request:', formData);
+                // Show confirmation dialog instead of direct submission
+                showLeaveConfirmationDialog(formData);
+                
+            } catch (error) {
+                console.error('[Leave] Error preparing confirmation:', error);
+                showError('❌ Error preparing request confirmation', 'error');
+            }
+        }
+        
+        // Show confirmation dialog with form data
+        function showLeaveConfirmationDialog(formData) {
+            pendingLeaveRequest = formData;
+            
+            // Format leave date for display
+            const leaveDate = new Date(formData.leave_date);
+            const formattedDate = leaveDate.toLocaleDateString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            
+            // Current time in IST
+            const submissionTime = new Date().toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            // Populate dialog
+            document.getElementById('confirm-leave-date').textContent = formattedDate;
+            document.getElementById('confirm-leave-type').textContent = capitalizeFirst(formData.leave_type) + ' Leave';
+            document.getElementById('confirm-leave-reason').textContent = formData.reason;
+            document.getElementById('confirm-submission-time').textContent = submissionTime + ' IST';
+            
+            // Show dialog with flex display for centering
+            const dialog = document.getElementById('leave-confirmation-dialog');
+            dialog.style.display = 'flex';
+            
+            // Add keyboard support (Escape to cancel, Enter to confirm)
+            document.addEventListener('keydown', handleDialogKeyboard);
+        }
+        
+        // Keyboard support for dialog
+        function handleDialogKeyboard(event) {
+            const dialog = document.getElementById('leave-confirmation-dialog');
+            if (dialog.style.display === 'flex') {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    cancelLeaveRequest();
+                } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    confirmLeaveRequest();
+                }
+            }
+        }
+        
+        // Cancel leave request (go back to form)
+        function cancelLeaveRequest() {
+            const dialog = document.getElementById('leave-confirmation-dialog');
+            dialog.style.display = 'none';
+            pendingLeaveRequest = null;
+            
+            // Remove keyboard listener
+            document.removeEventListener('keydown', handleDialogKeyboard);
+        }
+        
+        // Confirm and submit leave request
+        async function confirmLeaveRequest() {
+            if (!pendingLeaveRequest) {
+                showError('❌ No pending request data', 'error');
+                return;
+            }
+            
+            const submitBtn = document.querySelector('#leave-confirmation-dialog button[onclick="confirmLeaveRequest()"]');
+            const originalText = submitBtn.textContent;
+            
+            try {
+                submitBtn.textContent = '⏳ Submitting...';
+                submitBtn.disabled = true;
+                
+                console.log('[Leave] Submitting confirmed request:', pendingLeaveRequest);
                 
                 const response = await fetch('/api/driver/leave-request', {
                     method: 'POST',
@@ -2980,13 +3146,19 @@
                         'Authorization': `Bearer ${authToken}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(pendingLeaveRequest)
                 });
                 
                 const result = await response.json();
                 
                 if (response.ok && result.success) {
-                    showError(`✅ Leave request submitted successfully! ${result.data.remainingAnnualLeave} annual days remaining.`, 'success');
+                    // Close dialog
+                    cancelLeaveRequest();
+                    
+                    // Enhanced success message with submission details
+                    const submissionTime = result.data.formatted_time || 'now';
+                    const successMessage = `✅ Leave request submitted successfully at ${submissionTime}! ${result.data.remainingAnnualLeave} annual days remaining.`;
+                    showError(successMessage, 'success');
                     
                     // Reset form
                     document.getElementById('leave-request-form').reset();
@@ -3000,7 +3172,7 @@
                 }
                 
             } catch (error) {
-                console.error('[Leave] Error submitting request:', error);
+                console.error('[Leave] Error submitting confirmed request:', error);
                 showError('❌ Network error. Please try again.', 'error');
             } finally {
                 submitBtn.textContent = originalText;
@@ -3053,7 +3225,14 @@
                                 <td>
                                     <span class="status-badge status-${request.status}">${capitalizeFirst(request.status)}</span>
                                 </td>
-                                <td>${formatDate(request.requested_at)}</td>
+                                <td>
+                                    <div style="font-size: 13px; line-height: 1.4;">
+                                        <div style="font-weight: 500;">${request.requested_at ? request.requested_at.split(',')[0] : '-'}</div>
+                                        <div style="color: #666; font-size: 12px;">
+                                            ${request.relative_time || (request.formatted_time ? 'at ' + request.formatted_time : '')}
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                         `).join('');
                     }

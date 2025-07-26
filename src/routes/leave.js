@@ -126,6 +126,10 @@ router.post('/leave-request', authMiddleware.requireDriverOrAdmin, async (req, r
         console.log(`[${Date.now()}] [Leave API] ==> Leave request submitted successfully`);
         console.log(`[${Date.now()}] [Leave API] ==> Request ID: ${leaveRequest.id}, Balance: ${annualBalance.remaining} days`);
         
+        // Enhanced timestamp formatting for UX
+        const requestedAtIST = convertToIST(leaveRequest.requested_at);
+        const submissionTime = new Date(leaveRequest.requested_at);
+        
         res.status(201).json({
             success: true,
             message: 'Leave request submitted successfully',
@@ -136,7 +140,15 @@ router.post('/leave-request', authMiddleware.requireDriverOrAdmin, async (req, r
                 reason: leaveRequest.reason,
                 status: leaveRequest.status,
                 remainingAnnualLeave: annualBalance.remaining,
-                requested_at: convertToIST(leaveRequest.requested_at)
+                requested_at: requestedAtIST,
+                requested_timestamp: leaveRequest.requested_at,
+                formatted_time: submissionTime.toLocaleTimeString('en-IN', { 
+                    timeZone: 'Asia/Kolkata', 
+                    hour12: true, 
+                    hour: 'numeric', 
+                    minute: '2-digit' 
+                }),
+                submission_precision: 'microsecond'
             }
         });
         
@@ -191,18 +203,48 @@ router.get('/leave-requests/:year?', authMiddleware.requireDriverOrAdmin, async 
             leaveDatabase.calculateAnnualLeaveBalance(driver_id, year)
         ]);
         
-        // Format leave requests with IST timestamps
-        const formattedRequests = leaveRequests.map(request => ({
-            id: request.id,
-            leave_date: request.leave_date,
-            leave_type: request.leave_type,
-            reason: request.reason,
-            status: request.status,
-            requested_at: convertToIST(request.requested_at),
-            approved_by: request.approved_by,
-            approved_at: request.approved_at ? convertToIST(request.approved_at) : null,
-            notes: request.notes
-        }));
+        // Format leave requests with enhanced IST timestamps and relative time
+        const formattedRequests = leaveRequests.map(request => {
+            const requestedAt = new Date(request.requested_at);
+            const now = new Date();
+            const diffMs = now - requestedAt;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            
+            let relativeTime;
+            if (diffMs < 60 * 60 * 1000) { // Less than 1 hour
+                const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                relativeTime = diffMinutes <= 1 ? 'Just now' : `${diffMinutes} minutes ago`;
+            } else if (diffHours < 24) { // Less than 1 day
+                relativeTime = `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+            } else if (diffDays === 1) {
+                relativeTime = 'Yesterday';
+            } else if (diffDays < 7) {
+                relativeTime = `${diffDays} days ago`;
+            } else {
+                relativeTime = convertToIST(request.requested_at).split(',')[0]; // Just the date
+            }
+            
+            return {
+                id: request.id,
+                leave_date: request.leave_date,
+                leave_type: request.leave_type,
+                reason: request.reason,
+                status: request.status,
+                requested_at: convertToIST(request.requested_at),
+                requested_timestamp: request.requested_at,
+                relative_time: relativeTime,
+                formatted_time: requestedAt.toLocaleTimeString('en-IN', { 
+                    timeZone: 'Asia/Kolkata', 
+                    hour12: true, 
+                    hour: 'numeric', 
+                    minute: '2-digit' 
+                }),
+                approved_by: request.approved_by,
+                approved_at: request.approved_at ? convertToIST(request.approved_at) : null,
+                notes: request.notes
+            };
+        });
         
         console.log(`[${Date.now()}] [Leave API] ==> Found ${leaveRequests.length} leave requests`);
         console.log(`[${Date.now()}] [Leave API] ==> Annual balance: ${annualBalance.remaining}/${annualBalance.total} days`);
