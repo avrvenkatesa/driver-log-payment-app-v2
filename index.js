@@ -134,11 +134,24 @@ try {
   app.use('/api/admin/payroll', payrollRoutes);
   log('✅ Payroll calculation routes registered at /api/admin/payroll');
   
+  // Leave management routes (Story 12: Leave Management Foundation)
+  const leaveRoutes = require('./src/routes/leave.js');
+  app.use('/api/driver', leaveRoutes);
+  log('✅ Leave management routes registered at /api/driver');
+  
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
     log('✅ Payroll configuration system initialized successfully');
   }).catch(err => {
     log(`❌ Error initializing payroll system: ${err.message}`);
+  });
+  
+  // Initialize leave management system (Story 12)
+  const leaveDatabase = require('./src/database/leave.js');
+  leaveDatabase.initializeLeaveTable().then(() => {
+    log('✅ Leave management system initialized successfully');
+  }).catch(err => {
+    log(`❌ Error initializing leave management system: ${err.message}`);
   });
   
   // Test database availability

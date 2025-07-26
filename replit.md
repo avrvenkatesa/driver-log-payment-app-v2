@@ -108,6 +108,15 @@ Preferred communication style: Simple, everyday language.
 4. **Database Migration**: `drizzle-kit push` applies schema changes
 
 ### Current Implementation Status
+- **Story 12 - Leave Management Foundation**: ✅ COMPLETED (July 26, 2025)
+  - Comprehensive leave management system with database schema and API endpoints
+  - Annual leave balance tracking (12 days per year) with used/remaining calculations
+  - Leave request submission with validation (annual, sick, emergency types)
+  - Leave history retrieval by year with status tracking (pending, approved, rejected)
+  - Professional UI integration with Material Design-inspired leave management section
+  - Database-driven leave tracking with IST timezone support and proper RBAC security
+  - Complete CRUD operations: submit requests, view balance, track history, validation rules
+  - Real-time balance updates and comprehensive leave request management workflow
 - **Story 11 - Overtime Calculation**: ✅ COMPLETED (July 26, 2025)
   - Sophisticated overtime detection rules with Sunday/early morning/late evening calculations
   - Enhanced PayrollCalculator with comprehensive overtime analysis and detailed breakdowns
@@ -203,6 +212,19 @@ Preferred communication style: Simple, everyday language.
 - **Production Deployment**: Build configuration complete, hosting platform TBD
 
 ### Recent Changes
+- **July 26, 2025**: Story 12 Leave Management Foundation System - COMPLETED
+  - **Leave Database Schema**: Complete leave_requests table with proper foreign key relationships
+  - **Leave Balance Tracking**: 12 annual leave days per year with used/remaining calculations
+  - **Leave Request API**: POST /api/driver/leave-request with comprehensive validation
+  - **Leave History API**: GET /api/driver/leave-requests/:year with status and type filtering
+  - **Leave Balance API**: GET /api/driver/leave-balance/:year for real-time balance display
+  - **Professional UI Integration**: Complete leave management section in dashboard with form submission
+  - **Leave Types Support**: Annual, sick, and emergency leave types with proper categorization
+  - **Validation Rules**: Past date prevention, duplicate date checking, maximum 1-year advance requests
+  - **RBAC Security**: All leave endpoints secured with requireDriverOrAdmin middleware
+  - **IST Timezone Support**: Proper timezone handling for leave request timestamps and display
+  - **Material Design UI**: Leave balance cards, request forms, and history tables with color-coded status badges
+  - **Real-time Updates**: Automatic balance refresh after request submission and comprehensive error handling
 - **July 26, 2025**: Story 11 Overtime Calculation System - COMPLETED
   - **Enhanced Overtime Detection**: Sophisticated rules for Sunday work, early morning (<8 AM), and late evening (>8 PM)
   - **Detailed Overtime Analysis**: Comprehensive breakdown with Sunday/early/late hours tracking

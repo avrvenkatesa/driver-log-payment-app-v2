@@ -689,6 +689,46 @@
             background: #d4edda;
             color: #155724;
         }
+        
+        /* Leave Management Styling */
+        .leave-type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .leave-type-annual {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .leave-type-sick {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .leave-type-emergency {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .status-pending {
+            background: #fff8e1;
+            color: #f9a825;
+        }
+        
+        .status-approved {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-rejected {
+            background: #ffebee;
+            color: #d32f2f;
+        }
 
         .btn-primary {
             background: linear-gradient(135deg, #3498db, #2980b9);
@@ -1004,6 +1044,97 @@
                                 <option value="50">50 per page</option>
                             </select>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Story 12: Leave Management Section -->
+        <div class="card" id="leave-management-card">
+            <div class="card-header">
+                <h3>📅 Leave Management</h3>
+                <span class="card-subtitle">Request and track your leave</span>
+            </div>
+            <div class="card-content">
+                <!-- Leave Balance Display -->
+                <div class="leave-balance-section" style="background: linear-gradient(135deg, #e8f5e8, #c8e6c9); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="color: #2e7d32; margin: 0;">Annual Leave Balance</h4>
+                            <span id="leave-balance-display" style="font-size: 1.5em; font-weight: bold; color: #1b5e20;">Loading...</span>
+                            <small style="display: block; color: #4caf50; margin-top: 5px;" id="leave-balance-info">12 days per year</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.9em; color: #558b2f;">
+                                <span id="leave-year-display">2025</span> Balance
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Request Form -->
+                <div class="leave-request-form" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px; color: #333;">Submit New Leave Request</h4>
+                    <form id="leave-request-form" onsubmit="submitLeaveRequest(event)">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label for="leave-date" style="display: block; margin-bottom: 5px; font-weight: 500;">Leave Date *</label>
+                                <input type="date" id="leave-date" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label for="leave-type" style="display: block; margin-bottom: 5px; font-weight: 500;">Leave Type *</label>
+                                <select id="leave-type" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <option value="annual">Annual Leave</option>
+                                    <option value="sick">Sick Leave</option>
+                                    <option value="emergency">Emergency Leave</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label for="leave-reason" style="display: block; margin-bottom: 5px; font-weight: 500;">Reason (Optional)</label>
+                            <textarea id="leave-reason" rows="3" placeholder="Briefly describe the reason for leave..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary" id="submit-leave-btn" style="width: 100%;">
+                            📅 Submit Leave Request
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Leave Requests History -->
+                <div class="leave-history-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: #333;">Recent Leave Requests</h4>
+                        <div>
+                            <select id="leave-history-year" onchange="loadLeaveHistory()" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="2024">2024</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                            <button onclick="loadLeaveHistory()" class="btn-secondary" style="margin-left: 10px;">🔄 Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Leave History Table -->
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table class="shifts-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Requested</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leave-history-table-body">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+                                        <div class="loading-spinner"></div>
+                                        Loading leave history...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2786,6 +2917,184 @@
             });
 
             updateShiftsDisplay();
+        }
+        
+        // Story 12: Leave Management Functions
+        
+        // Load leave balance
+        async function loadLeaveBalance() {
+            try {
+                const year = new Date().getFullYear();
+                const response = await fetch(`/api/driver/leave-balance/${year}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const balance = data.data.annualLeaveBalance;
+                    
+                    document.getElementById('leave-balance-display').textContent = `${balance.remaining} days left`;
+                    document.getElementById('leave-balance-info').textContent = `${balance.used} of ${balance.total} days used`;
+                    document.getElementById('leave-year-display').textContent = balance.year;
+                } else {
+                    document.getElementById('leave-balance-display').textContent = 'Error loading';
+                }
+            } catch (error) {
+                console.error('[Leave] Error loading balance:', error);
+                document.getElementById('leave-balance-display').textContent = 'Error loading';
+            }
+        }
+        
+        // Submit leave request
+        async function submitLeaveRequest(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-leave-btn');
+            const originalText = submitBtn.textContent;
+            
+            try {
+                submitBtn.textContent = 'Submitting...';
+                submitBtn.disabled = true;
+                
+                const formData = {
+                    leave_date: document.getElementById('leave-date').value,
+                    leave_type: document.getElementById('leave-type').value,
+                    reason: document.getElementById('leave-reason').value.trim() || null
+                };
+                
+                console.log('[Leave] Submitting request:', formData);
+                
+                const response = await fetch('/api/driver/leave-request', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showError(`✅ Leave request submitted successfully! ${result.data.remainingAnnualLeave} annual days remaining.`, 'success');
+                    
+                    // Reset form
+                    document.getElementById('leave-request-form').reset();
+                    
+                    // Refresh data
+                    loadLeaveBalance();
+                    loadLeaveHistory();
+                } else {
+                    const errorMsg = result.message || 'Failed to submit leave request';
+                    showError(`❌ Error: ${errorMsg}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('[Leave] Error submitting request:', error);
+                showError('❌ Network error. Please try again.', 'error');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Load leave history
+        async function loadLeaveHistory() {
+            try {
+                const year = document.getElementById('leave-history-year').value;
+                const tbody = document.getElementById('leave-history-table-body');
+                
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px;">
+                            <div class="loading-spinner"></div>
+                            Loading leave history...
+                        </td>
+                    </tr>
+                `;
+                
+                const response = await fetch(`/api/driver/leave-requests/${year}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const requests = data.data.leaveRequests;
+                    
+                    if (requests.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+                                    📅 No leave requests found for ${year}
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tbody.innerHTML = requests.map(request => `
+                            <tr>
+                                <td>${formatDate(request.leave_date)}</td>
+                                <td>
+                                    <span class="leave-type-badge leave-type-${request.leave_type}">${capitalizeFirst(request.leave_type)}</span>
+                                </td>
+                                <td>${request.reason || '-'}</td>
+                                <td>
+                                    <span class="status-badge status-${request.status}">${capitalizeFirst(request.status)}</span>
+                                </td>
+                                <td>${formatDate(request.requested_at)}</td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    // Update balance from response
+                    if (data.data.annualLeaveBalance) {
+                        const balance = data.data.annualLeaveBalance;
+                        document.getElementById('leave-balance-display').textContent = `${balance.remaining} days left`;
+                        document.getElementById('leave-balance-info').textContent = `${balance.used} of ${balance.total} days used`;
+                    }
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #d32f2f;">
+                                ❌ Error loading leave history
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('[Leave] Error loading history:', error);
+                document.getElementById('leave-history-table-body').innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px; color: #d32f2f;">
+                            ❌ Network error loading leave history
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Initialize leave management on page load
+        function initializeLeaveManagement() {
+            loadLeaveBalance();
+            loadLeaveHistory();
+        }
+        
+        // Add to dashboard initialization
+        const originalLoadDashboard = loadDashboard;
+        loadDashboard = function() {
+            originalLoadDashboard();
+            initializeLeaveManagement();
+        };
+        
+        // Utility functions for leave management
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
         }
     </script>
 </body>
