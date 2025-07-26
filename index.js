@@ -129,6 +129,11 @@ try {
   app.use('/api/admin', adminRoutes);
   log('✅ Admin routes registered at /api/admin');
   
+  // Payroll calculation routes (Story 10: Basic Payroll Calculation)
+  const payrollRoutes = require('./src/routes/payroll.js');
+  app.use('/api/admin/payroll', payrollRoutes);
+  log('✅ Payroll calculation routes registered at /api/admin/payroll');
+  
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
     log('✅ Payroll configuration system initialized successfully');
