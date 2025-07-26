@@ -936,8 +936,7 @@
                     <!-- RBAC: Admin Controls (hidden for drivers) -->
                     <div id="admin-controls" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #3498db;">
                         <button class="btn" onclick="openAdminPanel()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); margin-bottom: 10px;">🔧 Admin Panel</button>
-                        <button class="btn" onclick="toggleDriverManagement()" style="background: linear-gradient(135deg, #f39c12, #e67e22); margin-bottom: 10px;">👥 Driver Management</button>
-                        <button class="btn" onclick="viewAllDrivers()" style="background: linear-gradient(135deg, #16a085, #27ae60);">📊 View All Drivers</button>
+
                     </div>
                     <button class="btn" onclick="logout()">Logout</button>
                 </div>
@@ -2486,28 +2485,7 @@
             window.open('/admin', '_blank');
         }
         
-        // RBAC: View all drivers (admin monitoring feature)
-        function viewAllDrivers() {
-            const userRole = getUserRoleFromToken();
-            if (userRole !== 'admin') {
-                showError('Access denied. Admin privileges required.');
-                return;
-            }
-            console.log('[RBAC] Admin viewing all drivers');
-            
-            // Show the driver management section
-            const section = document.getElementById('driver-management-section');
-            if (section) {
-                section.style.display = 'block';
-                loadDriverList();
-                showSuccess('Loading driver management interface...');
-                
-                // Scroll to the driver management section
-                section.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                showError('Driver management interface not found.');
-            }
-        }
+
         
         // ===== ENHANCED SHIFT DATA MANAGEMENT =====
         
@@ -3736,25 +3714,7 @@
         let driverStatusFilter = '';
         let totalDriverPages = 1;
 
-        // Toggle driver management section
-        function toggleDriverManagement() {
-            const section = document.getElementById('driver-management-section');
-            const userRole = getUserRoleFromToken();
-            
-            if (userRole !== 'admin') {
-                showError('Access denied. Admin privileges required.', 'error');
-                return;
-            }
-            
-            if (section.style.display === 'none' || section.style.display === '') {
-                section.style.display = 'block';
-                console.log('[Driver Management] Section opened');
-                loadDriverList();
-            } else {
-                section.style.display = 'none';
-                console.log('[Driver Management] Section closed');
-            }
-        }
+
 
         // Load driver list
         async function loadDriverList() {
