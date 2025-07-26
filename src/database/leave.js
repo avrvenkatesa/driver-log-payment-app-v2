@@ -281,6 +281,35 @@ class LeaveDatabase {
     }
     
     /**
+     * Get a single leave request by ID (for admin cancellation)
+     * @param {number} leaveRequestId - Leave request ID
+     * @returns {Promise<Object>} Leave request object
+     */
+    async getLeaveRequestById(leaveRequestId) {
+        try {
+            const query = `
+                SELECT lr.*, d.name as driver_name
+                FROM leave_requests lr
+                JOIN drivers d ON lr.driver_id = d.id
+                WHERE lr.id = ?
+            `;
+            
+            const leaveRequest = await dbConnection.get(query, [leaveRequestId]);
+            
+            if (!leaveRequest) {
+                throw new Error(`Leave request with ID ${leaveRequestId} not found`);
+            }
+            
+            console.log(`[${new Date().toISOString()}] ✅ Leave request ${leaveRequestId} retrieved for admin cancellation`);
+            return leaveRequest;
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error retrieving leave request ${leaveRequestId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
      * Cancel a leave request (driver or admin)
      * @param {number} leaveRequestId - Leave request ID
      * @param {string} cancelledBy - Who cancelled ('driver' or admin identifier)  
@@ -343,7 +372,7 @@ class LeaveDatabase {
     }
     
     /**
-     * Check if a driver can cancel their leave request (4-hour rule)
+     * Check if a driver can cancel their leave request (24-hour rule)
      * @param {string} leaveDate - Leave date (YYYY-MM-DD)
      * @returns {Object} Cancellation eligibility and time remaining
      */
@@ -354,7 +383,7 @@ class LeaveDatabase {
             const timeDifference = leaveStartTime - now;
             const hoursRemaining = timeDifference / (1000 * 60 * 60);
             
-            const canCancel = hoursRemaining > 4;
+            const canCancel = hoursRemaining > 24;
             
             // Format time remaining for display
             let timeRemainingText = '';
@@ -370,7 +399,7 @@ class LeaveDatabase {
                 canCancel: canCancel,
                 hoursRemaining: hoursRemaining,
                 timeRemainingText: timeRemainingText,
-                minimumRequired: '4 hours'
+                minimumRequired: '24 hours'
             };
             
         } catch (error) {
@@ -379,7 +408,7 @@ class LeaveDatabase {
                 canCancel: false,
                 hoursRemaining: 0,
                 timeRemainingText: 'Error calculating time',
-                minimumRequired: '4 hours'
+                minimumRequired: '24 hours'
             };
         }
     }

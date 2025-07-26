@@ -290,7 +290,7 @@ router.delete('/leave-request/:id', requireAdminOnly, async (req, res) => {
         console.log(`[${timestamp}] [Admin Leave API] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
 
         const leaveRequestId = parseInt(req.params.id);
-        const { reason, driverId } = req.body;
+        const { reason } = req.body;
 
         // Validate required fields
         if (!reason || reason.trim().length === 0) {
@@ -301,20 +301,12 @@ router.delete('/leave-request/:id', requireAdminOnly, async (req, res) => {
             });
         }
 
-        if (!driverId) {
-            return res.status(400).json({
-                success: false,
-                error: 'VALIDATION_ERROR',  
-                message: 'Driver ID is required for admin cancellation'
-            });
-        }
-
         // Import leave database
         const leaveDatabase = require('../database/leave.js');
 
-        // Get the leave request (admin can cancel any request)
-        const leaveRequests = await leaveDatabase.getDriverLeaveRequests(driverId, new Date().getFullYear());
-        const leaveRequest = leaveRequests.find(lr => lr.id === leaveRequestId);
+        // Get the leave request by ID (admin can cancel any request)
+        const leaveRequest = await leaveDatabase.getLeaveRequestById(leaveRequestId);
+        const driverId = leaveRequest ? leaveRequest.driver_id : null;
 
         if (!leaveRequest) {
             return res.status(404).json({
@@ -352,13 +344,14 @@ router.delete('/leave-request/:id', requireAdminOnly, async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Leave request cancelled successfully (admin override)',
+            message: 'Leave request cancelled successfully by admin',
             data: {
                 leaveRequestId: cancellationResult.leaveRequestId,
                 status: cancellationResult.status,
                 cancelledAt: convertToIST(cancellationResult.cancelledAt),
                 cancelledBy: cancellationResult.cancelledBy,
                 cancellationReason: cancellationResult.cancellationReason,
+                driverName: leaveRequest.driver_name,
                 adminOverride: true,
                 balanceRestored: balanceRestored,
                 remainingAnnualLeave: updatedBalance.remaining,

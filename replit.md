@@ -108,17 +108,25 @@ Preferred communication style: Simple, everyday language.
 4. **Database Migration**: `drizzle-kit push` applies schema changes
 
 ### Current Implementation Status
-- **Story 12 - Leave Management Foundation**: ✅ COMPLETED & UI VERIFIED (July 26, 2025)
+- **Story 12 - Leave Management Foundation**: ✅ COMPLETED & FULLY VERIFIED (July 26, 2025)
   - Comprehensive leave management system with database schema and API endpoints
   - Annual leave balance tracking (12 days per year) with used/remaining calculations
   - Leave request submission with validation (annual, sick, emergency types)
-  - Leave history retrieval by year with status tracking (pending, approved, rejected)
+  - Leave history retrieval by year with status tracking (pending, approved, rejected, cancelled)
   - Professional UI integration with Material Design-inspired leave management section
   - Database-driven leave tracking with IST timezone support and proper RBAC security
   - Complete CRUD operations: submit requests, view balance, track history, validation rules
   - Real-time balance updates and comprehensive leave request management workflow
   - **UI Integration Verified**: Professional leave management interface with balance cards, submission forms, and history display working perfectly
   - **Validation Enhancement**: Reason field now mandatory with both client-side and server-side validation for proper leave documentation
+  - **Cancellation System Enhancement**: ✅ COMPLETED & TESTED (July 26, 2025)
+    - Driver 24-hour cancellation window with automatic eligibility checking
+    - Admin override cancellation capability for any leave request regardless of timing
+    - Complete admin cancellation API endpoint with proper RBAC security
+    - Database support for cancellation tracking with timestamps and reasons
+    - UI cancel buttons with confirmation dialogs and proper error handling
+    - Automatic leave balance restoration for cancelled annual leave requests
+    - Comprehensive cancellation logging and audit trail
 - **Story 11 - Overtime Calculation**: ✅ COMPLETED (July 26, 2025)
   - Sophisticated overtime detection rules with Sunday/early morning/late evening calculations
   - Enhanced PayrollCalculator with comprehensive overtime analysis and detailed breakdowns
