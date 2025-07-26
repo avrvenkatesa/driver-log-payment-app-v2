@@ -41,9 +41,9 @@ class PayrollCalculator {
             const leaveData = await this.getDriverLeaves(driverId, year);
             console.log(`[Payroll Calculator] ==> Leave data:`, leaveData);
             
-            // 6. Calculate working time and overtime
+            // 6. Calculate enhanced working time and overtime (Story 11)
             const timeCalculation = this.calculateWorkingTime(shifts);
-            console.log(`[Payroll Calculator] ==> Time calculation:`, timeCalculation);
+            console.log(`[Payroll Calculator] ==> Enhanced time calculation:`, timeCalculation);
             
             // 7. Calculate payroll components
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -69,17 +69,34 @@ class PayrollCalculator {
                     leaveDeduction: Math.round(leaveDeduction * 100) / 100,
                     totalEarnings: Math.round(totalEarnings * 100) / 100
                 },
+                overtimeAnalysis: {
+                    totalOvertimeHours: Math.round(timeCalculation.overtimeHours * 100) / 100,
+                    totalRegularHours: Math.round(timeCalculation.regularHours * 100) / 100,
+                    overtimeBreakdown: timeCalculation.overtimeBreakdown,
+                    overtimeRate: config.overtime_rate,
+                    overtimeEarnings: Math.round(overtimePay * 100) / 100,
+                    overtimeRules: {
+                        sundayWork: "All hours on Sunday are overtime",
+                        earlyMorning: "Hours before 8:00 AM are overtime",
+                        lateEvening: "Hours after 8:00 PM are overtime",
+                        regularHours: "8:00 AM - 8:00 PM on weekdays"
+                    }
+                },
                 shiftSummary: {
                     totalShifts: shifts.length,
                     totalHours: Math.round(timeCalculation.totalHours * 100) / 100,
                     regularHours: Math.round(timeCalculation.regularHours * 100) / 100,
-                    overtimeHours: Math.round(timeCalculation.overtimeHours * 100) / 100
+                    overtimeHours: Math.round(timeCalculation.overtimeHours * 100) / 100,
+                    sundayShifts: timeCalculation.shiftAnalysis?.sundayShifts || 0,
+                    earlyMorningShifts: timeCalculation.shiftAnalysis?.earlyMorningShifts || 0,
+                    lateEveningShifts: timeCalculation.shiftAnalysis?.lateEveningShifts || 0
                 },
                 configurationUsed: {
                     monthlySalary: config.monthly_salary,
                     overtimeRate: config.overtime_rate,
                     fuelAllowance: config.fuel_allowance,
-                    workingHours: config.working_hours
+                    workingHours: config.working_hours,
+                    regularWorkingHours: "8:00 AM - 8:00 PM"
                 },
                 calculatedAt: this.convertToIST(new Date().toISOString())
             };
@@ -274,36 +291,139 @@ class PayrollCalculator {
     }
     
     /**
-     * Calculate working time and overtime from shifts
+     * Calculate enhanced working time and overtime from shifts (Story 11)
      * @param {Array} shifts - List of shifts
-     * @returns {Object} Working time breakdown
+     * @returns {Object} Enhanced working time breakdown with overtime details
      */
     calculateWorkingTime(shifts) {
         let totalHours = 0;
-        let overtimeHours = 0;
-        let regularHours = 0;
-        const workingDays = shifts.length;
+        let totalOvertimeHours = 0;
+        let totalRegularHours = 0;
+        const workingDays = new Set(shifts.map(shift => shift.clock_in_time.split(' ')[0])).size;
+        
+        // Enhanced overtime breakdown
+        let overtimeBreakdown = {
+            sundayHours: 0,
+            earlyMorningHours: 0,
+            lateEveningHours: 0
+        };
+        
+        let shiftAnalysis = {
+            sundayShifts: 0,
+            earlyMorningShifts: 0,
+            lateEveningShifts: 0
+        };
         
         shifts.forEach(shift => {
             const shiftHours = shift.shift_duration_minutes / 60;
             totalHours += shiftHours;
             
-            // Calculate overtime for this shift
-            const shiftOvertimeHours = this.calculateShiftOvertimeHours(shift);
-            overtimeHours += shiftOvertimeHours;
-            regularHours += (shiftHours - shiftOvertimeHours);
+            // Calculate detailed overtime for this shift
+            const overtimeResult = this.calculateDetailedOvertimeHours(shift);
+            totalOvertimeHours += overtimeResult.overtimeHours;
+            totalRegularHours += overtimeResult.regularHours;
+            
+            // Accumulate breakdown
+            overtimeBreakdown.sundayHours += overtimeResult.breakdown.sundayHours;
+            overtimeBreakdown.earlyMorningHours += overtimeResult.breakdown.earlyHours;
+            overtimeBreakdown.lateEveningHours += overtimeResult.breakdown.lateHours;
+            
+            // Count shift types
+            if (overtimeResult.overtimeType === 'sunday_work') {
+                shiftAnalysis.sundayShifts++;
+            }
+            if (overtimeResult.breakdown.earlyHours > 0) {
+                shiftAnalysis.earlyMorningShifts++;
+            }
+            if (overtimeResult.breakdown.lateHours > 0) {
+                shiftAnalysis.lateEveningShifts++;
+            }
         });
         
         return {
             workingDays: workingDays,
-            totalHours: totalHours,
-            regularHours: Math.max(0, regularHours),
-            overtimeHours: overtimeHours
+            totalHours: Math.round(totalHours * 100) / 100,
+            regularHours: Math.round(totalRegularHours * 100) / 100,
+            overtimeHours: Math.round(totalOvertimeHours * 100) / 100,
+            overtimeBreakdown: {
+                sundayHours: Math.round(overtimeBreakdown.sundayHours * 100) / 100,
+                earlyMorningHours: Math.round(overtimeBreakdown.earlyMorningHours * 100) / 100,
+                lateEveningHours: Math.round(overtimeBreakdown.lateEveningHours * 100) / 100
+            },
+            shiftAnalysis: shiftAnalysis
         };
     }
     
     /**
-     * Calculate overtime hours for a specific shift
+     * Calculate detailed overtime hours for a shift (Story 11)
+     * @param {Object} shift - Shift data with clock_in_time, clock_out_time
+     * @returns {Object} Detailed overtime breakdown
+     */
+    calculateDetailedOvertimeHours(shift) {
+        const clockIn = new Date(shift.clock_in_time);
+        const clockOut = new Date(shift.clock_out_time);
+        const dayOfWeek = clockIn.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        const totalShiftHours = shift.shift_duration_minutes / 60;
+        let overtimeHours = 0;
+        let regularHours = 0;
+        
+        // Rule 1: Sunday work - ALL hours are overtime
+        if (dayOfWeek === 0) {
+            return {
+                overtimeHours: totalShiftHours,
+                regularHours: 0,
+                overtimeType: 'sunday_work',
+                breakdown: {
+                    sundayHours: totalShiftHours,
+                    earlyHours: 0,
+                    lateHours: 0
+                }
+            };
+        }
+        
+        // Rule 2 & 3: Weekday overtime calculation
+        const clockInHour = clockIn.getHours() + (clockIn.getMinutes() / 60);
+        const clockOutHour = clockOut.getHours() + (clockOut.getMinutes() / 60);
+        
+        const regularStart = 8;  // 8:00 AM
+        const regularEnd = 20;   // 8:00 PM
+        
+        let earlyOvertimeHours = 0;
+        let lateOvertimeHours = 0;
+        
+        // Early morning overtime (before 8 AM)
+        if (clockInHour < regularStart) {
+            earlyOvertimeHours = Math.min(regularStart - clockInHour, totalShiftHours);
+        }
+        
+        // Late evening overtime (after 8 PM)
+        if (clockOutHour > regularEnd) {
+            lateOvertimeHours = Math.min(clockOutHour - regularEnd, totalShiftHours);
+        }
+        
+        // Calculate regular hours (8 AM - 8 PM portion)
+        const regularPortionStart = Math.max(clockInHour, regularStart);
+        const regularPortionEnd = Math.min(clockOutHour, regularEnd);
+        const regularPortionHours = Math.max(0, regularPortionEnd - regularPortionStart);
+        
+        overtimeHours = earlyOvertimeHours + lateOvertimeHours;
+        regularHours = regularPortionHours;
+        
+        return {
+            overtimeHours: overtimeHours,
+            regularHours: regularHours,
+            overtimeType: overtimeHours > 0 ? 'weekday_overtime' : 'regular',
+            breakdown: {
+                sundayHours: 0,
+                earlyHours: earlyOvertimeHours,
+                lateHours: lateOvertimeHours
+            }
+        };
+    }
+
+    /**
+     * Calculate overtime hours for a specific shift (Legacy method for compatibility)
      * @param {Object} shift - Shift data
      * @returns {number} Overtime hours
      */
