@@ -1091,8 +1091,8 @@
                             </div>
                         </div>
                         <div style="margin-bottom: 15px;">
-                            <label for="leave-reason" style="display: block; margin-bottom: 5px; font-weight: 500;">Reason (Optional)</label>
-                            <textarea id="leave-reason" rows="3" placeholder="Briefly describe the reason for leave..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;"></textarea>
+                            <label for="leave-reason" style="display: block; margin-bottom: 5px; font-weight: 500;">Reason *</label>
+                            <textarea id="leave-reason" rows="3" placeholder="Briefly describe the reason for leave..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;" required></textarea>
                         </div>
                         <button type="submit" class="btn-primary" id="submit-leave-btn" style="width: 100%;">
                             📅 Submit Leave Request
@@ -2956,13 +2956,20 @@
             const originalText = submitBtn.textContent;
             
             try {
+                // Client-side validation for reason field
+                const reason = document.getElementById('leave-reason').value;
+                if (!reason || reason.trim().length === 0) {
+                    showError('❌ Reason is required for leave requests', 'error');
+                    return;
+                }
+                
                 submitBtn.textContent = 'Submitting...';
                 submitBtn.disabled = true;
                 
                 const formData = {
                     leave_date: document.getElementById('leave-date').value,
                     leave_type: document.getElementById('leave-type').value,
-                    reason: document.getElementById('leave-reason').value.trim() || null
+                    reason: reason.trim()
                 };
                 
                 console.log('[Leave] Submitting request:', formData);

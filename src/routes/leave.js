@@ -64,6 +64,11 @@ function validateLeaveRequest(data) {
         errors.push('Leave type must be annual, sick, or emergency');
     }
     
+    // Validate reason (now mandatory)
+    if (!data.reason || data.reason.trim().length === 0) {
+        errors.push('Reason is required for leave requests');
+    }
+    
     return errors;
 }
 
@@ -81,7 +86,7 @@ router.post('/leave-request', authMiddleware.requireDriverOrAdmin, async (req, r
         const driver_id = req.user.id;
         
         // Validate request data
-        const validationErrors = validateLeaveRequest({ leave_date, leave_type });
+        const validationErrors = validateLeaveRequest({ leave_date, leave_type, reason });
         if (validationErrors.length > 0) {
             return res.status(400).json({
                 success: false,

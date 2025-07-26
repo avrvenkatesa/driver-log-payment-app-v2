@@ -118,6 +118,7 @@ Preferred communication style: Simple, everyday language.
   - Complete CRUD operations: submit requests, view balance, track history, validation rules
   - Real-time balance updates and comprehensive leave request management workflow
   - **UI Integration Verified**: Professional leave management interface with balance cards, submission forms, and history display working perfectly
+  - **Validation Enhancement**: Reason field now mandatory with both client-side and server-side validation for proper leave documentation
 - **Story 11 - Overtime Calculation**: ✅ COMPLETED (July 26, 2025)
   - Sophisticated overtime detection rules with Sunday/early morning/late evening calculations
   - Enhanced PayrollCalculator with comprehensive overtime analysis and detailed breakdowns
