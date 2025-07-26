@@ -148,7 +148,9 @@ try {
   
   // Initialize leave management system (Story 12)
   const leaveDatabase = require('./src/database/leave.js');
-  leaveDatabase.initializeLeaveTable().then(() => {
+  leaveDatabase.initializeLeaveTable().then(async () => {
+    // Run migration for cancellation columns (Story 12 Enhancement)
+    await leaveDatabase.migrateCancellationColumns();
     log('✅ Leave management system initialized successfully');
   }).catch(err => {
     log(`❌ Error initializing leave management system: ${err.message}`);

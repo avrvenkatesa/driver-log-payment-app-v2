@@ -319,4 +319,106 @@ router.get('/leave-balance/:year?', authMiddleware.requireDriverOrAdmin, async (
     }
 });
 
+/**
+ * DELETE /api/driver/leave-request/:id
+ * Cancel a leave request (driver with 4-hour restriction)
+ */
+router.delete('/leave-request/:id', authMiddleware.requireDriverOrAdmin, async (req, res) => {
+    try {
+        const timestamp = Date.now();
+        console.log(`[${timestamp}] [Leave API] ==> DELETE /api/driver/leave-request`);
+        console.log(`[${timestamp}] [Leave API] ==> User: ${req.user.name} (ID: ${req.user.id})`);
+
+        const leaveRequestId = parseInt(req.params.id);
+        const { reason } = req.body;
+
+        // Validate cancellation reason
+        if (!reason || reason.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'VALIDATION_ERROR',
+                message: 'Cancellation reason is required'
+            });
+        }
+
+        // Get the leave request first to check permissions and time restrictions
+        const leaveRequests = await leaveDatabase.getDriverLeaveRequests(req.user.id, new Date().getFullYear());
+        const leaveRequest = leaveRequests.find(lr => lr.id === leaveRequestId);
+
+        if (!leaveRequest) {
+            return res.status(404).json({
+                success: false,
+                error: 'NOT_FOUND',
+                message: 'Leave request not found or you do not have permission to cancel it'
+            });
+        }
+
+        if (leaveRequest.status === 'cancelled') {
+            return res.status(400).json({
+                success: false,
+                error: 'ALREADY_CANCELLED',
+                message: 'Leave request is already cancelled'
+            });
+        }
+
+        // Check 4-hour rule for drivers (admins can override)
+        const canCancelData = leaveDatabase.canDriverCancelLeave(leaveRequest.leave_date);
+        
+        if (req.user.role === 'driver' && !canCancelData.canCancel) {
+            return res.status(400).json({
+                success: false,
+                error: 'CANCELLATION_TOO_LATE',
+                message: 'Cannot cancel leave request less than 4 hours before commencement',
+                details: {
+                    leaveDate: leaveRequest.leave_date,
+                    timeRemaining: canCancelData.timeRemainingText,
+                    minimumRequired: canCancelData.minimumRequired
+                }
+            });
+        }
+
+        // Cancel the leave request
+        const cancellationResult = await leaveDatabase.cancelLeaveRequest(
+            leaveRequestId,
+            req.user.role === 'admin' ? `admin_${req.user.id}` : 'driver',
+            reason.trim()
+        );
+
+        // Restore leave balance if it was annual leave
+        const balanceRestored = await leaveDatabase.restoreLeaveBalance(
+            req.user.id,
+            cancellationResult.leaveType
+        );
+
+        // Get updated leave balance
+        const updatedBalance = await leaveDatabase.calculateAnnualLeaveBalance(req.user.id);
+
+        console.log(`[${timestamp}] [Leave API] ==> Leave request ${leaveRequestId} cancelled successfully`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Leave request cancelled successfully',
+            data: {
+                leaveRequestId: cancellationResult.leaveRequestId,
+                status: cancellationResult.status,
+                cancelledAt: convertToIST(cancellationResult.cancelledAt),
+                cancelledBy: cancellationResult.cancelledBy,
+                cancellationReason: cancellationResult.cancellationReason,
+                balanceRestored: balanceRestored,
+                remainingAnnualLeave: updatedBalance.remaining,
+                formatted_time: convertToIST(cancellationResult.cancelledAt)
+            }
+        });
+
+    } catch (error) {
+        console.error(`[${Date.now()}] [Leave API] ==> Error cancelling leave request:`, error);
+        return res.status(500).json({
+            success: false,
+            error: 'INTERNAL_ERROR',
+            message: 'Failed to cancel leave request',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

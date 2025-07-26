@@ -279,6 +279,104 @@ router.get('/payroll-config/health', requireAdminOnly, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/leave-request/:id
+ * Force cancel any leave request (admin override)
+ */
+router.delete('/leave-request/:id', requireAdminOnly, async (req, res) => {
+    try {
+        const timestamp = Date.now();
+        console.log(`[${timestamp}] [Admin Leave API] ==> DELETE /api/admin/leave-request`);
+        console.log(`[${timestamp}] [Admin Leave API] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+
+        const leaveRequestId = parseInt(req.params.id);
+        const { reason, driverId } = req.body;
+
+        // Validate required fields
+        if (!reason || reason.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'VALIDATION_ERROR',
+                message: 'Cancellation reason is required'
+            });
+        }
+
+        if (!driverId) {
+            return res.status(400).json({
+                success: false,
+                error: 'VALIDATION_ERROR',  
+                message: 'Driver ID is required for admin cancellation'
+            });
+        }
+
+        // Import leave database
+        const leaveDatabase = require('../database/leave.js');
+
+        // Get the leave request (admin can cancel any request)
+        const leaveRequests = await leaveDatabase.getDriverLeaveRequests(driverId, new Date().getFullYear());
+        const leaveRequest = leaveRequests.find(lr => lr.id === leaveRequestId);
+
+        if (!leaveRequest) {
+            return res.status(404).json({
+                success: false,
+                error: 'NOT_FOUND',
+                message: 'Leave request not found'
+            });
+        }
+
+        if (leaveRequest.status === 'cancelled') {
+            return res.status(400).json({
+                success: false,
+                error: 'ALREADY_CANCELLED',
+                message: 'Leave request is already cancelled'
+            });
+        }
+
+        // Admin can cancel any leave request regardless of time restrictions
+        const cancellationResult = await leaveDatabase.cancelLeaveRequest(
+            leaveRequestId,
+            `admin_${req.user.id}`,
+            reason.trim()
+        );
+
+        // Restore leave balance if it was annual leave
+        const balanceRestored = await leaveDatabase.restoreLeaveBalance(
+            driverId,
+            cancellationResult.leaveType
+        );
+
+        // Get updated leave balance
+        const updatedBalance = await leaveDatabase.calculateAnnualLeaveBalance(driverId);
+
+        console.log(`[${timestamp}] [Admin Leave API] ==> Leave request ${leaveRequestId} force cancelled by admin`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Leave request cancelled successfully (admin override)',
+            data: {
+                leaveRequestId: cancellationResult.leaveRequestId,
+                status: cancellationResult.status,
+                cancelledAt: convertToIST(cancellationResult.cancelledAt),
+                cancelledBy: cancellationResult.cancelledBy,
+                cancellationReason: cancellationResult.cancellationReason,
+                adminOverride: true,
+                balanceRestored: balanceRestored,
+                remainingAnnualLeave: updatedBalance.remaining,
+                formatted_time: convertToIST(cancellationResult.cancelledAt)
+            }
+        });
+
+    } catch (error) {
+        console.error(`[${Date.now()}] [Admin Leave API] ==> Error force cancelling leave request:`, error);
+        return res.status(500).json({
+            success: false,
+            error: 'INTERNAL_ERROR',
+            message: 'Failed to cancel leave request',
+            details: error.message
+        });
+    }
+});
+
 // Export both the router and initialization function
 module.exports = {
   router,

@@ -7,6 +7,39 @@ const dbConnection = require('./connection.js');
 class LeaveDatabase {
     
     /**
+     * Add cancellation columns to existing leave_requests table
+     */
+    async migrateCancellationColumns() {
+        const alterQueries = [
+            `ALTER TABLE leave_requests ADD COLUMN cancelled_at DATETIME;`,
+            `ALTER TABLE leave_requests ADD COLUMN cancelled_by TEXT;`,
+            `ALTER TABLE leave_requests ADD COLUMN cancellation_reason TEXT;`,
+            `ALTER TABLE leave_requests ADD COLUMN original_status TEXT;`
+        ];
+        
+        for (const query of alterQueries) {
+            try {
+                await dbConnection.run(query);
+                console.log(`[${new Date().toISOString()}] ✅ Migration executed: ${query}`);
+            } catch (err) {
+                if (err.message.includes('duplicate column name')) {
+                    console.log(`[${new Date().toISOString()}] ⚠️ Column already exists, skipping: ${query}`);
+                } else {
+                    console.error(`[${new Date().toISOString()}] ❌ Migration error: ${query}`, err);
+                }
+            }
+        }
+        
+        // Create index for better performance
+        try {
+            await dbConnection.run(`CREATE INDEX IF NOT EXISTS idx_leave_requests_cancelled ON leave_requests(status, cancelled_at);`);
+            console.log(`[${new Date().toISOString()}] ✅ Cancellation index created successfully`);
+        } catch (err) {
+            console.error(`[${new Date().toISOString()}] ❌ Error creating cancellation index:`, err);
+        }
+    }
+
+    /**
      * Initialize leave_requests table with proper schema
      */
     async initializeLeaveTable() {
@@ -23,6 +56,10 @@ class LeaveDatabase {
                     approved_by TEXT,
                     approved_at DATETIME,
                     notes TEXT,
+                    cancelled_at DATETIME,
+                    cancelled_by TEXT,
+                    cancellation_reason TEXT,
+                    original_status TEXT,
                     FOREIGN KEY (driver_id) REFERENCES drivers (id),
                     UNIQUE(driver_id, leave_date)
                 )
@@ -110,7 +147,11 @@ class LeaveDatabase {
                     requested_at,
                     approved_by,
                     approved_at,
-                    notes
+                    notes,
+                    cancelled_at,
+                    cancelled_by,
+                    cancellation_reason,
+                    original_status
                 FROM leave_requests 
                 WHERE driver_id = ? 
                   AND strftime('%Y', leave_date) = ?
@@ -237,6 +278,134 @@ class LeaveDatabase {
                 }
             });
         });
+    }
+    
+    /**
+     * Cancel a leave request (driver or admin)
+     * @param {number} leaveRequestId - Leave request ID
+     * @param {string} cancelledBy - Who cancelled ('driver' or admin identifier)  
+     * @param {string} cancellationReason - Reason for cancellation
+     * @returns {Promise<Object>} Cancellation result
+     */
+    async cancelLeaveRequest(leaveRequestId, cancelledBy, cancellationReason) {
+        try {
+            // First get the current leave request
+            const getQuery = `SELECT * FROM leave_requests WHERE id = ?`;
+            const leaveRequest = await dbConnection.get(getQuery, [leaveRequestId]);
+            
+            if (!leaveRequest) {
+                throw new Error('Leave request not found');
+            }
+            
+            if (leaveRequest.status === 'cancelled') {
+                throw new Error('Leave request is already cancelled');
+            }
+            
+            const currentTimestamp = new Date().toISOString();
+            
+            // Update the leave request with cancellation details
+            const updateQuery = `
+                UPDATE leave_requests 
+                SET status = 'cancelled',
+                    cancelled_at = ?,
+                    cancelled_by = ?,
+                    cancellation_reason = ?,
+                    original_status = ?
+                WHERE id = ?
+            `;
+            
+            await dbConnection.run(updateQuery, [
+                currentTimestamp,
+                cancelledBy,
+                cancellationReason,
+                leaveRequest.status, // preserve original status
+                leaveRequestId
+            ]);
+            
+            console.log(`[${new Date().toISOString()}] ✅ Leave request ${leaveRequestId} cancelled by ${cancelledBy}`);
+            
+            return {
+                leaveRequestId: leaveRequestId,
+                status: 'cancelled',
+                cancelledAt: currentTimestamp,
+                cancelledBy: cancelledBy,
+                cancellationReason: cancellationReason,
+                originalStatus: leaveRequest.status,
+                leaveType: leaveRequest.leave_type,
+                leaveDate: leaveRequest.leave_date,
+                driverId: leaveRequest.driver_id
+            };
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error cancelling leave request ${leaveRequestId}:`, error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Check if a driver can cancel their leave request (4-hour rule)
+     * @param {string} leaveDate - Leave date (YYYY-MM-DD)
+     * @returns {Object} Cancellation eligibility and time remaining
+     */
+    canDriverCancelLeave(leaveDate) {
+        try {
+            const now = new Date();
+            const leaveStartTime = new Date(leaveDate + 'T00:00:00+05:30'); // IST timezone
+            const timeDifference = leaveStartTime - now;
+            const hoursRemaining = timeDifference / (1000 * 60 * 60);
+            
+            const canCancel = hoursRemaining > 4;
+            
+            // Format time remaining for display
+            let timeRemainingText = '';
+            if (hoursRemaining > 0) {
+                const hours = Math.floor(hoursRemaining);
+                const minutes = Math.floor((hoursRemaining - hours) * 60);
+                timeRemainingText = `${hours} hours ${minutes} minutes`;
+            } else {
+                timeRemainingText = 'Leave date has passed';
+            }
+            
+            return {
+                canCancel: canCancel,
+                hoursRemaining: hoursRemaining,
+                timeRemainingText: timeRemainingText,
+                minimumRequired: '4 hours'
+            };
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error checking cancellation eligibility:`, error);
+            return {
+                canCancel: false,
+                hoursRemaining: 0,
+                timeRemainingText: 'Error calculating time',
+                minimumRequired: '4 hours'
+            };
+        }
+    }
+    
+    /**
+     * Calculate and restore leave balance for cancelled annual leave
+     * @param {number} driverId - Driver ID
+     * @param {string} leaveType - Type of leave (annual, sick, emergency)
+     * @returns {Promise<number>} Balance restored (1 for annual, 0 for others)
+     */
+    async restoreLeaveBalance(driverId, leaveType) {
+        try {
+            if (leaveType === 'annual') {
+                // For annual leave, we restore the balance by reducing used count
+                // This is handled in the balance calculation, not stored separately
+                console.log(`[${new Date().toISOString()}] ✅ Annual leave balance restored for driver ${driverId}`);
+                return 1; // 1 day restored
+            }
+            
+            // Sick and emergency leave don't affect annual balance
+            return 0;
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error restoring leave balance:`, error);
+            return 0;
+        }
     }
 }
 
