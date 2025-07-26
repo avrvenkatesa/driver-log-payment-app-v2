@@ -3388,6 +3388,8 @@
         // Show cancel dialog with leave request details
         function showCancelDialog(leaveId, leaveDate, leaveType, status) {
             try {
+                console.log('[Cancel Button] Clicked for leave request:', leaveId, 'Date:', leaveDate, 'Type:', leaveType, 'Status:', status);
+                
                 currentCancelRequest = {
                     id: leaveId,
                     leave_date: leaveDate,
@@ -3396,15 +3398,39 @@
                 };
                 
                 // Populate dialog with request details
-                document.getElementById('cancel-leave-date').textContent = formatDate(leaveDate);
-                document.getElementById('cancel-leave-type').textContent = capitalizeFirst(leaveType);
-                document.getElementById('cancel-leave-status').textContent = capitalizeFirst(status);
+                console.log('[Cancel Dialog] Populating dialog details...');
+                
+                try {
+                    document.getElementById('cancel-leave-date').textContent = formatDate(leaveDate);
+                    console.log('[Cancel Dialog] Date populated successfully');
+                } catch (e) {
+                    console.error('[Cancel Dialog] Error setting date:', e);
+                    document.getElementById('cancel-leave-date').textContent = leaveDate;
+                }
+                
+                try {
+                    document.getElementById('cancel-leave-type').textContent = capitalizeFirst(leaveType);
+                    console.log('[Cancel Dialog] Type populated successfully');
+                } catch (e) {
+                    console.error('[Cancel Dialog] Error setting type:', e);
+                    document.getElementById('cancel-leave-type').textContent = leaveType;
+                }
+                
+                try {
+                    document.getElementById('cancel-leave-status').textContent = capitalizeFirst(status);
+                    console.log('[Cancel Dialog] Status populated successfully');
+                } catch (e) {
+                    console.error('[Cancel Dialog] Error setting status:', e);
+                    document.getElementById('cancel-leave-status').textContent = status;
+                }
                 
                 // Calculate time until leave for warning
+                console.log('[Cancel Dialog] Calculating time until leave...');
                 const leaveDateTime = new Date(leaveDate);
                 const now = new Date();
                 const hoursUntilLeave = (leaveDateTime - now) / (1000 * 60 * 60);
                 const daysUntilLeave = Math.ceil(hoursUntilLeave / 24);
+                console.log('[Cancel Dialog] Hours until leave:', hoursUntilLeave, 'Days:', daysUntilLeave);
                 
                 let timeWarning = '';
                 if (userRole === 'admin') {
@@ -3436,18 +3462,32 @@
                     `;
                 }
                 
+                console.log('[Cancel Dialog] Setting time warning...');
                 document.getElementById('cancel-time-warning').innerHTML = timeWarning;
                 
                 // Clear previous reason
+                console.log('[Cancel Dialog] Clearing previous reason...');
                 document.getElementById('cancel-reason').value = '';
                 
                 // Show dialog
+                console.log('[Cancel Dialog] Showing dialog...');
                 const dialog = document.getElementById('cancel-confirmation-dialog');
-                dialog.style.display = 'flex';
+                if (dialog) {
+                    dialog.style.display = 'flex';
+                    console.log('[Cancel Dialog] Dialog displayed successfully');
+                } else {
+                    console.error('[Cancel Dialog] Dialog element not found!');
+                }
                 
                 // Focus on reason field
                 setTimeout(() => {
-                    document.getElementById('cancel-reason').focus();
+                    const reasonField = document.getElementById('cancel-reason');
+                    if (reasonField) {
+                        reasonField.focus();
+                        console.log('[Cancel Dialog] Focus set on reason field');
+                    } else {
+                        console.error('[Cancel Dialog] Reason field not found!');
+                    }
                 }, 100);
                 
             } catch (error) {
