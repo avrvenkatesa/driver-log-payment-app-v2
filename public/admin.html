@@ -662,6 +662,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showTab('payroll')">💰 Payroll Config</button>
             <button class="nav-tab" onclick="showTab('drivers')">👥 Driver Management</button>
+            <button class="nav-tab" onclick="showTab('leave')">🏖️ Leave Management</button>
             <button class="nav-tab" onclick="showTab('reports')">📊 Reports</button>
             <button class="nav-tab" onclick="showTab('system')">⚙️ System</button>
         </div>
@@ -835,6 +836,93 @@
             </div>
         </div>
         
+        <!-- Leave Management Tab - Story 15: Admin Leave Management -->
+        <div id="leave-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🏖️ Leave Management</h2>
+                    <p class="text-muted">Manage all driver leave requests</p>
+                </div>
+                <div class="card-body">
+                    <!-- Leave Summary Cards -->
+                    <div class="metrics-grid" id="leave-summary-cards" style="margin-bottom: 1.5rem;">
+                        <div class="metric-card">
+                            <div class="metric-icon">📋</div>
+                            <div class="metric-value" id="total-requests">-</div>
+                            <div class="metric-label">Total Requests</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">⏳</div>
+                            <div class="metric-value" id="pending-requests">-</div>
+                            <div class="metric-label">Pending</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">✅</div>
+                            <div class="metric-value" id="approved-requests">-</div>
+                            <div class="metric-label">Approved</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">❌</div>
+                            <div class="metric-value" id="rejected-requests">-</div>
+                            <div class="metric-label">Rejected</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <select id="leave-status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <input type="date" id="leave-start-date" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="date" id="leave-end-date" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <button onclick="applyLeaveFilters()" class="btn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">Apply Filters</button>
+                        <button onclick="clearLeaveFilters()" class="btn" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Clear</button>
+                        <button onclick="refreshLeaveData()" class="btn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">🔄 Refresh</button>
+                    </div>
+
+                    <!-- Leave Requests Table -->
+                    <div class="table-container" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <table class="data-table" id="leave-requests-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Driver</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Leave Date</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Type</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Reason</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Status</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Requested</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leave-requests-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                                        <div class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;"></div>
+                                        Loading leave requests...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container" id="leave-pagination" style="display: none; margin-top: 1rem; justify-content: space-between; align-items: center;">
+                        <div class="pagination-info">
+                            <span id="leave-page-info">-</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="leave-prev" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>← Previous</button>
+                            <button id="leave-next" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>Next →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Reports Tab - Story 14: Shift Analytics -->
         <div id="reports-tab" class="tab-content">
             <!-- Analytics Summary Cards -->
@@ -1880,6 +1968,367 @@
                 }
             };
         });
+        // ====================================
+        // LEAVE MANAGEMENT FUNCTIONS (STORY 15)
+        // ====================================
+
+        // Leave management state
+        let currentLeaveFilters = {
+            status: 'all',
+            startDate: null,
+            endDate: null,
+            page: 1,
+            limit: 10
+        };
+
+        // Load leave management data when tab is activated
+        async function loadLeaveManagement() {
+            console.log('[Leave Management] Loading leave management data');
+            await Promise.all([
+                loadLeaveRequests(),
+                loadLeaveSummary()
+            ]);
+        }
+
+        // Load leave requests with current filters
+        async function loadLeaveRequests() {
+            console.log('[Leave Management] Loading leave requests with filters:', currentLeaveFilters);
+            
+            try {
+                const queryParams = new URLSearchParams({
+                    status: currentLeaveFilters.status,
+                    page: currentLeaveFilters.page,
+                    limit: currentLeaveFilters.limit
+                });
+
+                if (currentLeaveFilters.startDate) {
+                    queryParams.append('startDate', currentLeaveFilters.startDate);
+                }
+                if (currentLeaveFilters.endDate) {
+                    queryParams.append('endDate', currentLeaveFilters.endDate);
+                }
+
+                const response = await fetch(`/api/admin/leave-requests?${queryParams}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    displayLeaveRequests(result.data.leaveRequests);
+                    displayLeavePagination(result.data.pagination);
+                    console.log('[Leave Management] Loaded', result.data.leaveRequests.length, 'leave requests');
+                } else {
+                    throw new Error(result.message || 'Failed to load leave requests');
+                }
+            } catch (error) {
+                console.error('[Leave Management] Error loading leave requests:', error);
+                document.getElementById('leave-requests-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #e74c3c;">
+                            ❌ Error loading leave requests: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Load leave summary statistics
+        async function loadLeaveSummary() {
+            try {
+                const response = await fetch('/api/admin/leave-requests?summary=true', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    updateLeaveSummaryCards(result.data.summary);
+                    console.log('[Leave Management] Summary loaded:', result.data.summary);
+                } else {
+                    throw new Error(result.message || 'Failed to load leave summary');
+                }
+            } catch (error) {
+                console.error('[Leave Management] Error loading leave summary:', error);
+            }
+        }
+
+        // Display leave requests in table
+        function displayLeaveRequests(leaveRequests) {
+            const tbody = document.getElementById('leave-requests-tbody');
+            
+            if (!leaveRequests || leaveRequests.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                            📋 No leave requests found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const tableHtml = leaveRequests.map(request => {
+                const statusBadge = getStatusBadge(request.status);
+                const leaveDate = formatDate(request.leaveDate);
+                const requestedDate = formatDateTime(request.requestedAt);
+                const actions = getLeaveActions(request);
+
+                return `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px;">
+                            <strong>${request.driverName}</strong><br>
+                            <small>${request.driverPhone}</small>
+                        </td>
+                        <td style="padding: 12px;">${leaveDate}</td>
+                        <td style="padding: 12px;">
+                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${getTypeColor(request.leaveType)};">
+                                ${request.leaveType.toUpperCase()}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; max-width: 200px;">
+                            <div style="overflow: hidden; text-overflow: ellipsis;" title="${request.reason}">
+                                ${request.reason}
+                            </div>
+                        </td>
+                        <td style="padding: 12px;">${statusBadge}</td>
+                        <td style="padding: 12px;">
+                            <small>${requestedDate}</small>
+                        </td>
+                        <td style="padding: 12px;">${actions}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = tableHtml;
+        }
+
+        // Get status badge HTML
+        function getStatusBadge(status) {
+            const badges = {
+                pending: '<span style="padding: 4px 8px; border-radius: 4px; background: #fff3cd; color: #856404;">⏳ PENDING</span>',
+                approved: '<span style="padding: 4px 8px; border-radius: 4px; background: #d4edda; color: #155724;">✅ APPROVED</span>',
+                rejected: '<span style="padding: 4px 8px; border-radius: 4px; background: #f8d7da; color: #721c24;">❌ REJECTED</span>',
+                cancelled: '<span style="padding: 4px 8px; border-radius: 4px; background: #e2e3e5; color: #383d41;">🚫 CANCELLED</span>'
+            };
+            return badges[status] || status;
+        }
+
+        // Get leave type color
+        function getTypeColor(type) {
+            const colors = {
+                annual: '#e7f3ff',
+                sick: '#fff2e7', 
+                emergency: '#ffe7e7'
+            };
+            return colors[type] || '#f8f9fa';
+        }
+
+        // Get leave actions HTML
+        function getLeaveActions(request) {
+            if (request.status === 'pending') {
+                return `
+                    <button onclick="approveLeaveRequest(${request.id})" 
+                            style="padding: 4px 8px; margin-right: 4px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        ✅ Approve
+                    </button>
+                    <button onclick="rejectLeaveRequest(${request.id})" 
+                            style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        ❌ Reject
+                    </button>
+                `;
+            } else {
+                return `<small style="color: #666;">No actions</small>`;
+            }
+        }
+
+        // Update leave summary cards
+        function updateLeaveSummaryCards(summary) {
+            document.getElementById('total-requests').textContent = summary.totalRequests || 0;
+            document.getElementById('pending-requests').textContent = summary.pendingRequests || 0;
+            document.getElementById('approved-requests').textContent = summary.approvedRequests || 0;
+            document.getElementById('rejected-requests').textContent = summary.rejectedRequests || 0;
+        }
+
+        // Display leave pagination
+        function displayLeavePagination(pagination) {
+            const container = document.getElementById('leave-pagination');
+            const pageInfo = document.getElementById('leave-page-info');
+            const prevBtn = document.getElementById('leave-prev');
+            const nextBtn = document.getElementById('leave-next');
+
+            if (pagination.totalPages <= 1) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'flex';
+            pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages} (${pagination.totalRequests} total)`;
+            
+            prevBtn.disabled = pagination.currentPage <= 1;
+            nextBtn.disabled = pagination.currentPage >= pagination.totalPages;
+
+            prevBtn.onclick = () => {
+                if (currentLeaveFilters.page > 1) {
+                    currentLeaveFilters.page--;
+                    loadLeaveRequests();
+                }
+            };
+
+            nextBtn.onclick = () => {
+                if (currentLeaveFilters.page < pagination.totalPages) {
+                    currentLeaveFilters.page++;
+                    loadLeaveRequests();
+                }
+            };
+        }
+
+        // Apply leave filters
+        async function applyLeaveFilters() {
+            currentLeaveFilters.status = document.getElementById('leave-status-filter').value;
+            currentLeaveFilters.startDate = document.getElementById('leave-start-date').value || null;
+            currentLeaveFilters.endDate = document.getElementById('leave-end-date').value || null;
+            currentLeaveFilters.page = 1; // Reset to first page
+
+            console.log('[Leave Management] Applying filters:', currentLeaveFilters);
+            await loadLeaveRequests();
+        }
+
+        // Clear leave filters
+        async function clearLeaveFilters() {
+            document.getElementById('leave-status-filter').value = 'all';
+            document.getElementById('leave-start-date').value = '';
+            document.getElementById('leave-end-date').value = '';
+            
+            currentLeaveFilters = {
+                status: 'all',
+                startDate: null,
+                endDate: null,
+                page: 1,
+                limit: 10
+            };
+
+            console.log('[Leave Management] Filters cleared');
+            await loadLeaveRequests();
+        }
+
+        // Refresh leave data
+        async function refreshLeaveData() {
+            console.log('[Leave Management] Refreshing data');
+            await loadLeaveManagement();
+        }
+
+        // Approve leave request
+        async function approveLeaveRequest(leaveRequestId) {
+            const notes = prompt('Add approval notes (optional):');
+            if (notes === null) return; // User cancelled
+
+            try {
+                const response = await fetch(`/api/admin/leave-requests/${leaveRequestId}/approve`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ notes: notes || '' })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert(`Leave request approved successfully!`, 'success');
+                    await loadLeaveManagement(); // Refresh data
+                } else {
+                    throw new Error(result.message || 'Failed to approve leave request');
+                }
+            } catch (error) {
+                console.error('[Leave Management] Error approving leave:', error);
+                showAlert(`Failed to approve leave request: ${error.message}`, 'error');
+            }
+        }
+
+        // Reject leave request
+        async function rejectLeaveRequest(leaveRequestId) {
+            const notes = prompt('Add rejection reason (required):');
+            if (!notes || notes.trim() === '') {
+                showAlert('Rejection reason is required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/leave-requests/${leaveRequestId}/reject`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ notes: notes })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert(`Leave request rejected`, 'success');
+                    await loadLeaveManagement(); // Refresh data
+                } else {
+                    throw new Error(result.message || 'Failed to reject leave request');
+                }
+            } catch (error) {
+                console.error('[Leave Management] Error rejecting leave:', error);
+                showAlert(`Failed to reject leave request: ${error.message}`, 'error');
+            }
+        }
+
+        // Format date helper
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        // Format datetime helper
+        function formatDateTime(dateTimeString) {
+            const date = new Date(dateTimeString);
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Enhanced showTab function to handle leave management
+        const originalShowTab = window.showTab;
+        window.showTab = function(tabName) {
+            originalShowTab(tabName);
+            
+            if (tabName === 'leave') {
+                // Initialize leave management if not already done
+                if (document.getElementById('total-requests').textContent === '-') {
+                    setTimeout(() => {
+                        loadLeaveManagement();
+                    }, 100);
+                }
+            } else if (tabName === 'reports') {
+                // Initialize analytics if not already done
+                if (!document.getElementById('totalShiftsCount').textContent || document.getElementById('totalShiftsCount').textContent === '-') {
+                    setTimeout(() => {
+                        initializeAnalyticsDashboard();
+                    }, 100);
+                }
+            }
+        };
+
     </script>
 </body>
 </html>

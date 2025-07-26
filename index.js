@@ -143,6 +143,11 @@ try {
   const analyticsRoutes = require('./src/routes/analytics.js');
   app.use('/api/admin', analyticsRoutes);
   log('✅ Analytics routes registered at /api/admin');
+
+  // Admin Leave Management routes (Story 15: Leave Management Admin)
+  const adminLeaveRoutes = require('./src/routes/admin_leave.js');
+  app.use('/api/admin', adminLeaveRoutes);
+  log('✅ Admin leave management routes registered at /api/admin');
   
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
