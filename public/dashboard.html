@@ -2363,6 +2363,27 @@
             }
         }
         
+        // RBAC: Extract user information from JWT token
+        function getCurrentUser() {
+            if (!authToken) return null;
+            
+            try {
+                const tokenParts = authToken.split('.');
+                if (tokenParts.length !== 3) return null;
+                
+                const payload = JSON.parse(atob(tokenParts[1]));
+                return {
+                    id: payload.id,
+                    name: payload.name,
+                    phone: payload.phone,
+                    role: payload.role || 'driver'
+                };
+            } catch (error) {
+                console.error('[RBAC] Error parsing token for user info:', error);
+                return null;
+            }
+        }
+        
         // RBAC: Open admin panel (only for admins)
         function openAdminPanel() {
             const userRole = getUserRoleFromToken();
@@ -3390,6 +3411,10 @@
             try {
                 console.log('[Cancel Button] Clicked for leave request:', leaveId, 'Date:', leaveDate, 'Type:', leaveType, 'Status:', status);
                 
+                // Get user role for cancel logic
+                const userRole = getUserRoleFromToken();
+                console.log('[Cancel Dialog] User role:', userRole);
+                
                 currentCancelRequest = {
                     id: leaveId,
                     leave_date: leaveDate,
@@ -3515,6 +3540,11 @@
                 showError('❌ Cancellation reason is required', 'error');
                 return;
             }
+            
+            // Get user role for cancellation logic
+            const userRole = getUserRoleFromToken();
+            const currentUser = getCurrentUser();
+            console.log('[Leave Cancel] User role:', userRole, 'User ID:', currentUser?.id);
             
             const confirmBtn = document.getElementById('confirm-cancel-btn');
             const originalText = confirmBtn.textContent;
