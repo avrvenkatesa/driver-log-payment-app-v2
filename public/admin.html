@@ -229,6 +229,16 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
         }
         
         .history-item:last-child {
@@ -1028,8 +1038,9 @@
             }
 
             tbody.innerHTML = drivers.map(driver => {
-                const statusColor = driver.status === 'active' ? '#28a745' : '#dc3545';
-                const statusBadge = `<span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">${driver.status.toUpperCase()}</span>`;
+                const status = driver.status || 'inactive';
+                const statusColor = status === 'active' ? '#28a745' : '#dc3545';
+                const statusBadge = `<span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">${status.toUpperCase()}</span>`;
                 
                 return `
                     <tr>
@@ -1046,8 +1057,8 @@
                             </div>
                         </td>
                         <td style="padding: 12px 8px; border-bottom: 1px solid #dee2e6;">
-                            <button onclick="toggleAdminDriverStatus(${driver.id}, '${driver.status}')" class="btn-primary" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;">
-                                ${driver.status === 'active' ? '🔒 Deactivate' : '✅ Activate'}
+                            <button onclick="toggleAdminDriverStatus(${driver.id}, '${status}')" class="btn-primary" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;">
+                                ${status === 'active' ? '🔒 Deactivate' : '✅ Activate'}
                             </button>
                             <button onclick="viewAdminDriverDetails(${driver.id})" class="btn-secondary" style="padding: 4px 8px; font-size: 12px;">👁 View</button>
                         </td>

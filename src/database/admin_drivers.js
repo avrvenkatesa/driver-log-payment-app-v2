@@ -112,6 +112,7 @@ async function getDriversList(options = {}) {
       name: driver.name,
       phone: driver.phone,
       email: driver.email,
+      status: driver.is_active === 1 ? 'active' : 'inactive',
       is_active: driver.is_active,
       is_phone_verified: driver.is_phone_verified,
       created_at: driver.created_at,
@@ -196,6 +197,7 @@ async function updateDriverStatus(driverId, isActive, reason, adminId) {
     const result = {
       driverId: parseInt(driverId),
       name: driver.name,
+      status: isActive ? 'active' : 'inactive',
       is_active: isActive,
       updated_at: updatedDriver[0]?.updated_at,
       updated_by: `admin_${adminId}`
@@ -281,7 +283,10 @@ async function getDriverDetails(driverId) {
     const leaveRequests = leaveRequestsResult || [];
     
     const result = {
-      driver: driver,
+      driver: {
+        ...driver,
+        status: driver.is_active === 1 ? 'active' : 'inactive'
+      },
       metrics: {
         totalShifts: parseInt(metrics.total_shifts) || 0,
         totalHours: parseFloat(metrics.total_hours) || 0,
