@@ -375,6 +375,280 @@
                 text-align: center;
             }
         }
+
+        /* Story 14: Analytics Dashboard Styles */
+        .analytics-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            padding: 30px 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .summary-card h4 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .summary-card span {
+            font-size: 32px;
+            font-weight: 700;
+            display: block;
+        }
+
+        .analytics-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .filter-controls .btn-group {
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-controls .btn {
+            padding: 12px 20px;
+            border: none;
+            background: white;
+            color: #495057;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .filter-controls .btn:last-child {
+            border-right: none;
+        }
+
+        .filter-controls .btn:hover {
+            background: #f8f9fa;
+            color: #007bff;
+        }
+
+        .filter-controls .btn.active {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+
+        .refresh-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .refresh-controls .btn {
+            padding: 10px 16px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-controls .btn:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        .analytics-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .analytics-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .analytics-card .card-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px 25px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .analytics-card .card-header h5 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .period-desc {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 400;
+        }
+
+        .analytics-card .card-body {
+            padding: 25px;
+        }
+
+        .chart-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .driver-performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .driver-performance-item:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        .driver-info h6 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .driver-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .driver-metrics {
+            text-align: right;
+        }
+
+        .driver-metrics .metric {
+            font-size: 14px;
+            color: #495057;
+            margin-bottom: 3px;
+        }
+
+        .driver-metrics .metric strong {
+            color: #212529;
+        }
+
+        .shifts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .shifts-table th,
+        .shifts-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .shifts-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .shifts-table td {
+            font-size: 14px;
+            color: #212529;
+        }
+
+        .shifts-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .pagination-info {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pagination-controls .btn {
+            padding: 8px 16px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-controls .btn:hover:not(:disabled) {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        .pagination-controls .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Analytics Mobile Responsive */
+        @media (max-width: 768px) {
+            .analytics-summary { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+            .analytics-controls { flex-direction: column; align-items: stretch; }
+            .analytics-content { grid-template-columns: 1fr; gap: 20px; }
+            .filter-controls .btn { padding: 10px 15px; font-size: 14px; }
+            .summary-card { padding: 20px 15px; }
+            .summary-card span { font-size: 28px; }
+        }
+
+        @media (max-width: 480px) {
+            .analytics-summary { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .summary-card { padding: 15px 10px; }
+            .summary-card h4 { font-size: 14px; }
+            .summary-card span { font-size: 24px; }
+            .filter-controls .btn { padding: 8px 12px; font-size: 13px; }
+            .driver-performance-item { flex-direction: column; text-align: center; }
+            .driver-metrics { text-align: center; margin-top: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -561,10 +835,101 @@
             </div>
         </div>
         
+        <!-- Reports Tab - Story 14: Shift Analytics -->
         <div id="reports-tab" class="tab-content">
+            <!-- Analytics Summary Cards -->
+            <div class="analytics-summary">
+                <div class="summary-card" style="background: linear-gradient(135deg, #3498db, #2980b9); color: white;">
+                    <h4>Total Shifts</h4>
+                    <span id="totalShiftsCount">-</span>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #27ae60, #229954); color: white;">
+                    <h4>Total Distance</h4>
+                    <span id="totalDistanceCount">- km</span>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white;">
+                    <h4>Total Hours</h4>
+                    <span id="totalHoursCount">- hrs</span>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white;">
+                    <h4>Active Drivers</h4>
+                    <span id="activeDriversCount">-</span>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
             <div class="card">
-                <h3>📊 Reports & Analytics</h3>
-                <p>Advanced reporting features will be implemented in future stories.</p>
+                <div class="analytics-controls">
+                    <div class="filter-controls">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="today">Today</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="week">This Week</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="month">This Month</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="all">All Time</button>
+                        </div>
+                    </div>
+                    <div class="refresh-controls">
+                        <button id="refreshAnalytics" class="btn btn-secondary">
+                            🔄 Refresh
+                        </button>
+                        <small id="lastUpdated" class="text-muted">Last updated: -</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Content -->
+            <div class="analytics-content">
+                <!-- Trends Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h5>📈 Shift Trends</h5>
+                        <span id="period-description" class="period-desc">Loading...</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="trends-chart">
+                            <div class="chart-placeholder">
+                                <div class="loading-spinner"></div>
+                                <p>Loading analytics data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Performance -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h5>👥 Driver Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="driverPerformanceList">
+                            <div class="loading-spinner"></div>
+                            <p>Loading performance data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Shifts -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h5>🚛 Recent Shifts</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recent-shifts-table">
+                            <div class="loading-spinner"></div>
+                            <p>Loading shift data...</p>
+                        </div>
+                        <!-- Pagination -->
+                        <div id="analytics-pagination" class="pagination-container" style="display: none;">
+                            <div class="pagination-info">
+                                <span id="analytics-page-info">-</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button id="analytics-prev" class="btn btn-sm btn-secondary">← Previous</button>
+                                <button id="analytics-next" class="btn btn-sm btn-secondary">Next →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -1174,6 +1539,347 @@
         function viewAdminDriverDetails(driverId) {
             alert(`Driver details for ID ${driverId} - Feature coming soon!`);
         }
+
+        // Story 14: Analytics Dashboard Implementation
+        let analyticsCurrentFilter = 'today';
+        let analyticsCurrentPage = 1;
+        let analyticsPageSize = 10;
+        const analytics = {
+            summary: {
+                totalShifts: 0,
+                totalDistance: 0,
+                totalHours: 0,
+                activeDrivers: 0
+            },
+            trends: [],
+            drivers: [],
+            recentShifts: []
+        };
+
+        // Initialize analytics dashboard
+        async function initializeAnalyticsDashboard() {
+            console.log('[Analytics] Initializing analytics dashboard...');
+            
+            // Setup filter button event listeners
+            document.querySelectorAll('.filter-controls .btn').forEach(btn => {
+                btn.addEventListener('click', handleFilterChange);
+            });
+            
+            // Setup refresh button
+            document.getElementById('refreshAnalytics').addEventListener('click', refreshAnalytics);
+            
+            // Setup pagination
+            document.getElementById('analytics-prev').addEventListener('click', previousAnalyticsPage);
+            document.getElementById('analytics-next').addEventListener('click', nextAnalyticsPage);
+            
+            // Load initial data
+            await loadAnalyticsData();
+            
+            console.log('[Analytics] Analytics dashboard initialized successfully');
+        }
+
+        // Handle filter change
+        function handleFilterChange(event) {
+            const newFilter = event.target.dataset.filter;
+            
+            // Update active button
+            document.querySelectorAll('.filter-controls .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update filter and reload data
+            analyticsCurrentFilter = newFilter;
+            analyticsCurrentPage = 1;
+            loadAnalyticsData();
+        }
+
+        // Load analytics data from API
+        async function loadAnalyticsData() {
+            console.log(`[Analytics] Loading analytics data for filter: ${analyticsCurrentFilter}`);
+            
+            try {
+                showAnalyticsLoading(true);
+                
+                // Fetch analytics data from the API
+                const response = await fetch(`/api/admin/analytics?filter=${analyticsCurrentFilter}&page=${analyticsCurrentPage}&limit=${analyticsPageSize}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    analytics.summary = result.data.summary;
+                    analytics.trends = result.data.trends || [];
+                    analytics.drivers = result.data.drivers || [];
+                    analytics.recentShifts = result.data.recentShifts || [];
+                    
+                    // Update UI components
+                    updateSummaryCards();
+                    updateTrendsChart();
+                    updateDriverPerformance();
+                    updateRecentShifts();
+                    updateLastUpdated();
+                    
+                    console.log('[Analytics] Analytics data loaded successfully:', result.data);
+                } else {
+                    throw new Error(result.error || 'Failed to load analytics data');
+                }
+                
+            } catch (error) {
+                console.error('[Analytics] Error loading analytics data:', error);
+                showAnalyticsError(error.message);
+            } finally {
+                showAnalyticsLoading(false);
+            }
+        }
+
+        // Update summary cards
+        function updateSummaryCards() {
+            document.getElementById('totalShiftsCount').textContent = analytics.summary.totalShifts || 0;
+            document.getElementById('totalDistanceCount').textContent = `${(analytics.summary.totalDistance || 0).toFixed(1)} km`;
+            document.getElementById('totalHoursCount').textContent = `${(analytics.summary.totalHours || 0).toFixed(1)} hrs`;
+            document.getElementById('activeDriversCount').textContent = analytics.summary.activeDrivers || 0;
+        }
+
+        // Update trends chart (simplified text-based visualization)
+        function updateTrendsChart() {
+            const chartContainer = document.getElementById('trends-chart');
+            const periodDesc = document.getElementById('period-description');
+            
+            // Update period description
+            const periodTexts = {
+                today: `Today (${new Date().toLocaleDateString('en-IN')})`,
+                week: `This Week (${getWeekRange()})`,
+                month: `This Month (${new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })})`,
+                all: 'All Time Data'
+            };
+            
+            periodDesc.textContent = periodTexts[analyticsCurrentFilter] || 'Loading...';
+            
+            // Create simple trend visualization
+            if (analytics.trends.length > 0) {
+                const trendsHtml = `
+                    <div class="trends-visualization">
+                        <h6>📊 Shift Distribution</h6>
+                        ${analytics.trends.map(trend => `
+                            <div class="trend-item" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <span>${trend.period}</span>
+                                <span><strong>${trend.shifts} shifts</strong> | ${trend.hours}h | ${trend.distance}km</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                chartContainer.innerHTML = trendsHtml;
+            } else {
+                chartContainer.innerHTML = `
+                    <div class="chart-placeholder">
+                        <p>No trend data available for the selected period</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Update driver performance
+        function updateDriverPerformance() {
+            const container = document.getElementById('driverPerformanceList');
+            
+            if (analytics.drivers.length > 0) {
+                const driversHtml = analytics.drivers.map(driver => `
+                    <div class="driver-performance-item">
+                        <div class="driver-info">
+                            <h6>${driver.name}</h6>
+                            <p>Phone: ${driver.phone}</p>
+                        </div>
+                        <div class="driver-metrics">
+                            <div class="metric">Shifts: <strong>${driver.shifts}</strong></div>
+                            <div class="metric">Hours: <strong>${driver.hours}h</strong></div>
+                            <div class="metric">Distance: <strong>${driver.distance}km</strong></div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = driversHtml;
+            } else {
+                container.innerHTML = `
+                    <div class="chart-placeholder">
+                        <p>No driver performance data available</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Update recent shifts table
+        function updateRecentShifts() {
+            const container = document.getElementById('recent-shifts-table');
+            const paginationContainer = document.getElementById('analytics-pagination');
+            
+            if (analytics.recentShifts.length > 0) {
+                const shiftsHtml = `
+                    <table class="shifts-table">
+                        <thead>
+                            <tr>
+                                <th>Driver</th>
+                                <th>Date</th>
+                                <th>Duration</th>
+                                <th>Distance</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.recentShifts.map(shift => `
+                                <tr>
+                                    <td>${shift.driverName}</td>
+                                    <td>${new Date(shift.clockInTime).toLocaleDateString('en-IN')}</td>
+                                    <td>${shift.duration} min</td>
+                                    <td>${shift.distance} km</td>
+                                    <td><span class="status-badge status-${shift.status}">${shift.status}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                container.innerHTML = shiftsHtml;
+                
+                // Show pagination if needed
+                if (analytics.summary.totalShifts > analyticsPageSize) {
+                    paginationContainer.style.display = 'flex';
+                    updateAnalyticsPagination();
+                } else {
+                    paginationContainer.style.display = 'none';
+                }
+            } else {
+                container.innerHTML = `
+                    <div class="chart-placeholder">
+                        <p>No recent shifts available</p>
+                    </div>
+                `;
+                paginationContainer.style.display = 'none';
+            }
+        }
+
+        // Update analytics pagination
+        function updateAnalyticsPagination() {
+            const totalPages = Math.ceil(analytics.summary.totalShifts / analyticsPageSize);
+            const pageInfo = document.getElementById('analytics-page-info');
+            const prevBtn = document.getElementById('analytics-prev');
+            const nextBtn = document.getElementById('analytics-next');
+            
+            pageInfo.textContent = `Page ${analyticsCurrentPage} of ${totalPages} (${analytics.summary.totalShifts} total shifts)`;
+            
+            prevBtn.disabled = analyticsCurrentPage <= 1;
+            nextBtn.disabled = analyticsCurrentPage >= totalPages;
+        }
+
+        // Previous analytics page
+        function previousAnalyticsPage() {
+            if (analyticsCurrentPage > 1) {
+                analyticsCurrentPage--;
+                loadAnalyticsData();
+            }
+        }
+
+        // Next analytics page
+        function nextAnalyticsPage() {
+            const totalPages = Math.ceil(analytics.summary.totalShifts / analyticsPageSize);
+            if (analyticsCurrentPage < totalPages) {
+                analyticsCurrentPage++;
+                loadAnalyticsData();
+            }
+        }
+
+        // Refresh analytics data
+        function refreshAnalytics() {
+            console.log('[Analytics] Refreshing analytics data...');
+            loadAnalyticsData();
+        }
+
+        // Show analytics loading state
+        function showAnalyticsLoading(show) {
+            const loadingElements = [
+                'trends-chart',
+                'driverPerformanceList',
+                'recent-shifts-table'
+            ];
+            
+            loadingElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (show) {
+                    element.innerHTML = `
+                        <div class="chart-placeholder">
+                            <div class="loading-spinner"></div>
+                            <p>Loading data...</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // Show analytics error
+        function showAnalyticsError(message) {
+            const errorElements = [
+                'trends-chart',
+                'driverPerformanceList',
+                'recent-shifts-table'
+            ];
+            
+            errorElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                element.innerHTML = `
+                    <div class="chart-placeholder">
+                        <p style="color: #e74c3c;">Error: ${message}</p>
+                        <button onclick="refreshAnalytics()" class="btn btn-secondary btn-sm">Try Again</button>
+                    </div>
+                `;
+            });
+        }
+
+        // Update last updated timestamp
+        function updateLastUpdated() {
+            const timestamp = new Date().toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            
+            document.getElementById('lastUpdated').textContent = `Last updated: ${timestamp} IST`;
+        }
+
+        // Get week range for display
+        function getWeekRange() {
+            const now = new Date();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+            const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+            
+            return `${startOfWeek.toLocaleDateString('en-IN')} - ${endOfWeek.toLocaleDateString('en-IN')}`;
+        }
+
+        // Initialize analytics when reports tab is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add analytics initialization to the existing tab switching logic
+            const originalShowTab = window.showTab;
+            window.showTab = function(tabName) {
+                originalShowTab(tabName);
+                
+                if (tabName === 'reports') {
+                    // Initialize analytics if not already done
+                    if (!document.getElementById('totalShiftsCount').textContent || document.getElementById('totalShiftsCount').textContent === '-') {
+                        setTimeout(() => {
+                            initializeAnalyticsDashboard();
+                        }, 100);
+                    }
+                }
+            };
+        });
     </script>
 </body>
 </html>

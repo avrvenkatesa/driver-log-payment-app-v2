@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const payrollDB = require('../database/payroll');
 const adminDriversDB = require('../database/admin_drivers');
+const adminAnalyticsDB = require('../database/admin_analytics');
 const { authMiddleware, requireAdminOnly, requireDriverOrAdmin } = require('../auth/auth');
 
 // FIXED: Add IST timezone conversion for admin timestamps (same as driver routes)
@@ -45,6 +46,79 @@ async function initializePayrollSystem() {
     console.error(`[${new Date().toISOString()}] ❌ Error initializing payroll system:`, error.message);
   }
 }
+
+/**
+ * GET /api/admin/shifts
+ * Story 14: Shift Analytics - Get comprehensive shift analytics
+ * Admin-only endpoint for operational insights
+ */
+router.get('/shifts', requireAdminOnly, async (req, res) => {
+  try {
+    const { filter = 'today', page = 1, limit = 10 } = req.query;
+    
+    console.log(`[${new Date().toISOString()}] GET /api/admin/shifts - IP: ${req.ip}`);
+    console.log(`[Admin Analytics API] ==> Request params: filter=${filter}, page=${page}, limit=${limit}`);
+    console.log(`[Admin Analytics API] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+    
+    // Validate filter parameter
+    const validFilters = ['today', 'week', 'month', 'all'];
+    if (!validFilters.includes(filter)) {
+      console.log(`[Admin Analytics API] ==> Invalid filter: ${filter}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid filter parameter',
+        message: `Filter must be one of: ${validFilters.join(', ')}`
+      });
+    }
+    
+    // Validate pagination parameters
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid page parameter',
+        message: 'Page must be a positive integer'
+      });
+    }
+    
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid limit parameter',
+        message: 'Limit must be between 1 and 100'
+      });
+    }
+    
+    // Get analytics data
+    const analyticsData = await adminAnalyticsDB.getShiftAnalytics(filter, pageNum, limitNum);
+    
+    console.log(`[Admin Analytics API] ==> Analytics retrieved successfully`);
+    console.log(`[Admin Analytics API] ==> Summary: ${analyticsData.analytics.summary.totalShifts} shifts, ${analyticsData.analytics.summary.activeDrivers} active drivers`);
+    
+    res.json({
+      success: true,
+      data: analyticsData,
+      meta: {
+        requestedAt: new Date().toISOString(),
+        filter,
+        page: pageNum,
+        limit: limitNum,
+        period: analyticsData.analytics.period.description
+      }
+    });
+    
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] ❌ Error getting shift analytics:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve shift analytics',
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
 
 /**
  * GET /api/admin/payroll-config
