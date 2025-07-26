@@ -1,324 +1,339 @@
-const dbConnection = require('./connection');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-/**
- * Admin Analytics Database Operations
- * Story 14: Shift Analytics Implementation
- * Provides comprehensive analytics data for admin dashboard
- */
+// Database connection
+const dbPath = path.join(process.cwd(), 'company.db');
+const db = new sqlite3.Database(dbPath);
 
-/**
- * Get comprehensive shift analytics data for specified time period
- * @param {string} filter - Time period filter: 'today', 'week', 'month', 'all'
- * @param {number} page - Page number for pagination (default: 1)
- * @param {number} limit - Results per page (default: 10)
- * @returns {Object} Analytics data with summary, trends, and shift details
- */
-async function getShiftAnalytics(filter = 'today', page = 1, limit = 10) {
-    try {
-        console.log(`[Admin Analytics DB] ==> Getting analytics for filter: ${filter}, page: ${page}, limit: ${limit}`);
+// Convert UTC timestamp to IST
+function convertToIST(utcTimestamp) {
+    const utcDate = new Date(utcTimestamp);
+    const options = {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    };
+    
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const formattedDate = formatter.format(utcDate);
+    return formattedDate + ' IST';
+}
+
+// Get date range for filter
+function getDateRange(filter) {
+    const today = new Date();
+    
+    switch (filter) {
+        case 'today':
+            const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+            return { start: startOfToday, end: endOfToday };
+            
+        case 'week':
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+            
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+            return { start: startOfWeek, end: endOfWeek };
+            
+        case 'month':
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+            return { start: startOfMonth, end: endOfMonth };
+            
+        case 'all':
+        default:
+            return {
+                start: new Date('2025-01-01T00:00:00.000Z'),
+                end: new Date()
+            };
+    }
+}
+
+// Get analytics summary data
+function getAnalyticsSummary(filter = 'today') {
+    return new Promise((resolve, reject) => {
+        const { start, end } = getDateRange(filter);
+        const startISO = start.toISOString();
+        const endISO = end.toISOString();
         
-        const dateRange = getDateRange(filter);
-        console.log(`[Admin Analytics DB] ==> Date range: ${dateRange.start} to ${dateRange.end}`);
+        console.log(`[Analytics DB] Getting summary for filter: ${filter}`);
+        console.log(`[Analytics DB] Date range: ${startISO} to ${endISO}`);
         
-        // Get summary analytics
-        const summary = await getSummaryAnalytics(dateRange);
+        // Query for summary statistics
+        const summaryQuery = `
+            SELECT 
+                COUNT(*) as totalShifts,
+                COALESCE(SUM(total_distance), 0) as totalDistance,
+                COALESCE(SUM(shift_duration_minutes), 0) / 60.0 as totalHours,
+                COUNT(DISTINCT driver_id) as activeDrivers
+            FROM shifts 
+            WHERE clock_in_time >= ? AND clock_in_time <= ?
+            AND status = 'completed'
+        `;
         
-        // Get daily trends
-        const dailyTrends = await getDailyTrends(dateRange);
-        
-        // Get driver performance
-        const driverPerformance = await getDriverPerformance(dateRange);
-        
-        // Get paginated shift details
-        const shiftDetails = await getShiftDetails(dateRange, page, limit);
-        
-        const analytics = {
-            summary,
-            period: {
-                filter,
-                startDate: dateRange.start,
-                endDate: dateRange.end,
-                description: getPeriodDescription(filter, dateRange)
-            },
-            trends: {
-                shiftsPerDay: dailyTrends,
-                driverPerformance
+        db.get(summaryQuery, [startISO, endISO], (err, summaryRow) => {
+            if (err) {
+                console.error('[Analytics DB] Error getting summary:', err);
+                reject(err);
+                return;
             }
-        };
-        
-        console.log(`[Admin Analytics DB] ==> Analytics summary:`, {
-            totalShifts: summary.totalShifts,
-            activeDrivers: summary.activeDrivers,
-            totalDistance: summary.totalDistance,
-            dailyTrendsCount: dailyTrends.length,
-            driverPerformanceCount: driverPerformance.length
+            
+            const summary = {
+                totalShifts: summaryRow?.totalShifts || 0,
+                totalDistance: Math.round((summaryRow?.totalDistance || 0) * 10) / 10, // Round to 1 decimal
+                totalHours: Math.round((summaryRow?.totalHours || 0) * 10) / 10, // Round to 1 decimal
+                activeDrivers: summaryRow?.activeDrivers || 0
+            };
+            
+            console.log(`[Analytics DB] Summary calculated:`, summary);
+            resolve(summary);
         });
+    });
+}
+
+// Get trends data for visualization
+function getAnalyticsTrends(filter = 'today') {
+    return new Promise((resolve, reject) => {
+        const { start, end } = getDateRange(filter);
+        const startISO = start.toISOString();
+        const endISO = end.toISOString();
         
-        return {
-            analytics,
-            shifts: shiftDetails.shifts,
-            pagination: shiftDetails.pagination
+        console.log(`[Analytics DB] Getting trends for filter: ${filter}`);
+        
+        let trendsQuery, groupBy;
+        
+        switch (filter) {
+            case 'today':
+                // Group by hour for today
+                trendsQuery = `
+                    SELECT 
+                        strftime('%H:00', clock_in_time) as period,
+                        COUNT(*) as shifts,
+                        COALESCE(SUM(shift_duration_minutes), 0) / 60.0 as hours,
+                        COALESCE(SUM(total_distance), 0) as distance
+                    FROM shifts 
+                    WHERE clock_in_time >= ? AND clock_in_time <= ?
+                    AND status = 'completed'
+                    GROUP BY strftime('%H', clock_in_time)
+                    ORDER BY period
+                `;
+                break;
+                
+            case 'week':
+                // Group by day for this week
+                trendsQuery = `
+                    SELECT 
+                        strftime('%Y-%m-%d', clock_in_time) as period,
+                        COUNT(*) as shifts,
+                        COALESCE(SUM(shift_duration_minutes), 0) / 60.0 as hours,
+                        COALESCE(SUM(total_distance), 0) as distance
+                    FROM shifts 
+                    WHERE clock_in_time >= ? AND clock_in_time <= ?
+                    AND status = 'completed'
+                    GROUP BY strftime('%Y-%m-%d', clock_in_time)
+                    ORDER BY period
+                `;
+                break;
+                
+            case 'month':
+                // Group by week for this month
+                trendsQuery = `
+                    SELECT 
+                        'Week ' || strftime('%W', clock_in_time) as period,
+                        COUNT(*) as shifts,
+                        COALESCE(SUM(shift_duration_minutes), 0) / 60.0 as hours,
+                        COALESCE(SUM(total_distance), 0) as distance
+                    FROM shifts 
+                    WHERE clock_in_time >= ? AND clock_in_time <= ?
+                    AND status = 'completed'
+                    GROUP BY strftime('%W', clock_in_time)
+                    ORDER BY strftime('%W', clock_in_time)
+                `;
+                break;
+                
+            case 'all':
+            default:
+                // Group by month for all time
+                trendsQuery = `
+                    SELECT 
+                        strftime('%Y-%m', clock_in_time) as period,
+                        COUNT(*) as shifts,
+                        COALESCE(SUM(shift_duration_minutes), 0) / 60.0 as hours,
+                        COALESCE(SUM(total_distance), 0) as distance
+                    FROM shifts 
+                    WHERE clock_in_time >= ? AND clock_in_time <= ?
+                    AND status = 'completed'
+                    GROUP BY strftime('%Y-%m', clock_in_time)
+                    ORDER BY period
+                `;
+                break;
+        }
+        
+        db.all(trendsQuery, [startISO, endISO], (err, rows) => {
+            if (err) {
+                console.error('[Analytics DB] Error getting trends:', err);
+                reject(err);
+                return;
+            }
+            
+            const trends = rows.map(row => ({
+                period: row.period,
+                shifts: row.shifts,
+                hours: Math.round(row.hours * 10) / 10,
+                distance: Math.round(row.distance * 10) / 10
+            }));
+            
+            console.log(`[Analytics DB] Trends calculated:`, trends.length, 'data points');
+            resolve(trends);
+        });
+    });
+}
+
+// Get driver performance data
+function getDriverPerformance(filter = 'today') {
+    return new Promise((resolve, reject) => {
+        const { start, end } = getDateRange(filter);
+        const startISO = start.toISOString();
+        const endISO = end.toISOString();
+        
+        console.log(`[Analytics DB] Getting driver performance for filter: ${filter}`);
+        
+        const driverQuery = `
+            SELECT 
+                d.name,
+                d.phone,
+                COUNT(s.id) as shifts,
+                COALESCE(SUM(s.shift_duration_minutes), 0) / 60.0 as hours,
+                COALESCE(SUM(s.total_distance), 0) as distance
+            FROM drivers d
+            LEFT JOIN shifts s ON d.id = s.driver_id 
+                AND s.clock_in_time >= ? AND s.clock_in_time <= ?
+                AND s.status = 'completed'
+            WHERE d.is_active = 1
+            GROUP BY d.id, d.name, d.phone
+            HAVING shifts > 0
+            ORDER BY shifts DESC, hours DESC
+            LIMIT 10
+        `;
+        
+        db.all(driverQuery, [startISO, endISO], (err, rows) => {
+            if (err) {
+                console.error('[Analytics DB] Error getting driver performance:', err);
+                reject(err);
+                return;
+            }
+            
+            const drivers = rows.map(row => ({
+                name: row.name,
+                phone: row.phone,
+                shifts: row.shifts,
+                hours: Math.round(row.hours * 10) / 10,
+                distance: Math.round(row.distance * 10) / 10
+            }));
+            
+            console.log(`[Analytics DB] Driver performance calculated:`, drivers.length, 'drivers');
+            resolve(drivers);
+        });
+    });
+}
+
+// Get recent shifts data
+function getRecentShifts(filter = 'today', page = 1, limit = 10) {
+    return new Promise((resolve, reject) => {
+        const { start, end } = getDateRange(filter);
+        const startISO = start.toISOString();
+        const endISO = end.toISOString();
+        const offset = (page - 1) * limit;
+        
+        console.log(`[Analytics DB] Getting recent shifts for filter: ${filter}, page: ${page}`);
+        
+        const shiftsQuery = `
+            SELECT 
+                s.id,
+                s.clock_in_time,
+                s.clock_out_time,
+                s.shift_duration_minutes as duration,
+                s.total_distance as distance,
+                s.status,
+                d.name as driverName,
+                d.phone as driverPhone
+            FROM shifts s
+            INNER JOIN drivers d ON s.driver_id = d.id
+            WHERE s.clock_in_time >= ? AND s.clock_in_time <= ?
+            AND s.status = 'completed'
+            ORDER BY s.clock_in_time DESC
+            LIMIT ? OFFSET ?
+        `;
+        
+        db.all(shiftsQuery, [startISO, endISO, limit, offset], (err, rows) => {
+            if (err) {
+                console.error('[Analytics DB] Error getting recent shifts:', err);
+                reject(err);
+                return;
+            }
+            
+            const shifts = rows.map(row => ({
+                id: row.id,
+                clockInTime: row.clock_in_time,
+                clockOutTime: row.clock_out_time,
+                duration: row.duration,
+                distance: row.distance,
+                status: row.status,
+                driverName: row.driverName,
+                driverPhone: row.driverPhone
+            }));
+            
+            console.log(`[Analytics DB] Recent shifts retrieved:`, shifts.length, 'shifts');
+            resolve(shifts);
+        });
+    });
+}
+
+// Get complete analytics data
+async function getCompleteAnalyticsData(filter = 'today', page = 1, limit = 10) {
+    try {
+        console.log(`[Analytics DB] Getting complete analytics data for filter: ${filter}`);
+        
+        const [summary, trends, drivers, recentShifts] = await Promise.all([
+            getAnalyticsSummary(filter),
+            getAnalyticsTrends(filter),
+            getDriverPerformance(filter),
+            getRecentShifts(filter, page, limit)
+        ]);
+        
+        const result = {
+            summary,
+            trends,
+            drivers,
+            recentShifts,
+            filter,
+            page,
+            limit
         };
+        
+        console.log(`[Analytics DB] Complete analytics data retrieved successfully`);
+        return result;
         
     } catch (error) {
-        console.error('[Admin Analytics DB] ==> Error getting analytics:', error);
-        throw new Error(`Failed to get shift analytics: ${error.message}`);
-    }
-}
-
-/**
- * Get summary analytics for the specified date range
- */
-async function getSummaryAnalytics(dateRange) {
-    const query = `
-        SELECT 
-            COUNT(*) as totalShifts,
-            COALESCE(SUM(total_distance), 0) as totalDistance,
-            COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
-            COUNT(DISTINCT driver_id) as activeDrivers,
-            COALESCE(AVG(shift_duration_minutes), 0) as avgShiftDuration,
-            COALESCE(AVG(total_distance), 0) as avgDistance
-        FROM shifts 
-        WHERE DATE(clock_in_time) >= ? AND DATE(clock_in_time) <= ?
-        AND status = 'completed'
-    `;
-    
-    console.log(`[Admin Analytics DB] ==> Executing summary query with dates: ${dateRange.start} to ${dateRange.end}`);
-    
-    const result = await dbConnection.query(query, [dateRange.start, dateRange.end]);
-    const summary = result[0] || {};
-    
-    // Calculate derived metrics
-    const totalHours = (summary.totalMinutes || 0) / 60;
-    const avgShiftHours = (summary.avgShiftDuration || 0) / 60;
-    
-    return {
-        totalShifts: parseInt(summary.totalShifts) || 0,
-        totalDistance: parseFloat(summary.totalDistance) || 0,
-        totalHours: parseFloat(totalHours.toFixed(1)),
-        totalMinutes: parseInt(summary.totalMinutes) || 0,
-        activeDrivers: parseInt(summary.activeDrivers) || 0,
-        averageShiftDuration: parseFloat(avgShiftHours.toFixed(1)),
-        averageDistance: parseFloat((summary.avgDistance || 0).toFixed(1)),
-        totalFuelUsed: parseFloat(((summary.totalDistance || 0) / 15).toFixed(1)) // Estimate: 15km per liter
-    };
-}
-
-/**
- * Get daily trends for the specified date range
- */
-async function getDailyTrends(dateRange) {
-    const query = `
-        SELECT 
-            DATE(clock_in_time) as date,
-            COUNT(*) as shifts,
-            COALESCE(SUM(total_distance), 0) as distance,
-            COALESCE(SUM(shift_duration_minutes), 0) as totalMinutes,
-            COUNT(DISTINCT driver_id) as activeDrivers
-        FROM shifts 
-        WHERE DATE(clock_in_time) >= ? AND DATE(clock_in_time) <= ?
-        AND status = 'completed'
-        GROUP BY DATE(clock_in_time)
-        ORDER BY date ASC
-    `;
-    
-    const result = await dbConnection.query(query, [dateRange.start, dateRange.end]);
-    
-    return result.map(row => ({
-        date: row.date,
-        shifts: parseInt(row.shifts) || 0,
-        distance: parseFloat(row.distance) || 0,
-        hours: parseFloat(((row.totalMinutes || 0) / 60).toFixed(1)),
-        activeDrivers: parseInt(row.activeDrivers) || 0
-    }));
-}
-
-/**
- * Get driver performance for the specified date range
- */
-async function getDriverPerformance(dateRange) {
-    const query = `
-        SELECT 
-            s.driver_id,
-            d.name as driverName,
-            d.phone as driverPhone,
-            COUNT(*) as shifts,
-            COALESCE(SUM(s.total_distance), 0) as distance,
-            COALESCE(SUM(s.shift_duration_minutes), 0) as totalMinutes,
-            COALESCE(AVG(s.shift_duration_minutes), 0) as avgShiftDuration,
-            COALESCE(AVG(s.total_distance), 0) as avgDistance
-        FROM shifts s
-        JOIN drivers d ON s.driver_id = d.id
-        WHERE DATE(s.clock_in_time) >= ? AND DATE(s.clock_in_time) <= ?
-        AND s.status = 'completed'
-        GROUP BY s.driver_id, d.name, d.phone
-        ORDER BY shifts DESC, distance DESC
-    `;
-    
-    const result = await dbConnection.query(query, [dateRange.start, dateRange.end]);
-    
-    return result.map(row => ({
-        driverId: parseInt(row.driver_id),
-        driverName: row.driverName,
-        driverPhone: row.driverPhone,
-        shifts: parseInt(row.shifts) || 0,
-        distance: parseFloat(row.distance) || 0,
-        hours: parseFloat(((row.totalMinutes || 0) / 60).toFixed(1)),
-        avgShiftDuration: parseFloat(((row.avgShiftDuration || 0) / 60).toFixed(1)),
-        avgDistance: parseFloat((row.avgDistance || 0).toFixed(1))
-    }));
-}
-
-/**
- * Get paginated shift details for the specified date range
- */
-async function getShiftDetails(dateRange, page = 1, limit = 10) {
-    const offset = (page - 1) * limit;
-    
-    // Get total count for pagination
-    const countQuery = `
-        SELECT COUNT(*) as total
-        FROM shifts s
-        JOIN drivers d ON s.driver_id = d.id
-        WHERE DATE(s.clock_in_time) >= ? AND DATE(s.clock_in_time) <= ?
-        AND s.status = 'completed'
-    `;
-    
-    const countResult = await dbConnection.query(countQuery, [dateRange.start, dateRange.end]);
-    const totalShifts = parseInt(countResult[0]?.total) || 0;
-    const totalPages = Math.ceil(totalShifts / limit);
-    
-    // Get shift details with pagination
-    const shiftsQuery = `
-        SELECT 
-            s.id,
-            s.driver_id,
-            d.name as driverName,
-            d.phone as driverPhone,
-            DATE(s.clock_in_time) as date,
-            TIME(s.clock_in_time) as startTime,
-            TIME(s.clock_out_time) as endTime,
-            s.shift_duration_minutes as duration,
-            s.total_distance as distance,
-            s.start_odometer,
-            s.end_odometer,
-            s.status,
-            s.clock_in_time,
-            s.clock_out_time
-        FROM shifts s
-        JOIN drivers d ON s.driver_id = d.id
-        WHERE DATE(s.clock_in_time) >= ? AND DATE(s.clock_in_time) <= ?
-        AND s.status = 'completed'
-        ORDER BY s.clock_in_time DESC
-        LIMIT ? OFFSET ?
-    `;
-    
-    const shifts = await dbConnection.query(shiftsQuery, [dateRange.start, dateRange.end, limit, offset]);
-    
-    const formattedShifts = shifts.map(shift => ({
-        id: parseInt(shift.id),
-        driverId: parseInt(shift.driver_id),
-        driverName: shift.driverName,
-        driverPhone: shift.driverPhone,
-        date: shift.date,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        duration: parseInt(shift.duration) || 0,
-        durationHours: parseFloat(((shift.duration || 0) / 60).toFixed(1)),
-        distance: parseFloat(shift.distance) || 0,
-        startOdometer: parseInt(shift.start_odometer) || 0,
-        endOdometer: parseInt(shift.end_odometer) || 0,
-        status: shift.status,
-        clockInTime: shift.clock_in_time,
-        clockOutTime: shift.clock_out_time
-    }));
-    
-    return {
-        shifts: formattedShifts,
-        pagination: {
-            currentPage: page,
-            totalPages,
-            totalShifts,
-            limit,
-            hasNext: page < totalPages,
-            hasPrev: page > 1
-        }
-    };
-}
-
-/**
- * Get date range based on filter
- */
-function getDateRange(filter) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    switch (filter) {
-        case 'today':
-            return {
-                start: formatDate(today),
-                end: formatDate(today)
-            };
-        case 'week':
-            const weekStart = new Date(today);
-            weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
-            return {
-                start: formatDate(weekStart),
-                end: formatDate(today)
-            };
-        case 'month':
-            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            return {
-                start: formatDate(monthStart),
-                end: formatDate(today)
-            };
-        case 'all':
-            return {
-                start: '2025-01-01',
-                end: formatDate(today)
-            };
-        default:
-            return {
-                start: formatDate(today),
-                end: formatDate(today)
-            };
-    }
-}
-
-/**
- * Format date to YYYY-MM-DD string
- */
-function formatDate(date) {
-    return date.toISOString().split('T')[0];
-}
-
-/**
- * Get human-readable period description
- */
-function getPeriodDescription(filter, dateRange) {
-    const formatDisplayDate = (dateStr) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    };
-    
-    switch (filter) {
-        case 'today':
-            return `Today (${formatDisplayDate(dateRange.start)})`;
-        case 'week':
-            return `This Week (${formatDisplayDate(dateRange.start)} - ${formatDisplayDate(dateRange.end)})`;
-        case 'month':
-            return `This Month (${formatDisplayDate(dateRange.start)} - ${formatDisplayDate(dateRange.end)})`;
-        case 'all':
-            return `All Time (${formatDisplayDate(dateRange.start)} - ${formatDisplayDate(dateRange.end)})`;
-        default:
-            return `Selected Period (${formatDisplayDate(dateRange.start)} - ${formatDisplayDate(dateRange.end)})`;
+        console.error('[Analytics DB] Error getting complete analytics data:', error);
+        throw error;
     }
 }
 
 module.exports = {
-    getShiftAnalytics
+    getAnalyticsSummary,
+    getAnalyticsTrends,
+    getDriverPerformance,
+    getRecentShifts,
+    getCompleteAnalyticsData,
+    convertToIST
 };

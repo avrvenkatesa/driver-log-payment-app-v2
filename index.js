@@ -139,6 +139,11 @@ try {
   app.use('/api/driver', leaveRoutes);
   log('✅ Leave management routes registered at /api/driver');
   
+  // Analytics routes (Story 14: Shift Analytics)
+  const analyticsRoutes = require('./src/routes/analytics.js');
+  app.use('/api/admin', analyticsRoutes);
+  log('✅ Analytics routes registered at /api/admin');
+  
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
     log('✅ Payroll configuration system initialized successfully');
