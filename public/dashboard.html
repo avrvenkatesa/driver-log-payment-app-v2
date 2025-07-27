@@ -4247,7 +4247,7 @@
                 
                 const response = await fetch('/api/driver/advance-eligibility', {
                     headers: {
-                        'Authorization': `Bearer ${getAuthToken()}`
+                        'Authorization': `Bearer ${authToken}`
                     }
                 });
 
@@ -4329,7 +4329,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthToken()}`
+                        'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(requestData)
                 });
@@ -4367,7 +4367,7 @@
                 
                 const response = await fetch('/api/driver/advance-requests', {
                     headers: {
-                        'Authorization': `Bearer ${getAuthToken()}`
+                        'Authorization': `Bearer ${authToken}`
                     }
                 });
 
