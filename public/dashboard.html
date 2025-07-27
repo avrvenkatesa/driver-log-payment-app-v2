@@ -1424,6 +1424,9 @@
                 setTimeout(() => {
                     console.log('[Dashboard] ==> Triggering initial shift data load');
                     loadShiftData();
+                    loadLeaveBalance();
+                    loadLeaveHistory();
+                    loadShiftData();
                 }, 1500);
                 
                 // Load monthly data as backup for testing
