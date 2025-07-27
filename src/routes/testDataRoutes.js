@@ -7,6 +7,47 @@ const path = require('path');
 // Database connection
 const dbPath = path.join(process.cwd(), 'company.db');
 
+// Helper function to ensure test data tables exist
+async function createTestDataTablesIfNotExist(db) {
+    return new Promise((resolve, reject) => {
+        const createSessionsTable = `
+            CREATE TABLE IF NOT EXISTS test_data_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT UNIQUE NOT NULL,
+                description TEXT,
+                created_by INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                parameters TEXT,
+                shifts_count INTEGER DEFAULT 0,
+                leave_requests_count INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'active',
+                FOREIGN KEY (created_by) REFERENCES drivers (id)
+            )
+        `;
+        
+        db.run(createSessionsTable, (err) => {
+            if (err) {
+                console.log('[Test Data] Test sessions table creation error (may already exist):', err.message);
+            } else {
+                console.log('[Test Data] Test sessions table ready');
+            }
+            
+            // Add test data columns to existing tables if they don't exist
+            const alterShifts = `ALTER TABLE shifts ADD COLUMN is_test_data BOOLEAN DEFAULT 0`;
+            const alterLeaveRequests = `ALTER TABLE leave_requests ADD COLUMN is_test_data BOOLEAN DEFAULT 0`;
+            const alterAuditLog = `ALTER TABLE shift_audit_log ADD COLUMN is_test_data BOOLEAN DEFAULT 0`;
+            
+            db.run(alterShifts, () => {
+                db.run(alterLeaveRequests, () => {
+                    db.run(alterAuditLog, () => {
+                        resolve();
+                    });
+                });
+            });
+        });
+    });
+}
+
 class TestDataGenerator {
     constructor(config) {
         this.drivers = config.drivers;
@@ -539,6 +580,9 @@ router.get('/test-data/sessions', requireAdminOnly, async (req, res) => {
         const db = new sqlite3.Database(dbPath);
         
         try {
+            // Ensure test data tables exist before querying
+            await createTestDataTablesIfNotExist(db);
+            
             const sessions = await new Promise((resolve, reject) => {
                 db.all(
                     `SELECT * FROM test_data_sessions ORDER BY created_at DESC`,
