@@ -1356,7 +1356,48 @@
             console.log('[RBAC] Admin access granted for user with role:', userRole);
             loadCurrentConfig();
             loadConfigHistory();
+            
+            // Initialize all data sources
+            initializeAllData();
         });
+        
+        // Initialize all data sources
+        async function initializeAllData() {
+            try {
+                console.log('[Admin Panel] Initializing all data sources...');
+                
+                // Load drivers data first (used by multiple tabs)
+                if (typeof loadAdminDriverManagement === 'function') {
+                    await loadAdminDriverManagement();
+                }
+                
+                // Load shift management data
+                if (typeof loadShiftManagement === 'function') {
+                    await loadShiftManagement();
+                }
+                
+                // Load analytics data
+                if (typeof loadAnalyticsData === 'function') {
+                    await loadAnalyticsData();
+                }
+                
+                // Load advance payment data
+                if (typeof refreshAdvanceData === 'function') {
+                    await refreshAdvanceData();
+                }
+                
+                // Load leave management data
+                if (typeof refreshLeaveData === 'function') {
+                    await refreshLeaveData();
+                }
+                
+                console.log('[Admin Panel] All data sources initialized successfully');
+                
+            } catch (error) {
+                console.error('[Admin Panel] Error initializing data sources:', error);
+                showAlert('Some data may not load properly. Please refresh the page.', 'warning');
+            }
+        }
         
         // Tab navigation - removed since we have the enhanced version below
         
