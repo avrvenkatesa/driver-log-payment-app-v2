@@ -3818,12 +3818,15 @@
         // Reject advance request
         async function rejectAdvanceRequest(advanceId) {
             try {
+                console.log('[Advance Management] Rejecting request:', advanceId);
                 const rejectionReason = document.getElementById('rejection-reason').value.trim();
 
                 if (!rejectionReason) {
                     showAlert('Please provide a reason for rejection', 'error');
                     return;
                 }
+
+                console.log('[Advance Management] Rejection reason:', rejectionReason);
 
                 const response = await fetch(`/api/admin/advance-request/${advanceId}/reject`, {
                     method: 'PUT',
@@ -3837,10 +3840,13 @@
                 });
 
                 const result = await response.json();
+                console.log('[Advance Management] Rejection response:', result);
 
                 if (result.success) {
-                    showAlert('Advance request rejected', 'success');
-                    document.querySelector('[style*="position: fixed"]').remove(); // Close modal
+                    showAlert('✅ Advance request rejected successfully!', 'success');
+                    // Close modal properly
+                    const modal = document.querySelector('[style*="position: fixed"]');
+                    if (modal) modal.remove();
                     refreshAdvanceData();
                 } else {
                     throw new Error(result.message || 'Failed to reject request');
