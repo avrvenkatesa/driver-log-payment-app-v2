@@ -54,7 +54,8 @@ async function calculateBulkPayroll(year, month) {
                     const regularHours = Math.min(totalHours, workingDays * 8);
                     const overtimeHours = Math.max(0, totalHours - regularHours);
                     
-                    const baseSalary = (config.monthly_salary / 30) * workingDays;
+                    // FIX: Use full monthly salary instead of prorated
+                    const baseSalary = config.monthly_salary || 27000;
                     const overtimePay = overtimeHours * config.overtime_rate;
                     const fuelAllowance = workingDays * config.fuel_allowance;
                     const totalEarnings = baseSalary + overtimePay + fuelAllowance;
@@ -197,7 +198,7 @@ router.get('/payroll/:year/:month/export', requireAdminOnly, async (req, res) =>
 });
 
 // Year-to-Date Payroll PDF Export
-router.get('/payroll/ytd/:year/export', requireAdminOnly, async (req, res) => {
+router.get('/payroll/:year/ytd/export', requireAdminOnly, async (req, res) => {
     try {
         const { year } = req.params;
         const { download = 'true' } = req.query;
@@ -297,29 +298,49 @@ router.get('/payroll/ytd/:year/export', requireAdminOnly, async (req, res) => {
         
         const consolidatedYTDData = Object.values(ytdData);
         
-        // Generate PDF
-        const pdfBuffer = await PDFService.generatePayrollPDF(consolidatedYTDData, options);
+        // Try PDF generation with fallback to HTML
+        let pdfContent;
+        let contentType = 'application/pdf';
+        let isHTML = false;
         
-        // Set response headers
-        const filename = `YTD_Payroll_Report_${year}.pdf`;
-        
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Length', pdfBuffer.length);
-        
-        if (download === 'true') {
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        } else {
-            res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        try {
+            // Try Puppeteer PDF generation first
+            pdfContent = await PDFService.generatePayrollPDF(consolidatedYTDData, options);
+        } catch (pdfError) {
+            console.log('[PDF Export] Puppeteer failed, falling back to HTML:', pdfError.message);
+            // Fallback to HTML format
+            pdfContent = SimplePDFService.generatePayrollHTML(consolidatedYTDData, options);
+            contentType = 'text/html';
+            isHTML = true;
         }
         
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
+        // Set response headers
+        const filename = `YTD_Payroll_Report_${year}.${isHTML ? 'html' : 'pdf'}`;
         
-        console.log(`[PDF Export] Successfully generated YTD PDF: ${filename} (${pdfBuffer.length} bytes)`);
+        res.setHeader('Content-Type', contentType);
         
-        // Send PDF
-        res.send(pdfBuffer);
+        if (isHTML) {
+            // For HTML, send as viewable page
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            console.log(`[PDF Export] Generated HTML YTD report: ${filename}`);
+            res.send(pdfContent);
+        } else {
+            // For PDF, handle as binary
+            res.setHeader('Content-Length', pdfContent.length);
+            
+            if (download === 'true') {
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            } else {
+                res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+            }
+            
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            
+            console.log(`[PDF Export] Successfully generated YTD PDF: ${filename} (${pdfContent.length} bytes)`);
+            res.send(pdfContent);
+        }
         
     } catch (error) {
         console.error('[PDF Export] Error generating YTD PDF:', error);
