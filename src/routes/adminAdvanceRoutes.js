@@ -238,7 +238,12 @@ router.put('/advance-request/:advanceId/approve', requireAdminOnly, async (req, 
         const eligibilityService = new AdvanceEligibilityService();
         const eligibility = await eligibilityService.calculateEligibility(currentRequest.driver_id, approvedAmount);
         
-        if (!eligibility.eligible) {
+        // Admin can override monthly limits, but not exceed available balance
+        const hasAvailableBalance = approvedAmount <= eligibility.availableAmount;
+        const onlyMonthlyLimitExceeded = eligibility.restrictions.length === 1 && 
+            eligibility.restrictions[0].includes('Monthly request limit exceeded');
+        
+        if (!eligibility.eligible && !(hasAvailableBalance && onlyMonthlyLimitExceeded)) {
             db.close();
             return res.status(400).json({
                 success: false,
@@ -246,9 +251,15 @@ router.put('/advance-request/:advanceId/approve', requireAdminOnly, async (req, 
                 message: 'Approved amount exceeds driver eligibility',
                 details: {
                     restrictions: eligibility.restrictions,
-                    availableAmount: eligibility.availableAmount
+                    availableAmount: eligibility.availableAmount,
+                    note: 'Admin can override monthly limits but cannot exceed available balance'
                 }
             });
+        }
+        
+        // Log admin override if applicable
+        if (!eligibility.eligible && hasAvailableBalance && onlyMonthlyLimitExceeded) {
+            console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> ADMIN OVERRIDE: Monthly limit exceeded but approved (Available: ₹${eligibility.availableAmount}, Approved: ₹${approvedAmount})`);
         }
         
         // Update advance request
