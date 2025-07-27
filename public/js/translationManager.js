@@ -64,13 +64,17 @@ class TranslationManager {
   }
   
   setupLanguageSelector() {
-    // Create language selector if it doesn't exist
-    if (!document.getElementById('languageSelector')) {
+    // Find existing language selector
+    const existingSelector = document.getElementById('languageSelector');
+    
+    if (existingSelector) {
+      // Use existing selector and add event listener
+      this.updateLanguageSelector();
+      this.attachLanguageChangeListener();
+    } else {
+      // Create new language selector if none exists
       this.createLanguageSelector();
     }
-    
-    // Update existing selector
-    this.updateLanguageSelector();
   }
   
   createLanguageSelector() {
@@ -109,6 +113,24 @@ class TranslationManager {
     const selector = document.getElementById('languageSelector');
     if (selector) {
       selector.value = this.currentLanguage;
+      console.log(`[Translation] Language selector updated to: ${this.currentLanguage}`);
+    }
+  }
+  
+  attachLanguageChangeListener() {
+    const selector = document.getElementById('languageSelector');
+    if (selector) {
+      // Remove any existing event listeners
+      selector.removeEventListener('change', this.handleLanguageChange);
+      
+      // Add new event listener
+      this.handleLanguageChange = (e) => {
+        console.log(`[Translation] Language selector changed to: ${e.target.value}`);
+        this.changeLanguage(e.target.value);
+      };
+      
+      selector.addEventListener('change', this.handleLanguageChange);
+      console.log('[Translation] Language change listener attached');
     }
   }
   
@@ -118,8 +140,13 @@ class TranslationManager {
       return;
     }
     
+    console.log(`[Translation] Changing language from ${this.currentLanguage} to ${languageCode}`);
+    
     this.currentLanguage = languageCode;
     localStorage.setItem('driverLogLanguage', languageCode);
+    
+    // Update language selector
+    this.updateLanguageSelector();
     
     // Apply translations immediately
     this.translatePage();
@@ -132,37 +159,45 @@ class TranslationManager {
       detail: { language: languageCode }
     }));
     
-    console.log(`[Translation] Language changed to: ${languageCode}`);
+    console.log(`[Translation] Language successfully changed to: ${languageCode}`);
   }
   
   translatePage() {
+    console.log(`[Translation] Translating page to: ${this.currentLanguage}`);
+    
     // Find all elements with data-translate attribute
     const elements = document.querySelectorAll('[data-translate]');
+    console.log(`[Translation] Found ${elements.length} elements to translate`);
+    
+    let translatedCount = 0;
     
     elements.forEach(element => {
       const key = element.getAttribute('data-translate');
       const translation = this.getTranslation(key);
       
-      if (translation) {
+      if (translation && translation !== key) {
         // Handle different element types
         if (element.tagName === 'INPUT' && (element.type === 'submit' || element.type === 'button')) {
           element.value = translation;
-        } else if (element.tagName === 'INPUT' && element.placeholder !== undefined) {
+        } else if (element.hasAttribute('data-translate-placeholder')) {
           element.placeholder = translation;
-        } else if (element.tagName === 'SELECT' || element.tagName === 'OPTION') {
+        } else if (element.tagName === 'OPTION') {
           element.textContent = translation;
-        } else {
+        } else if (element.tagName !== 'SELECT') {
           element.textContent = translation;
         }
+        translatedCount++;
       }
     });
+    
+    console.log(`[Translation] Successfully translated ${translatedCount} elements`);
     
     // Update document title if it has a translation key
     const titleElement = document.querySelector('title[data-translate]');
     if (titleElement) {
       const key = titleElement.getAttribute('data-translate');
       const translation = this.getTranslation(key);
-      if (translation) {
+      if (translation && translation !== key) {
         document.title = translation;
       }
     }
