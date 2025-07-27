@@ -2088,36 +2088,23 @@
             
             // Setup filter button event listeners
             const filterButtons = document.querySelectorAll('.filter-controls .btn');
-            console.log(`[Analytics] Found ${filterButtons.length} filter buttons`);
-            
-            filterButtons.forEach((btn, index) => {
-                console.log(`[Analytics] Setting up button ${index}: ${btn.textContent} (filter: ${btn.dataset.filter})`);
+            filterButtons.forEach(btn => {
                 btn.addEventListener('click', handleFilterChange);
             });
             
             // Setup refresh button
             const refreshBtn = document.getElementById('refreshAnalytics');
             if (refreshBtn) {
-                console.log('[Analytics] Refresh button found and event listener attached');
                 refreshBtn.addEventListener('click', refreshAnalytics);
-            } else {
-                console.log('[Analytics] Refresh button not found');
             }
             
             // Setup pagination
             const prevBtn = document.getElementById('analytics-prev');
             const nextBtn = document.getElementById('analytics-next');
-            if (prevBtn) {
-                console.log('[Analytics] Previous button found and event listener attached');
-                prevBtn.addEventListener('click', previousAnalyticsPage);
-            }
-            if (nextBtn) {
-                console.log('[Analytics] Next button found and event listener attached');
-                nextBtn.addEventListener('click', nextAnalyticsPage);
-            }
+            if (prevBtn) prevBtn.addEventListener('click', previousAnalyticsPage);
+            if (nextBtn) nextBtn.addEventListener('click', nextAnalyticsPage);
             
             // Load initial data
-            console.log('[Analytics] Loading initial analytics data...');
             await loadAnalyticsData();
             
             console.log('[Analytics] Analytics dashboard initialized successfully');
@@ -2128,8 +2115,6 @@
             event.preventDefault();
             const newFilter = event.target.dataset.filter;
             
-            console.log(`[Analytics] Filter changed to: ${newFilter}`);
-            
             // Update active button
             document.querySelectorAll('.filter-controls .btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -2139,8 +2124,6 @@
             // Update filter and reload data
             analyticsCurrentFilter = newFilter;
             analyticsCurrentPage = 1;
-            
-            console.log(`[Analytics] Loading data for filter: ${newFilter}`);
             loadAnalyticsData();
         }
 
