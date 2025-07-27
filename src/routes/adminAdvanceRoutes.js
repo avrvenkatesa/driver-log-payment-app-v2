@@ -26,6 +26,194 @@ function convertToIST(utcTimestamp) {
 
 // Admin Endpoints
 
+// GET /api/admin/advance-config - Get advance payment configuration
+router.get('/advance-config', requireAdminOnly, async (req, res) => {
+    try {
+        console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> GET /api/admin/advance-config`);
+        console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+        
+        const db = new sqlite3.Database(dbPath);
+        
+        // Get current configuration
+        const config = await new Promise((resolve, reject) => {
+            db.get(
+                `SELECT * FROM advance_payment_config ORDER BY created_at DESC LIMIT 1`,
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                }
+            );
+        });
+        
+        db.close();
+        
+        if (!config) {
+            return res.status(404).json({
+                success: false,
+                error: 'CONFIGURATION_NOT_FOUND',
+                message: 'Advance payment configuration not found'
+            });
+        }
+        
+        console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> Configuration retrieved successfully`);
+        
+        res.json({
+            success: true,
+            message: 'Advance payment configuration retrieved successfully',
+            data: {
+                maxAdvancePercent: config.max_advance_percent,
+                maxMonthlyRequests: config.max_monthly_requests,
+                minAdvanceAmount: config.min_advance_amount,
+                maxAdvanceAmount: config.max_advance_amount,
+                eligibilityMonths: config.eligibility_months,
+                createdAt: convertToIST(config.created_at),
+                updatedAt: convertToIST(config.updated_at)
+            }
+        });
+        
+    } catch (error) {
+        console.error('[Admin Advance] Error retrieving configuration:', error);
+        res.status(500).json({
+            success: false,
+            error: 'CONFIGURATION_RETRIEVAL_FAILED',
+            message: 'Failed to retrieve advance payment configuration',
+            details: error.message
+        });
+    }
+});
+
+// PUT /api/admin/advance-config - Update advance payment configuration
+router.put('/advance-config', requireAdminOnly, async (req, res) => {
+    try {
+        console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> PUT /api/admin/advance-config`);
+        console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> Admin: ${req.user.name} (ID: ${req.user.id})`);
+        
+        const { 
+            maxAdvancePercent, 
+            maxMonthlyRequests, 
+            minAdvanceAmount, 
+            maxAdvanceAmount, 
+            eligibilityMonths,
+            notes 
+        } = req.body;
+        
+        // Validation
+        if (!maxAdvancePercent || maxAdvancePercent < 10 || maxAdvancePercent > 100) {
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_ADVANCE_PERCENT',
+                message: 'Max advance percent must be between 10% and 100%'
+            });
+        }
+        
+        if (!maxMonthlyRequests || maxMonthlyRequests < 1 || maxMonthlyRequests > 12) {
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_MONTHLY_REQUESTS',
+                message: 'Max monthly requests must be between 1 and 12'
+            });
+        }
+        
+        if (!minAdvanceAmount || minAdvanceAmount < 100 || minAdvanceAmount > 10000) {
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_MIN_AMOUNT',
+                message: 'Min advance amount must be between ₹100 and ₹10,000'
+            });
+        }
+        
+        if (!maxAdvanceAmount || maxAdvanceAmount < minAdvanceAmount || maxAdvanceAmount > 100000) {
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_MAX_AMOUNT',
+                message: 'Max advance amount must be between min amount and ₹1,00,000'
+            });
+        }
+        
+        if (!eligibilityMonths || eligibilityMonths < 1 || eligibilityMonths > 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_ELIGIBILITY_MONTHS',
+                message: 'Eligibility months must be between 1 and 24'
+            });
+        }
+        
+        const db = new sqlite3.Database(dbPath);
+        const timestamp = new Date().toISOString();
+        
+        // Update configuration
+        await new Promise((resolve, reject) => {
+            db.run(
+                `UPDATE advance_payment_config 
+                SET max_advance_percent = ?, max_monthly_requests = ?, 
+                    min_advance_amount = ?, max_advance_amount = ?, 
+                    eligibility_months = ?, updated_at = ?`,
+                [maxAdvancePercent, maxMonthlyRequests, minAdvanceAmount, maxAdvanceAmount, eligibilityMonths, timestamp],
+                function(err) {
+                    if (err) reject(err);
+                    else resolve(this.changes);
+                }
+            );
+        });
+        
+        // Create audit log
+        const auditId = await new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO advance_payment_audit 
+                (advance_id, admin_id, action, old_data, new_data, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    null,
+                    req.user.id,
+                    'config_updated',
+                    JSON.stringify({ type: 'configuration_update' }),
+                    JSON.stringify({
+                        maxAdvancePercent,
+                        maxMonthlyRequests,
+                        minAdvanceAmount,
+                        maxAdvanceAmount,
+                        eligibilityMonths
+                    }),
+                    notes || `Configuration updated by ${req.user.name}`,
+                    timestamp
+                ],
+                function(err) {
+                    if (err) reject(err);
+                    else resolve(this.lastID);
+                }
+            );
+        });
+        
+        db.close();
+        
+        console.log(`[1753604${Date.now().toString().slice(-6)}] [Admin Advance] ==> Configuration updated successfully`);
+        
+        res.json({
+            success: true,
+            message: 'Advance payment configuration updated successfully',
+            data: {
+                maxAdvancePercent,
+                maxMonthlyRequests,
+                minAdvanceAmount,
+                maxAdvanceAmount,
+                eligibilityMonths,
+                updatedBy: req.user.name,
+                updatedAt: convertToIST(timestamp),
+                auditId
+            }
+        });
+        
+    } catch (error) {
+        console.error('[Admin Advance] Error updating configuration:', error);
+        res.status(500).json({
+            success: false,
+            error: 'CONFIGURATION_UPDATE_FAILED',
+            message: 'Failed to update advance payment configuration',
+            details: error.message
+        });
+    }
+});
+
 // GET /api/admin/advance-requests - Get all advance requests with filtering
 router.get('/advance-requests', requireAdminOnly, async (req, res) => {
     try {
