@@ -195,7 +195,7 @@ class AdvanceEligibilityService {
             const db = new sqlite3.Database(dbPath);
             
             db.get(
-                `SELECT monthly_salary, fuel_allowance FROM payroll_config ORDER BY id DESC LIMIT 1`,
+                `SELECT base_salary, fuel_allowance FROM payroll_config ORDER BY id DESC LIMIT 1`,
                 (err, config) => {
                     if (err) {
                         db.close();
@@ -204,7 +204,7 @@ class AdvanceEligibilityService {
                     }
                     
                     // Use default values if config not found
-                    const monthlySalary = config?.monthly_salary || 27000;
+                    const monthlySalary = config?.base_salary || 27000;
                     const fuelAllowance = config?.fuel_allowance || 33.30;
                     
                     // Estimate based on 25 working days per month

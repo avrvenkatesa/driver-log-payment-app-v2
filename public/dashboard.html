@@ -4220,6 +4220,22 @@
         // Initialize advance payment management
         function initializeAdvancePayment() {
             console.log('[Advance Payment] Initializing advance payment management...');
+            console.log('[Advance Payment] Checking if advance payment elements exist...');
+            
+            const limitDisplay = document.getElementById('advance-limit-display');
+            const historyTable = document.getElementById('advance-history-table-body');
+            
+            if (!limitDisplay) {
+                console.error('[Advance Payment] advance-limit-display element not found!');
+                return;
+            }
+            
+            if (!historyTable) {
+                console.error('[Advance Payment] advance-history-table-body element not found!');
+                return;
+            }
+            
+            console.log('[Advance Payment] Elements found, proceeding with API calls...');
             loadAdvanceEligibility();
             loadAdvanceHistory();
         }
@@ -4444,10 +4460,51 @@
         loadDashboard = function() {
             originalLoadDashboardForAdvance();
             setTimeout(() => {
-                console.log('[Advance Payment] Starting initialization...');
-                initializeAdvancePayment();
-            }, 1000);
+                console.log('[Advance Payment] Starting initialization after dashboard load...');
+                if (document.getElementById('advance-payment-card')) {
+                    initializeAdvancePayment();
+                } else {
+                    console.log('[Advance Payment] Card not found, retrying in 2 seconds...');
+                    setTimeout(() => {
+                        if (document.getElementById('advance-payment-card')) {
+                            initializeAdvancePayment();
+                        } else {
+                            console.error('[Advance Payment] Card still not found after retry');
+                        }
+                    }, 2000);
+                }
+            }, 1500);
         };
+
+        // Also try to initialize when dashboard content is shown
+        const originalShowDashboard = function() {
+            const container = document.getElementById('dashboard-container');
+            const loading = document.getElementById('loading');
+            const loginContainer = document.getElementById('login-container');
+            
+            if (container && loading && loginContainer) {
+                loading.style.display = 'none';
+                loginContainer.style.display = 'none';
+                container.style.display = 'block';
+                
+                // Try advance payment initialization here too
+                setTimeout(() => {
+                    console.log('[Advance Payment] Dashboard shown, trying initialization...');
+                    if (document.getElementById('advance-payment-card')) {
+                        initializeAdvancePayment();
+                    }
+                }, 2000);
+            }
+        };
+        
+        // Hook into the showDashboard function if it exists
+        if (typeof showDashboard !== 'undefined') {
+            const originalShow = showDashboard;
+            showDashboard = function() {
+                originalShow();
+                originalShowDashboard();
+            };
+        }
     </script>
     
     <!-- Translation System -->
