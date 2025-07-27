@@ -298,5 +298,20 @@ export const ta = {
   'status': 'நிலை',
   'requested': 'கோரப்பட்டது',
   'actions': 'செயல்கள்',
-  'loadingLeaveHistory': 'விடுப்பு வரலாற்றை ஏற்றுகிறது...'
+  'loadingLeaveHistory': 'விடுப்பு வரலாற்றை ஏற்றுகிறது...',
+
+  // Test Data Management (சோதனை தரவு மேலாண்மை)
+  'testDataManagement': 'சோதனை தரவு மேலாண்மை',
+  'generateTestData': 'சோதனை தரவு உருவாக்கவும்',
+  'cleanupTestData': 'சோதனை தரவு சுத்தம் செய்யவும்',
+  'testDataSessions': 'சோதனை தரவு அமர்வுகள்',
+  'selectDrivers': 'ஓட்டுநர்களைத் தேர்ந்தெடுக்கவும்',
+  'startDate': 'தொடக்க தேதி',
+  'endDate': 'இறுதி தேதி',
+  'shiftPatterns': 'ஷிப்ட் முறைகள்',
+  'workingDaysPerWeek': 'வாரத்திற்கு வேலை நாட்கள்',
+  'averageHoursPerDay': 'ஒரு நாளுக்கு சராசரி மணிநேரம்',
+  'overtimeFrequency': 'கூடுதல் நேர அதிர்வெண்',
+  'sundayWorkFrequency': 'ஞாயிற்றுக்கிழமை வேலை அதிர்வெண்',
+  'sessionDescription': 'அமர்வு விளக்கம்'
 };

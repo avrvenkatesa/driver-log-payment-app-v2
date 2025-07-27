@@ -301,5 +301,20 @@ export const en = {
   'status': 'Status',
   'requested': 'Requested',
   'actions': 'Actions',
-  'loadingLeaveHistory': 'Loading leave history...'
+  'loadingLeaveHistory': 'Loading leave history...',
+
+  // Test Data Management (Story 20)
+  'testDataManagement': 'Test Data Management',
+  'generateTestData': 'Generate Test Data',
+  'cleanupTestData': 'Cleanup Test Data',
+  'testDataSessions': 'Test Data Sessions',
+  'selectDrivers': 'Select Drivers',
+  'startDate': 'Start Date',
+  'endDate': 'End Date',
+  'shiftPatterns': 'Shift Patterns',
+  'workingDaysPerWeek': 'Working Days/Week',
+  'averageHoursPerDay': 'Average Hours/Day',
+  'overtimeFrequency': 'Overtime Frequency',
+  'sundayWorkFrequency': 'Sunday Work Frequency',
+  'sessionDescription': 'Session Description'
 };

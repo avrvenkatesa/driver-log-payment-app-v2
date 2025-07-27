@@ -675,6 +675,7 @@
             <button class="nav-tab" onclick="showTab('leave')" data-translate="leaveManagement">🏖️ Leave Management</button>
             <button class="nav-tab" onclick="showTab('shifts')" data-translate="shiftManagement">⚙️ Shift Management</button>
             <button class="nav-tab" onclick="showTab('reports')" data-translate="reports">📊 Reports</button>
+            <button class="nav-tab" onclick="showTab('testdata')" data-translate="testDataManagement">🧪 Test Data</button>
             <button class="nav-tab" onclick="showTab('system')" data-translate="settings">⚙️ System</button>
         </div>
         
@@ -1178,6 +1179,136 @@
                 </div>
             </div>
         </div>
+
+        <!-- Test Data Management Tab - Story 20 -->
+        <div id="testdata-tab" class="tab-content">
+            <div class="card">
+                <h3>🧪 Test Data Management</h3>
+                <p style="color: #666; margin-bottom: 20px;">Generate realistic test data for demonstrations and testing purposes. All test data is clearly marked and can be safely removed without affecting production data.</p>
+                
+                <!-- Current Test Data Summary -->
+                <div id="test-data-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db;">
+                        <div style="font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 5px;">Test Shifts</div>
+                        <div style="font-size: 24px; font-weight: 600; color: #3498db;" id="summary-test-shifts">-</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <div style="font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 5px;">Test Leaves</div>
+                        <div style="font-size: 24px; font-weight: 600; color: #28a745;" id="summary-test-leaves">-</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                        <div style="font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 5px;">Active Sessions</div>
+                        <div style="font-size: 24px; font-weight: 600; color: #ffc107;" id="summary-active-sessions">-</div>
+                    </div>
+                </div>
+
+                <!-- Test Data Generation Form -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- Generate Form -->
+                    <div>
+                        <div class="card" style="height: fit-content;">
+                            <h4 style="color: #28a745; margin-bottom: 20px;">📝 Generate Test Data</h4>
+                            
+                            <form id="test-data-form">
+                                <!-- Driver Selection -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Drivers:</label>
+                                    <div id="driver-checkboxes" style="max-height: 120px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px;">
+                                        <div style="text-align: center; color: #666; padding: 20px;">Loading drivers...</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Date Range -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Start Date:</label>
+                                        <input type="date" id="test-start-date" class="form-control" value="2025-08-01" required>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">End Date:</label>
+                                        <input type="date" id="test-end-date" class="form-control" value="2025-08-31" required>
+                                    </div>
+                                </div>
+                                
+                                <!-- Shift Patterns -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Shift Patterns:</label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <label style="font-size: 12px; color: #666;">Working Days/Week:</label>
+                                            <select id="working-days" class="form-control">
+                                                <option value="5" selected>5 days</option>
+                                                <option value="6">6 days</option>
+                                                <option value="7">7 days</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 12px; color: #666;">Avg Hours/Day:</label>
+                                            <input type="number" id="avg-hours" class="form-control" value="8" min="4" max="12" step="0.5">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 12px; color: #666;">Overtime %:</label>
+                                            <input type="number" id="overtime-freq" class="form-control" value="30" min="0" max="100" step="5">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 12px; color: #666;">Sunday Work %:</label>
+                                            <input type="number" id="sunday-freq" class="form-control" value="20" min="0" max="100" step="5">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Description -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Description:</label>
+                                    <input type="text" id="test-description" class="form-control" placeholder="e.g., August 2025 test data" maxlength="100">
+                                </div>
+                                
+                                <button type="submit" class="btn-primary" style="width: 100%;">
+                                    🧪 Generate Test Data
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Management & Cleanup -->
+                    <div>
+                        <!-- Test Data Sessions -->
+                        <div class="card" style="margin-bottom: 20px;">
+                            <h4 style="color: #6c757d; margin-bottom: 15px;">📋 Test Data Sessions</h4>
+                            <div id="test-sessions-list" style="max-height: 200px; overflow-y: auto;">
+                                <div style="text-align: center; color: #666; padding: 20px;">Loading sessions...</div>
+                            </div>
+                            <button onclick="loadTestDataSessions()" class="btn-secondary" style="width: 100%; margin-top: 10px;">
+                                🔄 Refresh Sessions
+                            </button>
+                        </div>
+                        
+                        <!-- Cleanup Actions -->
+                        <div class="card">
+                            <h4 style="color: #dc3545; margin-bottom: 15px;">🗑️ Cleanup Actions</h4>
+                            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Remove test data to clean up the system. Production data is always preserved.</p>
+                            
+                            <button onclick="showCleanupConfirmation()" class="btn" style="background: #dc3545; color: white; width: 100%; margin-bottom: 10px;">
+                                🗑️ Cleanup All Test Data
+                            </button>
+                            
+                            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 10px; font-size: 12px; color: #856404;">
+                                <strong>⚠️ Safety Note:</strong> Only test data (marked with is_test_data = 1) will be removed. Production data is always preserved.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progress/Status Display -->
+                <div id="test-data-status" style="display: none; margin-top: 20px; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <div class="loading-spinner" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                        <span id="status-message">Processing...</span>
+                    </div>
+                    <div id="status-details" style="font-size: 14px; color: #666;"></div>
+                </div>
+            </div>
+        </div>
         
         <div id="system-tab" class="tab-content">
             <div class="card">
@@ -1651,6 +1782,8 @@
                 loadAdminDriverManagement();
             } else if (tabName === 'reports') {
                 loadReportsAnalytics();
+            } else if (tabName === 'testdata') {
+                loadTestDataManagement();
             }
         }
 
@@ -2227,6 +2360,303 @@
                 }
             };
         });
+        // ====================================
+        // TEST DATA MANAGEMENT FUNCTIONS (STORY 20)
+        // ====================================
+
+        // Test data management state
+        let testDataState = {
+            drivers: [],
+            sessions: [],
+            summary: { testShifts: 0, testLeaves: 0, activeSessions: 0 }
+        };
+
+        // Load test data management when tab is activated
+        async function loadTestDataManagement() {
+            console.log('[Test Data] Loading test data management');
+            
+            try {
+                await Promise.all([
+                    loadAvailableDrivers(),
+                    loadTestDataSessions(),
+                    loadTestDataSummary()
+                ]);
+                
+                // Setup form submission
+                setupTestDataForm();
+                
+            } catch (error) {
+                console.error('[Test Data] Error loading test data management:', error);
+                showAlert('Failed to load test data management', 'error');
+            }
+        }
+
+        // Load available drivers for test data generation
+        async function loadAvailableDrivers() {
+            try {
+                const response = await fetch('/api/admin/drivers?limit=100', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    testDataState.drivers = result.data.drivers;
+                    displayDriverCheckboxes(result.data.drivers);
+                } else {
+                    throw new Error(result.message || 'Failed to load drivers');
+                }
+                
+            } catch (error) {
+                console.error('[Test Data] Error loading drivers:', error);
+                document.getElementById('driver-checkboxes').innerHTML = 
+                    '<div style="color: #dc3545; text-align: center; padding: 20px;">Failed to load drivers</div>';
+            }
+        }
+
+        // Display driver checkboxes
+        function displayDriverCheckboxes(drivers) {
+            const container = document.getElementById('driver-checkboxes');
+            
+            if (!drivers || drivers.length === 0) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No drivers available</div>';
+                return;
+            }
+            
+            const checkboxHtml = drivers.map(driver => `
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <input type="checkbox" id="driver-${driver.id}" value="${driver.id}" style="margin-right: 8px;">
+                    <label for="driver-${driver.id}" style="font-size: 14px; cursor: pointer;">
+                        ${driver.name} (ID: ${driver.id})
+                    </label>
+                </div>
+            `).join('');
+            
+            container.innerHTML = checkboxHtml;
+        }
+
+        // Load test data sessions
+        async function loadTestDataSessions() {
+            try {
+                const response = await fetch('/api/admin/test-data/sessions', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    testDataState.sessions = result.data.sessions;
+                    testDataState.summary = result.data.summary;
+                    displayTestDataSessions(result.data.sessions);
+                    updateTestDataSummary(result.data.summary);
+                } else {
+                    throw new Error(result.error || 'Failed to load sessions');
+                }
+                
+            } catch (error) {
+                console.error('[Test Data] Error loading sessions:', error);
+                document.getElementById('test-sessions-list').innerHTML = 
+                    '<div style="color: #dc3545; text-align: center; padding: 20px;">Failed to load sessions</div>';
+            }
+        }
+
+        // Display test data sessions
+        function displayTestDataSessions(sessions) {
+            const container = document.getElementById('test-sessions-list');
+            
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No test data sessions found</div>';
+                return;
+            }
+            
+            const sessionsHtml = sessions.map(session => `
+                <div style="border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #f8f9fa;">
+                    <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">${session.sessionId}</div>
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">${session.description || 'No description'}</div>
+                            <div style="font-size: 11px; color: #888;">${session.createdAt}</div>
+                        </div>
+                        <span style="background: ${session.status === 'active' ? '#28a745' : '#6c757d'}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; text-transform: uppercase;">
+                            ${session.status}
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+                        <span>Shifts: ${session.shiftsCount}</span>
+                        <span>Leaves: ${session.leaveRequestsCount}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = sessionsHtml;
+        }
+
+        // Load test data summary
+        async function loadTestDataSummary() {
+            // This is handled by loadTestDataSessions which includes summary
+        }
+
+        // Update test data summary display
+        function updateTestDataSummary(summary) {
+            document.getElementById('summary-test-shifts').textContent = summary.totalTestShifts || 0;
+            document.getElementById('summary-test-leaves').textContent = summary.totalTestLeaveRequests || 0;
+            document.getElementById('summary-active-sessions').textContent = summary.activeSessions || 0;
+        }
+
+        // Setup test data form submission
+        function setupTestDataForm() {
+            const form = document.getElementById('test-data-form');
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await generateTestData();
+            });
+        }
+
+        // Generate test data
+        async function generateTestData() {
+            try {
+                // Show progress
+                showTestDataStatus('Generating test data...', 'Preparing data generation parameters...');
+                
+                // Get selected drivers
+                const selectedDrivers = Array.from(document.querySelectorAll('#driver-checkboxes input[type="checkbox"]:checked'))
+                    .map(cb => parseInt(cb.value));
+                
+                if (selectedDrivers.length === 0) {
+                    throw new Error('Please select at least one driver');
+                }
+                
+                // Prepare request data
+                const requestData = {
+                    drivers: selectedDrivers,
+                    dateRange: {
+                        startDate: document.getElementById('test-start-date').value,
+                        endDate: document.getElementById('test-end-date').value
+                    },
+                    payrollConfig: {
+                        monthlySalary: 27000,
+                        overtimeRate: 110,
+                        fuelAllowance: 33.30
+                    },
+                    shiftPatterns: {
+                        workingDaysPerWeek: parseInt(document.getElementById('working-days').value),
+                        averageHoursPerDay: parseFloat(document.getElementById('avg-hours').value),
+                        overtimeFrequency: parseFloat(document.getElementById('overtime-freq').value) / 100,
+                        sundayWorkFrequency: parseFloat(document.getElementById('sunday-freq').value) / 100
+                    },
+                    sessionDescription: document.getElementById('test-description').value || 'Generated test data'
+                };
+                
+                updateTestDataStatus('Generating shifts and leave requests...');
+                
+                // Send generation request
+                const response = await fetch('/api/admin/test-data/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    updateTestDataStatus('Test data generated successfully!', 
+                        `Generated ${result.data.shiftsGenerated} shifts and ${result.data.leaveRequestsGenerated} leave requests for ${result.data.driversIncluded} drivers.`);
+                    
+                    // Refresh data
+                    setTimeout(async () => {
+                        await loadTestDataSessions();
+                        hideTestDataStatus();
+                        showAlert(`Test data generated successfully! Created ${result.data.shiftsGenerated} shifts and ${result.data.leaveRequestsGenerated} leave requests.`, 'success');
+                    }, 2000);
+                    
+                } else {
+                    throw new Error(result.error || 'Failed to generate test data');
+                }
+                
+            } catch (error) {
+                console.error('[Test Data] Error generating test data:', error);
+                updateTestDataStatus('Error generating test data', error.message);
+                setTimeout(() => hideTestDataStatus(), 3000);
+            }
+        }
+
+        // Show cleanup confirmation
+        function showCleanupConfirmation() {
+            if (confirm('⚠️ Are you sure you want to cleanup ALL test data?\n\nThis will remove:\n- All test shifts\n- All test leave requests\n- All test data sessions\n\nProduction data will be preserved.\n\nThis action cannot be undone.')) {
+                cleanupTestData();
+            }
+        }
+
+        // Cleanup test data
+        async function cleanupTestData() {
+            try {
+                showTestDataStatus('Cleaning up test data...', 'Removing test shifts, leave requests, and sessions...');
+                
+                const response = await fetch('/api/admin/test-data/cleanup', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        confirmCleanup: true,
+                        preserveProduction: true
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    updateTestDataStatus('Cleanup completed successfully!', 
+                        `Removed ${result.data.shiftsRemoved} shifts, ${result.data.leaveRequestsRemoved} leave requests, and ${result.data.sessionsCleared} sessions.`);
+                    
+                    // Refresh data
+                    setTimeout(async () => {
+                        await loadTestDataSessions();
+                        hideTestDataStatus();
+                        showAlert(`Cleanup completed! Removed ${result.data.shiftsRemoved} test shifts and ${result.data.leaveRequestsRemoved} test leave requests.`, 'success');
+                    }, 2000);
+                    
+                } else {
+                    throw new Error(result.error || 'Failed to cleanup test data');
+                }
+                
+            } catch (error) {
+                console.error('[Test Data] Error cleaning up test data:', error);
+                updateTestDataStatus('Error cleaning up test data', error.message);
+                setTimeout(() => hideTestDataStatus(), 3000);
+            }
+        }
+
+        // Show test data status
+        function showTestDataStatus(message, details = '') {
+            const statusDiv = document.getElementById('test-data-status');
+            document.getElementById('status-message').textContent = message;
+            document.getElementById('status-details').textContent = details;
+            statusDiv.style.display = 'block';
+        }
+
+        // Update test data status
+        function updateTestDataStatus(message, details = '') {
+            document.getElementById('status-message').textContent = message;
+            document.getElementById('status-details').textContent = details;
+        }
+
+        // Hide test data status
+        function hideTestDataStatus() {
+            document.getElementById('test-data-status').style.display = 'none';
+        }
+
         // ====================================
         // LEAVE MANAGEMENT FUNCTIONS (STORY 15)
         // ====================================

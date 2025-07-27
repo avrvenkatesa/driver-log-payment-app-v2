@@ -173,6 +173,11 @@ try {
   const payrollPDFRoutes = require('./src/routes/payrollPDFRoutes.js');
   app.use('/api/admin', payrollPDFRoutes);
   log('✅ PDF payroll export routes registered at /api/admin');
+
+  // Test Data Management routes (Story 20: Test Data Management)
+  const testDataRoutes = require('./src/routes/testDataRoutes.js');
+  app.use('/api/admin', testDataRoutes);
+  log('✅ Test data management routes registered at /api/admin');
   
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
