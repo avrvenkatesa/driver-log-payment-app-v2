@@ -233,6 +233,13 @@ Preferred communication style: Simple, everyday language.
 - **Production Deployment**: Build configuration complete, hosting platform TBD
 
 ### Recent Changes
+- **July 27, 2025**: Enhanced Payroll Deductions System - COMPLETED & OPERATIONAL
+  - **Comprehensive Deductions Calculation**: Implemented detailed deductions including leave deductions, PF (12%), ESI (0.75%), and tax deductions (5%)
+  - **Enhanced PDF Display**: Updated PDF templates to show "Total Deductions" and "Net Pay" columns instead of single deduction column
+  - **Business Logic**: Proper calculation with minimum working days (20+ for full salary), tax brackets, and leave impact assessment
+  - **Real Deductions Processing**: System calculates authentic deductions based on gross earnings and employment regulations
+  - **PDF Reports Enhanced**: Both AlternativePDFService and SimplePDFService now display comprehensive deductions breakdown
+  - **Enterprise Quality**: Professional payroll reports suitable for accounting and HR compliance with proper ₹ formatting
 - **July 27, 2025**: Analytics Filter System Bug Fix - COMPLETED & OPERATIONAL
   - **Fixed Analytics Time Period Tabs**: All filter buttons ("Today", "This Week", "This Month", "All Time") now working properly
   - **Enhanced Event Listener Setup**: Improved analytics dashboard initialization with proper DOM ready timing

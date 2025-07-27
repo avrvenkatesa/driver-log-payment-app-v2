@@ -15,7 +15,8 @@ class SimplePDFService {
             overtimeHours: 0,
             overtimePay: 0,
             fuelAllowance: 0,
-            leaveDeduction: 0,
+            grossEarnings: 0,
+            totalDeductions: 0,
             totalEarnings: 0,
             workingDays: 0
         };
@@ -26,7 +27,8 @@ class SimplePDFService {
             totals.overtimeHours += breakdown.overtimeHours || 0;
             totals.overtimePay += breakdown.overtimePay || 0;
             totals.fuelAllowance += breakdown.fuelAllowance || 0;
-            totals.leaveDeduction += breakdown.leaveDeduction || 0;
+            totals.grossEarnings += breakdown.grossEarnings || 0;
+            totals.totalDeductions += breakdown.totalDeductions || 0;
             totals.totalEarnings += breakdown.totalEarnings || 0;
             totals.workingDays += breakdown.workingDays || 0;
             
@@ -37,7 +39,7 @@ class SimplePDFService {
                     <td style="text-align: center;">${(breakdown.overtimeHours || 0).toFixed(1)}</td>
                     <td class="currency">${this.formatCurrency(breakdown.overtimePay || 0)}</td>
                     <td class="currency">${this.formatCurrency(breakdown.fuelAllowance || 0)}</td>
-                    <td class="currency">${this.formatCurrency(breakdown.leaveDeduction || 0)}</td>
+                    <td class="currency">${this.formatCurrency(breakdown.totalDeductions || 0)}</td>
                     <td class="currency total-cell">${this.formatCurrency(breakdown.totalEarnings || 0)}</td>
                 </tr>
             `;
@@ -232,8 +234,8 @@ class SimplePDFService {
                 <th>Overtime Hours</th>
                 <th>Overtime Pay</th>
                 <th>Fuel Allowance</th>
-                <th>Leave Deduction</th>
-                <th>Total Earnings</th>
+                <th>Total Deductions</th>
+                <th>Net Pay</th>
             </tr>
         </thead>
         <tbody>
@@ -244,7 +246,7 @@ class SimplePDFService {
                 <td style="text-align: center;"><strong>${totals.overtimeHours.toFixed(1)}</strong></td>
                 <td class="currency"><strong>${this.formatCurrency(totals.overtimePay)}</strong></td>
                 <td class="currency"><strong>${this.formatCurrency(totals.fuelAllowance)}</strong></td>
-                <td class="currency"><strong>${this.formatCurrency(totals.leaveDeduction)}</strong></td>
+                <td class="currency"><strong>${this.formatCurrency(totals.totalDeductions)}</strong></td>
                 <td class="currency total-cell"><strong>${this.formatCurrency(totals.totalEarnings)}</strong></td>
             </tr>
         </tbody>

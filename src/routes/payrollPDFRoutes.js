@@ -55,21 +55,47 @@ async function calculateBulkPayroll(year, month) {
                     const regularHours = Math.min(totalHours, workingDays * 8);
                     const overtimeHours = Math.max(0, totalHours - regularHours);
                     
-                    // FIX: Use full monthly salary instead of prorated
-                    const baseSalary = config.monthly_salary || 27000;
-                    const overtimePay = overtimeHours * config.overtime_rate;
-                    const fuelAllowance = workingDays * config.fuel_allowance;
-                    const totalEarnings = baseSalary + overtimePay + fuelAllowance;
+                    // Calculate base salary (full monthly if worked 20+ days, otherwise prorated)
+                    const daysInMonth = new Date(year, month, 0).getDate();
+                    const minimumDaysForFullSalary = 20;
+                    const baseSalary = workingDays >= minimumDaysForFullSalary ? 
+                        (config.monthly_salary || 27000) : 
+                        ((config.monthly_salary || 27000) * (workingDays / daysInMonth));
+                    
+                    const overtimePay = overtimeHours * (config.overtime_rate || 110);
+                    const fuelAllowance = workingDays * (config.fuel_allowance || 15);
+                    
+                    // Calculate deductions
+                    const grossEarnings = baseSalary + overtimePay + fuelAllowance;
+                    
+                    // Leave deduction for unpaid leaves (if worked less than expected days)
+                    const expectedWorkingDays = Math.min(daysInMonth, 30); // Max 30 working days
+                    const unpaidLeaveDays = Math.max(0, expectedWorkingDays - workingDays - 4); // Allow 4 weekly offs
+                    const leaveDeduction = unpaidLeaveDays > 0 ? 
+                        ((config.monthly_salary || 27000) / expectedWorkingDays) * unpaidLeaveDays : 0;
+                    
+                    // Standard deductions (PF: 12%, ESI: 0.75% if salary < 25000, Tax: 5% if salary > 20000)
+                    const pfDeduction = grossEarnings * 0.12; // 12% PF
+                    const esiDeduction = grossEarnings < 25000 ? grossEarnings * 0.0075 : 0; // 0.75% ESI if under 25k
+                    const taxDeduction = grossEarnings > 20000 ? grossEarnings * 0.05 : 0; // 5% tax if over 20k
+                    
+                    const totalDeductions = leaveDeduction + pfDeduction + esiDeduction + taxDeduction;
+                    const totalEarnings = grossEarnings - totalDeductions;
                     
                     return {
                         driverName: driver.driverName,
                         breakdown: {
-                            baseSalary: baseSalary,
-                            overtimeHours: overtimeHours,
-                            overtimePay: overtimePay,
-                            fuelAllowance: fuelAllowance,
-                            leaveDeduction: 0,
-                            totalEarnings: totalEarnings,
+                            baseSalary: Math.round(baseSalary * 100) / 100,
+                            overtimeHours: Math.round(overtimeHours * 100) / 100,
+                            overtimePay: Math.round(overtimePay * 100) / 100,
+                            fuelAllowance: Math.round(fuelAllowance * 100) / 100,
+                            grossEarnings: Math.round(grossEarnings * 100) / 100,
+                            leaveDeduction: Math.round(leaveDeduction * 100) / 100,
+                            pfDeduction: Math.round(pfDeduction * 100) / 100,
+                            esiDeduction: Math.round(esiDeduction * 100) / 100,
+                            taxDeduction: Math.round(taxDeduction * 100) / 100,
+                            totalDeductions: Math.round(totalDeductions * 100) / 100,
+                            totalEarnings: Math.round(totalEarnings * 100) / 100,
                             workingDays: workingDays
                         }
                     };
