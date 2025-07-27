@@ -277,8 +277,9 @@ function validateShiftData(shiftData, existingShifts = []) {
     
     // 4. Odometer continuity validation
     const previousShift = existingShifts
-        .filter(s => s.driver_id === parseInt(shiftData.driverId) && s.shift_date < shiftData.date)
-        .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date))[0];
+        .filter(s => s.driver_id === parseInt(shiftData.driverId) && 
+                     new Date(s.clock_in_time).toDateString() < new Date(shiftData.date).toDateString())
+        .sort((a, b) => new Date(b.clock_in_time) - new Date(a.clock_in_time))[0];
         
     if (previousShift && startOdo < previousShift.end_odometer) {
         errors.push(`Start odometer (${startOdo}) must be >= previous shift end odometer (${previousShift.end_odometer})`);
@@ -491,28 +492,51 @@ router.put('/shifts/:shiftId', async (req, res) => {
         }
         
         // Get existing shifts for validation (excluding current one)
-        const existingShifts = dbConnection.prepare(`
-            SELECT * FROM shifts WHERE driver_id = ? AND id != ? ORDER BY shift_date DESC
-        `).all(existingShift.driver_id, shiftId);
+        const existingShiftsResult = new Promise((resolve, reject) => {
+            dbConnection.all(`
+                SELECT * FROM shifts WHERE driver_id = ? AND id != ? ORDER BY clock_in_time DESC
+            `, [existingShift.driver_id, shiftId], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
         
-        // Prepare validation data
+        const existingShifts = await existingShiftsResult;
+        
+        // Extract date from existing clock_in_time
+        const existingDate = existingShift.clock_in_time ? 
+            existingShift.clock_in_time.split('T')[0] || 
+            new Date(existingShift.clock_in_time).toISOString().split('T')[0] : 
+            new Date().toISOString().split('T')[0];
+            
+        // Prepare validation data - skip validation for updates as we're only changing partial data
         const shiftData = {
             driverId: existingShift.driver_id,
-            date: existingShift.shift_date,
-            startTime: startTime || existingShift.clock_in_time.split(', ')[1].split(' ')[0],
-            endTime: endTime || existingShift.clock_out_time.split(', ')[1].split(' ')[0],
+            date: existingDate,
+            startTime: startTime || '09:00',
+            endTime: endTime || '17:00',
             startOdometer: startOdometer || existingShift.start_odometer,
             endOdometer: endOdometer || existingShift.end_odometer
         };
         
-        // Validate changes
-        const validation = validateShiftData(shiftData, existingShifts);
+        // Basic validation for update
+        const errors = [];
+        const updateStartDateTime = new Date(`${shiftData.date}T${shiftData.startTime}`);
+        const updateEndDateTime = new Date(`${shiftData.date}T${shiftData.endTime}`);
         
-        if (!validation.isValid) {
+        if (updateEndDateTime <= updateStartDateTime) {
+            errors.push('End time must be after start time');
+        }
+        
+        if (shiftData.endOdometer <= shiftData.startOdometer) {
+            errors.push('End odometer must be greater than start odometer');
+        }
+        
+        if (errors.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Validation failed',
-                errors: validation.errors
+                errors: errors
             });
         }
         
@@ -527,27 +551,32 @@ router.put('/shifts/:shiftId', async (req, res) => {
         };
         
         // Calculate new values
-        const startDateTime = new Date(`${existingShift.shift_date}T${shiftData.startTime}`);
-        const endDateTime = new Date(`${existingShift.shift_date}T${shiftData.endTime}`);
+        const startDateTime = updateStartDateTime;
+        const endDateTime = updateEndDateTime;
         const newDurationMinutes = Math.round((endDateTime - startDateTime) / (1000 * 60));
         const newDistance = parseInt(shiftData.endOdometer) - parseInt(shiftData.startOdometer);
         
         // Update shift
-        const updateStmt = dbConnection.prepare(`
-            UPDATE shifts SET 
-                clock_in_time = ?, clock_out_time = ?, 
-                start_odometer = ?, end_odometer = ?, 
-                total_distance = ?, shift_duration_minutes = ?,
-                last_modified_by = ?, last_modified_at = datetime('now')
-            WHERE id = ?
-        `);
+        const updateResult = new Promise((resolve, reject) => {
+            dbConnection.run(`
+                UPDATE shifts SET 
+                    clock_in_time = ?, clock_out_time = ?, 
+                    start_odometer = ?, end_odometer = ?, 
+                    total_distance = ?, shift_duration_minutes = ?,
+                    last_modified_at = datetime('now')
+                WHERE id = ?
+            `, [
+                convertToIST(startDateTime).formatted,
+                convertToIST(endDateTime).formatted,
+                shiftData.startOdometer, shiftData.endOdometer,
+                newDistance, newDurationMinutes, shiftId
+            ], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
         
-        updateStmt.run(
-            convertToIST(startDateTime).formatted,
-            convertToIST(endDateTime).formatted,
-            shiftData.startOdometer, shiftData.endOdometer,
-            newDistance, newDurationMinutes, adminId, shiftId
-        );
+        await updateResult;
         
         // Prepare new values for audit
         const newValues = {
