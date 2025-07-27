@@ -4,6 +4,10 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Production environment detection
+const isProduction = NODE_ENV === 'production';
 
 // Enhanced logging function
 const log = (message) => {
@@ -12,8 +16,16 @@ const log = (message) => {
 
 // CORS configuration for cross-origin requests
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL || 'https://your-domain.com'
+  origin: isProduction 
+    ? process.env.FRONTEND_URL || function(origin, callback) {
+        // Allow requests with no origin (mobile apps, etc.)
+        if (!origin) return callback(null, true);
+        // Allow any origin for Replit deployments
+        if (origin.includes('.replit.app') || origin.includes('.repl.co')) {
+          return callback(null, true);
+        }
+        callback(null, false);
+      }
     : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'],
   credentials: true,
   optionsSuccessStatus: 200
@@ -33,7 +45,7 @@ app.use((req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress || 'Unknown';
   
   // Log incoming request in development
-  if (process.env.NODE_ENV === 'development') {
+  if (!isProduction) {
     log(`${method} ${path} - IP: ${ip}`);
     if (req.body && Object.keys(req.body).length > 0) {
       log(`Request Body: ${JSON.stringify(req.body, null, 2)}`);
@@ -47,7 +59,7 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${method} ${path} ${statusCode} in ${duration}ms`;
       
-      if (process.env.NODE_ENV === 'development') {
+      if (!isProduction) {
         // Color-coded status codes for better debugging
         const statusColor = statusCode >= 500 ? '\x1b[31m' : // Red for 5xx
                            statusCode >= 400 ? '\x1b[33m' : // Yellow for 4xx  
@@ -57,7 +69,10 @@ app.use((req, res, next) => {
         
         log(`${statusColor}${logLine}${resetColor}`);
       } else {
-        log(logLine);
+        // Simplified logging for production (only errors)
+        if (statusCode >= 400) {
+          log(logLine);
+        }
       }
     }
   });
@@ -247,12 +262,20 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] 🚀 Server started successfully`);
-  console.log(`[${timestamp}] 📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[${timestamp}] 📡 Environment: ${NODE_ENV}`);
   console.log(`[${timestamp}] 🌐 Server running on http://0.0.0.0:${PORT}`);
   console.log(`[${timestamp}] 🔗 Health check available at: http://0.0.0.0:${PORT}/api/health`);
   console.log(`[${timestamp}] ⚡ CORS enabled for cross-origin requests`);
   console.log(`[${timestamp}] 🛡️  Error handling middleware active`);
   console.log(`[${timestamp}] 📝 Enhanced logging enabled`);
+  
+  // Production readiness check
+  if (isProduction) {
+    console.log(`[${timestamp}] 🚀 Production mode: Server ready for deployment`);
+    console.log(`[${timestamp}] 📊 Memory usage: ${JSON.stringify(process.memoryUsage())}`);
+    console.log(`[${timestamp}] 🔧 Node version: ${process.version}`);
+    console.log(`[${timestamp}] 🏗️  Platform: ${process.platform}`);
+  }
 });
 
 // Handle server errors
@@ -282,10 +305,22 @@ process.on('SIGINT', () => {
 });
 
 // Replit keep-alive (prevents sleeping in development)
-if (process.env.NODE_ENV === 'development') {
+if (!isProduction) {
   setInterval(() => {
     log('🔄 Replit keep-alive ping');
   }, 10 * 60 * 1000); // Every 10 minutes
+}
+
+// Production monitoring
+if (isProduction) {
+  // Log memory usage every 5 minutes in production
+  setInterval(() => {
+    const memUsage = process.memoryUsage();
+    const mbUsed = Math.round(memUsage.heapUsed / 1024 / 1024);
+    if (mbUsed > 400) { // Alert if memory usage is high
+      log(`⚠️  High memory usage: ${mbUsed}MB`);
+    }
+  }, 5 * 60 * 1000);
 }
 
 module.exports = app;

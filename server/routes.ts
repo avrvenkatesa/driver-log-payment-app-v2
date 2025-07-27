@@ -21,7 +21,7 @@ export function registerRoutes(app: Express) {
    */
   app.get('/api/health', async (req: Request, res: Response) => {
     try {
-      let databaseStatus = { status: 'unavailable', message: 'Database module not loaded' };
+      let databaseStatus: any = { status: 'unavailable', message: 'Database module not loaded' };
       
       if (database) {
         try {
@@ -30,6 +30,7 @@ export function registerRoutes(app: Express) {
           
           databaseStatus = {
             status: 'connected',
+            message: 'Database connection healthy',
             health: healthCheck,
             stats: stats
           };
