@@ -1231,6 +1231,95 @@
         </div>
     </div>
 
+    <!-- Story 19: Advance Payment Management Section -->
+    <div class="card" id="advance-payment-card">
+        <div class="card-header">
+            <h3 data-translate="advancePaymentManagement">💰 Advance Payment</h3>
+            <span class="card-subtitle" data-translate="requestAdvancePayment">Request advance payment against your salary</span>
+        </div>
+        <div class="card-content">
+            <!-- Advance Eligibility Display -->
+            <div class="advance-eligibility-section" style="background: linear-gradient(135deg, #e8f8f5, #c8e6d9); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4 style="color: #0d7377; margin: 0;" data-translate="availableAdvanceLimit">Available Advance Limit</h4>
+                        <span id="advance-limit-display" style="font-size: 1.5em; font-weight: bold; color: #0d5d61;">Loading...</span>
+                        <small style="display: block; color: #14a085; margin-top: 5px;" id="advance-eligibility-info" data-translate="advanceEligibilityInfo">Based on your earnings history</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9em; color: #0d7377;">
+                            <span data-translate="monthlyEstimate">Monthly Estimate</span>
+                        </div>
+                        <div style="font-weight: bold; color: #0d5d61;" id="monthly-estimate-display">₹0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advance Request Form -->
+            <div class="advance-request-form" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 15px; color: #333;" data-translate="submitAdvanceRequest">Submit Advance Payment Request</h4>
+                <form id="advance-request-form" onsubmit="submitAdvanceRequest(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label for="advance-amount" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="advanceAmount">Advance Amount (₹):</label>
+                            <input type="number" id="advance-amount" name="amount" required min="500" max="20000" placeholder="5000" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label for="advance-type" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="advanceType">Type:</label>
+                            <select id="advance-type" name="type" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="regular" data-translate="regular">Regular</option>
+                                <option value="emergency" data-translate="emergency">Emergency</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="advance-reason" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="reason">Reason for Advance *:</label>
+                        <textarea id="advance-reason" name="reason" required placeholder="Please provide details about why you need this advance..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; min-height: 80px; resize: vertical;"></textarea>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="payment-method" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="paymentMethod">Payment Method:</label>
+                        <select id="payment-method" name="paymentMethod" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="bank_transfer" data-translate="bankTransfer">Bank Transfer</option>
+                            <option value="cash" data-translate="cash">Cash</option>
+                            <option value="upi" data-translate="upi">UPI</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;" data-translate="submitAdvanceRequest">Submit Advance Request</button>
+                </form>
+            </div>
+
+            <!-- Advance Request History -->
+            <div class="advance-history-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0; color: #333;" data-translate="advanceRequestHistory">Advance Request History</h4>
+                    <button onclick="refreshAdvanceHistory()" class="btn-primary" style="padding: 6px 12px; font-size: 0.9em;" data-translate="refresh">Refresh</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="shifts-table" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr>
+                                <th data-translate="requestDate">Request Date</th>
+                                <th data-translate="amount">Amount</th>
+                                <th data-translate="type">Type</th>
+                                <th data-translate="status">Status</th>
+                                <th data-translate="approvedAmount">Approved</th>
+                                <th data-translate="reason">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="advance-history-table-body">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                    <div class="loading-spinner"></div>
+                                    <span data-translate="loadingAdvanceHistory">Loading advance payment history...</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Story 13: Driver Management Section (Admin Only) -->
     <div id="driver-management-section" class="card" style="display: none;">
         <h3>👥 Driver Management System</h3>
@@ -4124,6 +4213,238 @@
                 year: 'numeric'
             });
         }
+
+        // Story 19: Advance Payment Management Functions
+        let advanceEligibilityData = null;
+
+        // Initialize advance payment management
+        function initializeAdvancePayment() {
+            console.log('[Advance Payment] Initializing advance payment management...');
+            loadAdvanceEligibility();
+            loadAdvanceHistory();
+        }
+
+        // Load advance payment eligibility
+        async function loadAdvanceEligibility() {
+            try {
+                console.log('[Advance Payment] Loading eligibility...');
+                
+                const response = await fetch('/api/driver/advance-eligibility', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[Advance Payment] Eligibility loaded:', result);
+
+                if (result.success) {
+                    advanceEligibilityData = result.data;
+                    displayAdvanceEligibility(result.data);
+                } else {
+                    throw new Error(result.message || 'Failed to load advance eligibility');
+                }
+
+            } catch (error) {
+                console.error('[Advance Payment] Error loading eligibility:', error);
+                document.getElementById('advance-limit-display').textContent = 'Error loading';
+                document.getElementById('monthly-estimate-display').textContent = 'Error';
+                showError(`Error loading advance eligibility: ${error.message}`, 'error');
+            }
+        }
+
+        // Display advance eligibility data
+        function displayAdvanceEligibility(data) {
+            const limitDisplay = document.getElementById('advance-limit-display');
+            const monthlyDisplay = document.getElementById('monthly-estimate-display');
+            const infoDisplay = document.getElementById('advance-eligibility-info');
+
+            if (data.eligible) {
+                limitDisplay.textContent = `₹${data.availableAmount.toLocaleString('en-IN')}`;
+                monthlyDisplay.textContent = `₹${data.monthlyEarningsEstimate.toLocaleString('en-IN')}`;
+                infoDisplay.textContent = `${data.advanceLimitPercentage}% of monthly earnings`;
+                infoDisplay.style.color = '#14a085';
+                
+                // Update form limits
+                const amountInput = document.getElementById('advance-amount');
+                amountInput.max = data.availableAmount;
+                amountInput.placeholder = Math.min(5000, data.availableAmount).toString();
+            } else {
+                limitDisplay.textContent = 'Not Eligible';
+                monthlyDisplay.textContent = '₹0';
+                infoDisplay.textContent = data.restrictions.join(', ');
+                infoDisplay.style.color = '#d32f2f';
+            }
+        }
+
+        // Submit advance payment request
+        async function submitAdvanceRequest(event) {
+            event.preventDefault();
+            
+            try {
+                console.log('[Advance Payment] Submitting request...');
+                
+                const formData = new FormData(event.target);
+                const requestData = {
+                    requestedAmount: parseFloat(formData.get('amount')),
+                    advanceType: formData.get('type'),
+                    reason: formData.get('reason').trim(),
+                    paymentMethod: formData.get('paymentMethod')
+                };
+
+                // Validation
+                if (!requestData.reason) {
+                    throw new Error('Reason is required');
+                }
+
+                if (requestData.requestedAmount < 500 || requestData.requestedAmount > 20000) {
+                    throw new Error('Amount must be between ₹500 and ₹20,000');
+                }
+
+                if (advanceEligibilityData && requestData.requestedAmount > advanceEligibilityData.availableAmount) {
+                    throw new Error(`Amount exceeds available limit of ₹${advanceEligibilityData.availableAmount.toLocaleString('en-IN')}`);
+                }
+
+                const response = await fetch('/api/driver/advance-request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[Advance Payment] Request submitted:', result);
+
+                if (result.success) {
+                    showError('✅ Advance request submitted successfully! Processing time: 24-48 hours', 'success');
+                    
+                    // Reset form
+                    event.target.reset();
+                    
+                    // Refresh data
+                    loadAdvanceEligibility();
+                    loadAdvanceHistory();
+                } else {
+                    throw new Error(result.message || 'Failed to submit advance request');
+                }
+
+            } catch (error) {
+                console.error('[Advance Payment] Error submitting request:', error);
+                showError(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Load advance payment history
+        async function loadAdvanceHistory() {
+            try {
+                console.log('[Advance Payment] Loading history...');
+                
+                const response = await fetch('/api/driver/advance-requests', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[Advance Payment] History loaded:', result);
+
+                if (result.success) {
+                    displayAdvanceHistory(result.data.requests);
+                } else {
+                    throw new Error(result.message || 'Failed to load advance history');
+                }
+
+            } catch (error) {
+                console.error('[Advance Payment] Error loading history:', error);
+                const tbody = document.getElementById('advance-history-table-body');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #d32f2f;">
+                            Error loading advance history: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display advance payment history
+        function displayAdvanceHistory(requests) {
+            const tbody = document.getElementById('advance-history-table-body');
+            
+            if (!requests || requests.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #666;">
+                            No advance payment requests found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = requests.map(request => {
+                const statusBadge = getStatusBadge(request.status);
+                const typeBadge = getTypeBadge(request.advance_type);
+                
+                return `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${request.request_date}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">₹${request.requested_amount.toLocaleString('en-IN')}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${typeBadge}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${statusBadge}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${request.approved_amount ? '₹' + request.approved_amount.toLocaleString('en-IN') : '-'}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${request.reason}">${request.reason}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Get status badge HTML
+        function getStatusBadge(status) {
+            const badges = {
+                'pending': '<span class="status-badge status-pending">Pending</span>',
+                'approved': '<span class="status-badge status-approved">Approved</span>',
+                'rejected': '<span class="status-badge status-rejected">Rejected</span>',
+                'paid': '<span class="status-badge status-approved">Paid</span>'
+            };
+            return badges[status] || `<span class="status-badge">${status}</span>`;
+        }
+
+        // Get type badge HTML
+        function getTypeBadge(type) {
+            const badges = {
+                'regular': '<span class="leave-type-badge leave-type-annual">Regular</span>',
+                'emergency': '<span class="leave-type-badge leave-type-emergency">Emergency</span>'
+            };
+            return badges[type] || `<span class="leave-type-badge">${type}</span>`;
+        }
+
+        // Refresh advance payment history
+        function refreshAdvanceHistory() {
+            console.log('[Advance Payment] Refreshing history...');
+            loadAdvanceHistory();
+        }
+
+        // Update loadDashboard to include advance payment initialization
+        const originalLoadDashboard2 = loadDashboard;
+        loadDashboard = function() {
+            originalLoadDashboard2();
+            initializeAdvancePayment();
+        };
     </script>
     
     <!-- Translation System -->
