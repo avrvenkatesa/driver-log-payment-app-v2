@@ -3,7 +3,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Monthly Payroll Report - June 2025</title>
+    <title>Monthly Payroll Report - undefined 2025</title>
     <style>
         @media print {
             body { margin: 0; }
@@ -153,8 +153,8 @@
     <div class="header">
         <div class="company-name">Driver Log Payment System</div>
         <div class="report-title">Monthly Payroll Report</div>
-        <div class="report-period"><strong>Period: June 2025</strong></div>
-        <div class="report-period">Generated: 27/07/2025, 12:10:11 pm IST</div>
+        <div class="report-period"><strong>Period: undefined 2025</strong></div>
+        <div class="report-period">Generated: 27/07/2025, 12:19:36 pm IST</div>
     </div>
     
     <div class="summary-section">
@@ -248,7 +248,7 @@
     <div class="footer">
         <p><strong>Driver Log Payment System | Confidential Document</strong></p>
         <p>This document contains confidential payroll information. Distribution is restricted.</p>
-        <p>Generated on 27/07/2025, 12:10:11 pm IST | System Version 2.0</p>
+        <p>Generated on 27/07/2025, 12:19:36 pm IST | System Version 2.0</p>
     </div>
     
     <script>
@@ -256,7 +256,7 @@
             const element = document.documentElement;
             const opt = {
                 margin:       1,
-                filename:     'Payroll_Report_June_2025.pdf',
+                filename:     'Payroll_Report_undefined_2025.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2 },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }

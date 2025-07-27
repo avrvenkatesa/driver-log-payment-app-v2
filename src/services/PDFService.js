@@ -8,8 +8,10 @@ class PDFService {
     async initBrowser() {
         if (!this.browser) {
             console.log('[PDF Service] Initializing Puppeteer browser...');
-            this.browser = await puppeteer.launch({
-                headless: true,
+            
+            // Enhanced Replit-compatible browser launch configuration
+            const launchOptions = {
+                headless: 'new', // Use new headless mode for better compatibility
                 args: [
                     '--no-sandbox', 
                     '--disable-setuid-sandbox',
@@ -20,12 +22,22 @@ class PDFService {
                     '--disable-background-timer-throttling',
                     '--disable-backgrounding-occluded-windows',
                     '--disable-renderer-backgrounding',
-                    '--disable-features=TranslateUI',
+                    '--disable-features=TranslateUI,VizDisplayCompositor',
                     '--disable-background-networking',
-                    '--single-process'
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--memory-pressure-off',
+                    '--max_old_space_size=4096',
+                    '--disable-accelerated-2d-canvas'
                 ],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
-            });
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+                timeout: 30000, // 30 second timeout
+                ignoreDefaultArgs: ['--disable-extensions'] // Allow some extensions for better compatibility
+            };
+            
+            this.browser = await puppeteer.launch(launchOptions);
             console.log('[PDF Service] Browser initialized successfully');
         }
         return this.browser;
@@ -40,8 +52,11 @@ class PDFService {
             // Generate HTML content
             const htmlContent = this.generatePayrollHTML(payrollData, options);
             
-            // Set page content with proper wait
-            await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+            // Set page content with optimized wait conditions
+            await page.setContent(htmlContent, { 
+                waitUntil: ['domcontentloaded', 'networkidle0'],
+                timeout: 30000 
+            });
             
             // Generate PDF with professional formatting
             const pdfBuffer = await page.pdf({

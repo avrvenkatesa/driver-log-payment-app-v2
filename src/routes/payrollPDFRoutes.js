@@ -3,6 +3,7 @@ const router = express.Router();
 const { requireAdminOnly } = require('../auth/auth');
 const PDFService = require('../services/PDFService');
 const SimplePDFService = require('../services/SimplePDFService');
+const AlternativePDFService = require('../services/AlternativePDFService');
 // Import existing database connection
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -151,11 +152,18 @@ router.get('/payroll/:year/:month/export', requireAdminOnly, async (req, res) =>
             // Try Puppeteer PDF generation first
             pdfContent = await PDFService.generatePayrollPDF(payrollData, options);
         } catch (pdfError) {
-            console.log('[PDF Export] Puppeteer failed, falling back to HTML:', pdfError.message);
-            // Fallback to HTML format
-            pdfContent = SimplePDFService.generatePayrollHTML(payrollData, options);
-            contentType = 'text/html';
-            isHTML = true;
+            console.log('[PDF Export] Puppeteer failed, trying alternative PDF service:', pdfError.message);
+            try {
+                // Try alternative PDF service
+                pdfContent = await AlternativePDFService.generatePayrollPDF(payrollData, options);
+                console.log('[PDF Export] Alternative PDF service succeeded');
+            } catch (alternativeError) {
+                console.log('[PDF Export] Alternative PDF failed, falling back to HTML:', alternativeError.message);
+                // Final fallback to HTML format
+                pdfContent = SimplePDFService.generatePayrollHTML(payrollData, options);
+                contentType = 'text/html';
+                isHTML = true;
+            }
         }
         
         // Set response headers
@@ -307,11 +315,18 @@ router.get('/payroll/:year/ytd/export', requireAdminOnly, async (req, res) => {
             // Try Puppeteer PDF generation first
             pdfContent = await PDFService.generatePayrollPDF(consolidatedYTDData, options);
         } catch (pdfError) {
-            console.log('[PDF Export] Puppeteer failed, falling back to HTML:', pdfError.message);
-            // Fallback to HTML format
-            pdfContent = SimplePDFService.generatePayrollHTML(consolidatedYTDData, options);
-            contentType = 'text/html';
-            isHTML = true;
+            console.log('[PDF Export] Puppeteer failed, trying alternative PDF service:', pdfError.message);
+            try {
+                // Try alternative PDF service
+                pdfContent = await AlternativePDFService.generatePayrollPDF(consolidatedYTDData, options);
+                console.log('[PDF Export] Alternative PDF service succeeded');
+            } catch (alternativeError) {
+                console.log('[PDF Export] Alternative PDF failed, falling back to HTML:', alternativeError.message);
+                // Final fallback to HTML format
+                pdfContent = SimplePDFService.generatePayrollHTML(consolidatedYTDData, options);
+                contentType = 'text/html';
+                isHTML = true;
+            }
         }
         
         // Set response headers
