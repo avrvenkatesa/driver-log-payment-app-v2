@@ -132,11 +132,36 @@ router.get('/shifts', async (req, res) => {
         const shifts = await shiftsResult;
         
         // Convert timestamps to IST
-        const shiftsWithIST = shifts.map(shift => ({
-            ...shift,
-            clock_in_time: shift.clock_in_time ? convertToIST(shift.clock_in_time).formatted : null,
-            clock_out_time: shift.clock_out_time ? convertToIST(shift.clock_out_time).formatted : null
-        }));
+        const shiftsWithIST = shifts.map(shift => {
+            let clockInFormatted = shift.clock_in_time;
+            let clockOutFormatted = shift.clock_out_time;
+            
+            try {
+                // Try to parse and convert the dates if they're valid
+                if (shift.clock_in_time) {
+                    const clockInDate = new Date(shift.clock_in_time);
+                    if (!isNaN(clockInDate.getTime())) {
+                        clockInFormatted = convertToIST(clockInDate).formatted;
+                    }
+                }
+                
+                if (shift.clock_out_time) {
+                    const clockOutDate = new Date(shift.clock_out_time);
+                    if (!isNaN(clockOutDate.getTime())) {
+                        clockOutFormatted = convertToIST(clockOutDate).formatted;
+                    }
+                }
+            } catch (error) {
+                console.log(`[Manual Shift] Date conversion error for shift ${shift.id}:`, error.message);
+                // Keep original values if conversion fails
+            }
+            
+            return {
+                ...shift,
+                clock_in_time: clockInFormatted,
+                clock_out_time: clockOutFormatted
+            };
+        });
         
         const totalPages = Math.ceil(total / limitNum);
         
@@ -330,7 +355,7 @@ router.post('/shifts', async (req, res) => {
         // Get existing shifts for validation
         const existingShiftsResult = new Promise((resolve, reject) => {
             dbConnection.all(`
-                SELECT * FROM shifts WHERE driver_id = ? ORDER BY shift_date DESC
+                SELECT * FROM shifts WHERE driver_id = ? ORDER BY clock_in_time DESC
             `, [driverId], (err, rows) => {
                 if (err) reject(err);
                 else resolve(rows);
@@ -355,7 +380,7 @@ router.post('/shifts', async (req, res) => {
         // Check for duplicate shift on same date
         const duplicateResult = new Promise((resolve, reject) => {
             dbConnection.get(`
-                SELECT id FROM shifts WHERE driver_id = ? AND shift_date = ?
+                SELECT id FROM shifts WHERE driver_id = ? AND DATE(clock_in_time) = ?
             `, [driverId, date], (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
@@ -377,19 +402,19 @@ router.post('/shifts', async (req, res) => {
         const durationMinutes = Math.round((endDateTime - startDateTime) / (1000 * 60));
         const distance = parseInt(endOdometer) - parseInt(startOdometer);
         
-        // Create shift
+        // Create shift  
         const insertResult = new Promise((resolve, reject) => {
             dbConnection.run(`
                 INSERT INTO shifts (
-                    driver_id, shift_date, clock_in_time, clock_out_time, 
+                    driver_id, clock_in_time, clock_out_time, 
                     start_odometer, end_odometer, total_distance, 
-                    shift_duration_minutes, status, created_by, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, datetime('now'))
+                    shift_duration_minutes, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', datetime('now'))
             `, [
-                driverId, date, 
+                driverId,
                 convertToIST(startDateTime).formatted,
                 convertToIST(endDateTime).formatted,
-                startOdometer, endOdometer, distance, durationMinutes, adminId
+                startOdometer, endOdometer, distance, durationMinutes
             ], function(err) {
                 if (err) reject(err);
                 else resolve({ lastInsertRowid: this.lastID });
@@ -653,18 +678,24 @@ router.get('/shifts/monthly/:driverId/:year/:month', async (req, res) => {
         }
         
         // Get shifts for the month
-        const shifts = dbConnection.prepare(`
-            SELECT 
-                id, shift_date as date, clock_in_time, clock_out_time,
-                start_odometer, end_odometer, total_distance as distance,
-                shift_duration_minutes as duration, status,
-                created_by, last_modified_by
-            FROM shifts 
-            WHERE driver_id = ? 
-            AND strftime('%Y', shift_date) = ? 
-            AND strftime('%m', shift_date) = ?
-            ORDER BY shift_date ASC
-        `).all(driverId, year, month.padStart(2, '0'));
+        const shiftsResult = new Promise((resolve, reject) => {
+            dbConnection.all(`
+                SELECT 
+                    id, DATE(clock_in_time) as date, clock_in_time, clock_out_time,
+                    start_odometer, end_odometer, total_distance as distance,
+                    shift_duration_minutes as duration, status
+                FROM shifts 
+                WHERE driver_id = ? 
+                AND strftime('%Y', clock_in_time) = ? 
+                AND strftime('%m', clock_in_time) = ?
+                ORDER BY clock_in_time ASC
+            `, [driverId, year, month.padStart(2, '0')], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+        
+        const shifts = await shiftsResult;
         
         // Process shifts for response
         const processedShifts = shifts.map(shift => ({
@@ -748,27 +779,48 @@ router.get('/audit/shifts', async (req, res) => {
             countQuery += ' WHERE shift_id = ?';
         }
         
-        const totalResult = dbConnection.prepare(countQuery).get(...params);
-        const total = totalResult.total;
+        const totalResult = new Promise((resolve, reject) => {
+            dbConnection.get(countQuery, shiftId ? [shiftId] : [], (err, row) => {
+                if (err) reject(err);
+                else resolve(row || { total: 0 });
+            });
+        });
+        
+        const totalCount = await totalResult;
+        const total = totalCount.total;
         
         // Get paginated results
         query += ' LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
         
-        const auditTrail = dbConnection.prepare(query).all(...params);
+        const auditResult = new Promise((resolve, reject) => {
+            dbConnection.all(query, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+        
+        const auditTrail = await auditResult;
         
         // Process audit entries
-        const processedAuditTrail = auditTrail.map(entry => ({
-            id: entry.id,
-            shiftId: entry.shift_id,
-            action: entry.action,
-            changedBy: `admin_${entry.changed_by}`,
-            changedByName: entry.changed_by_name,
-            changedAt: convertToIST(new Date(entry.changed_at)).formatted,
-            notes: entry.notes,
-            oldValues: entry.old_values ? JSON.parse(entry.old_values) : null,
-            newValues: entry.new_values ? JSON.parse(entry.new_values) : null
-        }));
+        const processedAuditTrail = auditTrail.map(entry => {
+            try {
+                return {
+                    id: entry.id,
+                    shiftId: entry.shift_id,
+                    action: entry.action,
+                    changedBy: `admin_${entry.changed_by}`,
+                    changedByName: entry.changed_by_name || 'Unknown',
+                    changedAt: entry.changed_at ? convertToIST(new Date(entry.changed_at)).formatted : 'Unknown',
+                    notes: entry.notes,
+                    oldValues: entry.old_values ? JSON.parse(entry.old_values) : null,
+                    newValues: entry.new_values ? JSON.parse(entry.new_values) : null
+                };
+            } catch (error) {
+                console.log(`[Audit Log] Error processing entry ${entry?.id}:`, error.message);
+                return null;
+            }
+        }).filter(entry => entry !== null);
         
         res.json({
             success: true,
