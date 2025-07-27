@@ -3638,14 +3638,14 @@
                 <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                     <h3 style="margin: 0 0 20px 0; color: #333;">Approve Advance Request</h3>
                     <div style="margin-bottom: 15px;">
-                        <strong>Driver:</strong> ${request.driver_name}<br>
-                        <strong>Requested Amount:</strong> ₹${request.requested_amount.toLocaleString('en-IN')}<br>
-                        <strong>Reason:</strong> ${request.reason}
+                        <strong>Driver:</strong> ${request.driverName || request.driver_name || 'Unknown'}<br>
+                        <strong>Requested Amount:</strong> ₹${(request.requestedAmount || request.requested_amount || 0).toLocaleString('en-IN')}<br>
+                        <strong>Reason:</strong> ${request.reason || 'No reason provided'}
                     </div>
                     
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 500;">Approved Amount:</label>
-                        <input type="number" id="approved-amount" value="${request.requested_amount}" 
+                        <input type="number" id="approved-amount" value="${request.requestedAmount || request.requested_amount || 0}" 
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
                     
@@ -3741,9 +3741,9 @@
                 <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                     <h3 style="margin: 0 0 20px 0; color: #dc3545;">Reject Advance Request</h3>
                     <div style="margin-bottom: 15px;">
-                        <strong>Driver:</strong> ${request.driver_name}<br>
-                        <strong>Requested Amount:</strong> ₹${request.requested_amount.toLocaleString('en-IN')}<br>
-                        <strong>Reason:</strong> ${request.reason}
+                        <strong>Driver:</strong> ${request.driverName || request.driver_name || 'Unknown'}<br>
+                        <strong>Requested Amount:</strong> ₹${(request.requestedAmount || request.requested_amount || 0).toLocaleString('en-IN')}<br>
+                        <strong>Reason:</strong> ${request.reason || 'No reason provided'}
                     </div>
                     
                     <div style="margin-bottom: 20px;">
