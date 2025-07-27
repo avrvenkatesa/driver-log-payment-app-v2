@@ -67,6 +67,28 @@ export const en = {
   'rejectionReason': 'Rejection Reason',
   'adminNotes': 'Admin Notes',
   
+  // Shift Management
+  'shiftManagement': 'Shift Management',
+  'manualShiftManagement': 'Manual Shift Management',
+  'createNewShift': 'Create New Shift',
+  'editShift': 'Edit Shift',
+  'shiftDetails': 'Shift Details',
+  'allDrivers': 'All Drivers',
+  'allStatus': 'All Status',
+  'active': 'Active',
+  'completed': 'Completed',
+  'applyFilters': 'Apply Filters',
+  'clearFilters': 'Clear',
+  'refreshData': 'Refresh',
+  'duration': 'Duration',
+  'distance': 'Distance',
+  'actions': 'Actions',
+  'edit': 'Edit',
+  'delete': 'Delete',
+  'createShift': 'Create Shift',
+  'updateShift': 'Update Shift',
+  'cancel': 'Cancel',
+  
   // Payroll
   'payroll': 'Payroll',
   'monthlySalary': 'Monthly Salary',

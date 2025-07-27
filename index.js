@@ -163,6 +163,11 @@ try {
   const adminLeaveRoutes = require('./src/routes/admin_leave.js');
   app.use('/api/admin', adminLeaveRoutes);
   log('✅ Admin leave management routes registered at /api/admin');
+
+  // Manual Shift Management routes (Story 17: Manual Shift Management)
+  const adminShiftManagementRoutes = require('./src/routes/adminShiftManagement.js');
+  app.use('/api/admin', adminShiftManagementRoutes);
+  log('✅ Manual shift management routes registered at /api/admin');
   
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {

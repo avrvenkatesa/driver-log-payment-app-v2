@@ -104,6 +104,20 @@ function initializeDatabase() {
         new_values TEXT,
         changed_by TEXT,
         changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // Story 17: Shift audit log table for manual shift management
+      `CREATE TABLE IF NOT EXISTS shift_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        shift_id INTEGER,
+        action TEXT NOT NULL CHECK (action IN ('create', 'update', 'delete')),
+        old_values TEXT,
+        new_values TEXT,
+        changed_by INTEGER,
+        changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT,
+        FOREIGN KEY (shift_id) REFERENCES shifts (id),
+        FOREIGN KEY (changed_by) REFERENCES drivers (id)
       )`
     ];
 
@@ -115,7 +129,9 @@ function initializeDatabase() {
       'CREATE INDEX IF NOT EXISTS idx_shifts_date ON shifts (clock_in_time)',
       'CREATE INDEX IF NOT EXISTS idx_shifts_status ON shifts (status)',
       'CREATE INDEX IF NOT EXISTS idx_leave_requests_driver_date ON leave_requests (driver_id, leave_date)',
-      'CREATE INDEX IF NOT EXISTS idx_audit_log_table_record ON audit_log (table_name, record_id)'
+      'CREATE INDEX IF NOT EXISTS idx_audit_log_table_record ON audit_log (table_name, record_id)',
+      'CREATE INDEX IF NOT EXISTS idx_shift_audit_shift_id ON shift_audit_log(shift_id)',
+      'CREATE INDEX IF NOT EXISTS idx_shift_audit_changed_at ON shift_audit_log(changed_at)'
     ];
 
     // Execute table creation queries first

@@ -673,6 +673,7 @@
             <button class="nav-tab active" onclick="showTab('payroll')" data-translate="payrollConfig">💰 Payroll Config</button>
             <button class="nav-tab" onclick="showTab('drivers')" data-translate="driverManagement">👥 Driver Management</button>
             <button class="nav-tab" onclick="showTab('leave')" data-translate="leaveManagement">🏖️ Leave Management</button>
+            <button class="nav-tab" onclick="showTab('shifts')" data-translate="shiftManagement">⚙️ Shift Management</button>
             <button class="nav-tab" onclick="showTab('reports')" data-translate="reports">📊 Reports</button>
             <button class="nav-tab" onclick="showTab('system')" data-translate="settings">⚙️ System</button>
         </div>
@@ -933,6 +934,72 @@
             </div>
         </div>
 
+        <!-- Manual Shift Management Tab - Story 17: Manual Shift Management -->
+        <div id="shifts-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">⚙️ Manual Shift Management</h2>
+                    <p class="text-muted">Create, edit, and manage driver shifts manually</p>
+                </div>
+                <div class="card-body">
+                    <!-- Shift Management Controls -->
+                    <div class="shift-controls" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <button onclick="showCreateShiftModal()" class="btn-primary" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            ➕ Create New Shift
+                        </button>
+                        <select id="shift-driver-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="all">All Drivers</option>
+                        </select>
+                        <select id="shift-status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <input type="date" id="shift-date-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <button onclick="applyShiftFilters()" class="btn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">Apply Filters</button>
+                        <button onclick="clearShiftFilters()" class="btn" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Clear</button>
+                        <button onclick="refreshShiftData()" class="btn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">🔄 Refresh</button>
+                    </div>
+
+                    <!-- Shifts Table -->
+                    <div class="table-container" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <table class="data-table" id="shifts-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Driver</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Clock In</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Clock Out</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Duration</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Distance</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Status</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shifts-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                                        <div class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;"></div>
+                                        Loading shifts...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container" id="shifts-pagination" style="display: none; margin-top: 1rem; justify-content: space-between; align-items: center;">
+                        <div class="pagination-info">
+                            <span id="shifts-page-info">-</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="shifts-prev" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>← Previous</button>
+                            <button id="shifts-next" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>Next →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Reports Tab - Story 14: Shift Analytics -->
         <div id="reports-tab" class="tab-content">
             <!-- Analytics Summary Cards -->
@@ -1036,6 +1103,59 @@
                 <h3>⚙️ System Settings</h3>
                 <p>System configuration options will be implemented in future stories.</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Shift Management Modal -->
+    <div id="shift-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="modal-title">Create New Shift</h3>
+                <button onclick="closeShiftModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">✕</button>
+            </div>
+            
+            <form id="shift-form">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Driver</label>
+                    <select id="shift-driver-select" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="">Select Driver</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Clock In Time</label>
+                        <input type="datetime-local" id="shift-clock-in" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Clock Out Time</label>
+                        <input type="datetime-local" id="shift-clock-out" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <small style="color: #666; font-size: 12px;">Leave empty for active shift</small>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Start Odometer</label>
+                        <input type="number" id="shift-start-odo" required min="0" step="1" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">End Odometer</label>
+                        <input type="number" id="shift-end-odo" min="0" step="1" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <small style="color: #666; font-size: 12px;">Leave empty for active shift</small>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Notes</label>
+                    <textarea id="shift-notes" placeholder="Manual shift creation reason (required)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeShiftModal()" style="padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    <button type="submit" id="shift-submit-btn" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">Create Shift</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -2317,7 +2437,7 @@
             });
         }
 
-        // Enhanced showTab function to handle leave management
+        // Enhanced showTab function to handle leave management and shift management
         const originalShowTab = window.showTab;
         window.showTab = function(tabName) {
             originalShowTab(tabName);
@@ -2329,6 +2449,11 @@
                         loadLeaveManagement();
                     }, 100);
                 }
+            } else if (tabName === 'shifts') {
+                // Initialize shift management if not already done
+                setTimeout(() => {
+                    loadShiftManagement();
+                }, 100);
             } else if (tabName === 'reports') {
                 // Initialize analytics if not already done
                 if (!document.getElementById('totalShiftsCount').textContent || document.getElementById('totalShiftsCount').textContent === '-') {
@@ -2375,6 +2500,368 @@
                 }
             }, 200);
         });
+
+        // Story 17: Manual Shift Management Functions
+        let shiftData = {
+            shifts: [],
+            currentPage: 1,
+            totalPages: 1,
+            totalShifts: 0,
+            limit: 20
+        };
+        let currentShift = null;
+
+        // Load shift management data
+        async function loadShiftManagement() {
+            console.log('[Shift Management] Loading shift data...');
+            try {
+                // Load drivers for filter dropdown
+                await loadDriversForFilter();
+                
+                // Load shifts
+                await loadShifts();
+                
+            } catch (error) {
+                console.error('[Shift Management] Error loading data:', error);
+                showAlert('Failed to load shift management data', 'error');
+            }
+        }
+
+        // Load drivers for filter dropdown
+        async function loadDriversForFilter() {
+            try {
+                const response = await fetch('/api/admin/drivers', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const filterSelect = document.getElementById('shift-driver-filter');
+                    const modalSelect = document.getElementById('shift-driver-select');
+                    
+                    // Clear existing options (keep "All Drivers" for filter)
+                    filterSelect.innerHTML = '<option value="all">All Drivers</option>';
+                    modalSelect.innerHTML = '<option value="">Select Driver</option>';
+                    
+                    // Add driver options
+                    result.data.forEach(driver => {
+                        filterSelect.innerHTML += `<option value="${driver.id}">${driver.name} (${driver.phone})</option>`;
+                        modalSelect.innerHTML += `<option value="${driver.id}">${driver.name} (${driver.phone})</option>`;
+                    });
+                    
+                    console.log('[Shift Management] Loaded', result.data.length, 'drivers for selection');
+                } else {
+                    console.error('[Shift Management] Invalid driver data response:', result);
+                }
+            } catch (error) {
+                console.error('[Shift Management] Error loading drivers:', error);
+            }
+        }
+
+        // Load shifts
+        async function loadShifts(page = 1) {
+            try {
+                const driverFilter = document.getElementById('shift-driver-filter')?.value || 'all';
+                const statusFilter = document.getElementById('shift-status-filter')?.value || 'all';
+                const dateFilter = document.getElementById('shift-date-filter')?.value || '';
+                
+                let url = `/api/admin/shifts?page=${page}&limit=${shiftData.limit}`;
+                if (driverFilter !== 'all') url += `&driver_id=${driverFilter}`;
+                if (statusFilter !== 'all') url += `&status=${statusFilter}`;
+                if (dateFilter) url += `&date=${dateFilter}`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    shiftData = {
+                        shifts: result.data.shifts || [],
+                        currentPage: result.data.pagination.currentPage,
+                        totalPages: result.data.pagination.totalPages,
+                        totalShifts: result.data.pagination.totalShifts,
+                        limit: result.data.pagination.limit
+                    };
+                    
+                    renderShiftsTable();
+                    updateShiftsPagination();
+                    
+                    console.log('[Shift Management] Loaded', shiftData.shifts.length, 'shifts');
+                } else {
+                    throw new Error(result.error || 'Failed to load shifts');
+                }
+            } catch (error) {
+                console.error('[Shift Management] Error loading shifts:', error);
+                document.getElementById('shifts-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #dc3545;">
+                            ❌ Failed to load shifts: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Render shifts table
+        function renderShiftsTable() {
+            const tbody = document.getElementById('shifts-tbody');
+            
+            if (shiftData.shifts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                            📋 No shifts found matching your criteria
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = shiftData.shifts.map(shift => {
+                const duration = shift.duration_minutes ? `${Math.floor(shift.duration_minutes / 60)}h ${shift.duration_minutes % 60}m` : '-';
+                const distance = shift.total_distance ? `${shift.total_distance} km` : '-';
+                const statusBadge = shift.status === 'active' 
+                    ? '<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Active</span>'
+                    : '<span style="background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Completed</span>';
+                
+                return `
+                    <tr>
+                        <td style="padding: 12px; font-weight: 500;">${shift.driver_name}</td>
+                        <td style="padding: 12px;">${shift.clock_in_time || '-'}</td>
+                        <td style="padding: 12px;">${shift.clock_out_time || '-'}</td>
+                        <td style="padding: 12px;">${duration}</td>
+                        <td style="padding: 12px;">${distance}</td>
+                        <td style="padding: 12px;">${statusBadge}</td>
+                        <td style="padding: 12px;">
+                            <button onclick="editShift(${shift.id})" style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 12px;">Edit</button>
+                            <button onclick="deleteShift(${shift.id})" style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update shifts pagination
+        function updateShiftsPagination() {
+            const paginationContainer = document.getElementById('shifts-pagination');
+            const pageInfo = document.getElementById('shifts-page-info');
+            const prevBtn = document.getElementById('shifts-prev');
+            const nextBtn = document.getElementById('shifts-next');
+
+            if (shiftData.totalPages <= 1) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+
+            paginationContainer.style.display = 'flex';
+            pageInfo.textContent = `Page ${shiftData.currentPage} of ${shiftData.totalPages} (${shiftData.totalShifts} total shifts)`;
+            
+            prevBtn.disabled = shiftData.currentPage <= 1;
+            nextBtn.disabled = shiftData.currentPage >= shiftData.totalPages;
+            
+            prevBtn.onclick = () => {
+                if (shiftData.currentPage > 1) {
+                    loadShifts(shiftData.currentPage - 1);
+                }
+            };
+            
+            nextBtn.onclick = () => {
+                if (shiftData.currentPage < shiftData.totalPages) {
+                    loadShifts(shiftData.currentPage + 1);
+                }
+            };
+        }
+
+        // Show create shift modal
+        function showCreateShiftModal() {
+            currentShift = null;
+            document.getElementById('modal-title').textContent = 'Create New Shift';
+            document.getElementById('shift-submit-btn').textContent = 'Create Shift';
+            document.getElementById('shift-form').reset();
+            document.getElementById('shift-modal').style.display = 'flex';
+        }
+
+        // Show edit shift modal
+        async function editShift(shiftId) {
+            try {
+                const response = await fetch(`/api/admin/shifts/${shiftId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    currentShift = result.data;
+                    
+                    // Populate form with shift data
+                    document.getElementById('modal-title').textContent = 'Edit Shift';
+                    document.getElementById('shift-submit-btn').textContent = 'Update Shift';
+                    document.getElementById('shift-driver-select').value = currentShift.driver_id;
+                    document.getElementById('shift-clock-in').value = formatDateTimeForInput(currentShift.clock_in_time);
+                    document.getElementById('shift-clock-out').value = currentShift.clock_out_time ? formatDateTimeForInput(currentShift.clock_out_time) : '';
+                    document.getElementById('shift-start-odo').value = currentShift.start_odometer;
+                    document.getElementById('shift-end-odo').value = currentShift.end_odometer || '';
+                    document.getElementById('shift-notes').value = currentShift.notes || '';
+                    
+                    document.getElementById('shift-modal').style.display = 'flex';
+                } else {
+                    throw new Error(result.error || 'Failed to load shift details');
+                }
+            } catch (error) {
+                console.error('[Shift Management] Error loading shift for edit:', error);
+                showAlert('Failed to load shift details for editing', 'error');
+            }
+        }
+
+        // Delete shift
+        async function deleteShift(shiftId) {
+            if (!confirm('Are you sure you want to delete this shift? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/shifts/${shiftId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('Shift deleted successfully', 'success');
+                    loadShifts(shiftData.currentPage);
+                } else {
+                    throw new Error(result.error || 'Failed to delete shift');
+                }
+            } catch (error) {
+                console.error('[Shift Management] Error deleting shift:', error);
+                showAlert('Failed to delete shift: ' + error.message, 'error');
+            }
+        }
+
+        // Close shift modal
+        function closeShiftModal() {
+            document.getElementById('shift-modal').style.display = 'none';
+            currentShift = null;
+        }
+
+        // Handle shift form submission
+        document.getElementById('shift-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                driver_id: document.getElementById('shift-driver-select').value,
+                clock_in_time: document.getElementById('shift-clock-in').value,
+                clock_out_time: document.getElementById('shift-clock-out').value || null,
+                start_odometer: parseInt(document.getElementById('shift-start-odo').value),
+                end_odometer: document.getElementById('shift-end-odo').value ? parseInt(document.getElementById('shift-end-odo').value) : null,
+                notes: document.getElementById('shift-notes').value
+            };
+
+            // Validation
+            if (!formData.driver_id) {
+                showAlert('Please select a driver', 'error');
+                return;
+            }
+
+            if (!formData.notes || formData.notes.trim().length === 0) {
+                showAlert('Notes are required for manual shift management', 'error');
+                document.getElementById('shift-notes').focus();
+                return;
+            }
+
+            if (formData.end_odometer && formData.end_odometer < formData.start_odometer) {
+                showAlert('End odometer cannot be less than start odometer', 'error');
+                return;
+            }
+
+            try {
+                const url = currentShift ? `/api/admin/shifts/${currentShift.id}` : '/api/admin/shifts';
+                const method = currentShift ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    showAlert(`Shift ${currentShift ? 'updated' : 'created'} successfully`, 'success');
+                    closeShiftModal();
+                    loadShifts(shiftData.currentPage);
+                } else {
+                    throw new Error(result.error || `Failed to ${currentShift ? 'update' : 'create'} shift`);
+                }
+            } catch (error) {
+                console.error('[Shift Management] Error saving shift:', error);
+                showAlert(`Failed to ${currentShift ? 'update' : 'create'} shift: ` + error.message, 'error');
+            }
+        });
+
+        // Filter functions
+        function applyShiftFilters() {
+            loadShifts(1); // Reset to first page when applying filters
+        }
+
+        function clearShiftFilters() {
+            document.getElementById('shift-driver-filter').value = 'all';
+            document.getElementById('shift-status-filter').value = 'all';
+            document.getElementById('shift-date-filter').value = '';
+            loadShifts(1);
+        }
+
+        function refreshShiftData() {
+            loadShifts(shiftData.currentPage);
+        }
+
+        // Utility function to format datetime for input field
+        function formatDateTimeForInput(dateTimeString) {
+            if (!dateTimeString) return '';
+            
+            const date = new Date(dateTimeString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
     </script>
 </body>
 </html>

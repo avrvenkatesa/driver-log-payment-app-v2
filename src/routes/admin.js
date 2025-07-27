@@ -48,11 +48,11 @@ async function initializePayrollSystem() {
 }
 
 /**
- * GET /api/admin/shifts
+ * GET /api/admin/analytics/shifts
  * Story 14: Shift Analytics - Get comprehensive shift analytics
  * Admin-only endpoint for operational insights
  */
-router.get('/shifts', requireAdminOnly, async (req, res) => {
+router.get('/analytics/shifts', requireAdminOnly, async (req, res) => {
   try {
     const { filter = 'today', page = 1, limit = 10 } = req.query;
     

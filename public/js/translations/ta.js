@@ -67,6 +67,25 @@ export const ta = {
   'rejectionReason': 'நிராகரிப்பு காரணம்',
   'adminNotes': 'நிர்வாக குறிப்புகள்',
   
+  // Shift Management (ஷிப்ட் மேலாண்மை)
+  'shiftManagement': 'ஷிப்ட் மேலாண்மை',
+  'manualShiftManagement': 'கையேடு ஷிப்ட் மேலாண்மை',
+  'createNewShift': 'புதிய ஷிப்ட் உருவாக்கவும்',
+  'editShift': 'ஷிப்ட் திருத்தவும்',
+  'shiftDetails': 'ஷிப்ட் விவரங்கள்',
+  'allDrivers': 'அனைத்து ஓட்டுநர்கள்',
+  'allStatus': 'அனைத்து நிலை',
+  'active': 'செயலில்',
+  'completed': 'நிறைவடைந்தது',
+  'applyFilters': 'வடிகட்டிகளை பயன்படுத்தவும்',
+  'clearFilters': 'அழிக்கவும்',
+  'refreshData': 'புதுப்பிக்கவும்',
+  'duration': 'கால அளவு',
+  'distance': 'தூரம்',
+  'actions': 'செயல்கள்',
+  'createShift': 'ஷிப்ட் உருவாக்கவும்',
+  'updateShift': 'ஷிப்ட் புதுப்பிக்கவும்',
+  
   // Payroll (சம்பளம்)
   'payroll': 'சம்பளம்',
   'monthlySalary': 'மாதாந்திர சம்பளம்',
