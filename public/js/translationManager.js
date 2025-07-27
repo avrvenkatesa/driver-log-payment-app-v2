@@ -179,7 +179,7 @@ class TranslationManager {
         // Handle different element types
         if (element.tagName === 'INPUT' && (element.type === 'submit' || element.type === 'button')) {
           element.value = translation;
-        } else if (element.hasAttribute('data-translate-placeholder')) {
+        } else if (element.hasAttribute('data-translate-placeholder') || element.placeholder !== undefined) {
           element.placeholder = translation;
         } else if (element.tagName === 'OPTION') {
           element.textContent = translation;

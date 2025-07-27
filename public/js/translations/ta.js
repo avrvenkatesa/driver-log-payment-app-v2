@@ -224,5 +224,37 @@ export const ta = {
   'active': 'செயலில்',
   'inactive': 'செயலில் இல்லை',
   'verified': 'சரிபார்க்கப்பட்டது',
-  'unverified': 'சரிபார்க்கப்படவில்லை'
+  'unverified': 'சரிபார்க்கப்படவில்லை',
+  
+  // Additional Dashboard Elements (கூடுதல் டாஷ்போர்டு கூறுகள்)
+  'shiftStatus': 'ஷிப்ட் நிலை',
+  'todaysShifts': 'இன்றைய ஷிப்ட்கள்',
+  'refreshStatus': 'நிலையைப் புதுப்பிக்கவும்',
+  'driverInformation': 'ஓட்டுநர் தகவல்',
+  'name': 'பெயர்',
+  'phone': 'தொலைபேசி',
+  'email': 'மின்னஞ்சல்',
+  'role': 'பங்கு',
+  'accountStatus': 'கணக்கு நிலை',
+  'clockInOut': 'கிளாக் இன்/அவுட்',
+  'startOdometerReading': 'தொடக்க ஓடோமீட்டர் அளவீடு',
+  'endOdometerReading': 'இறுதி ஓடோமீட்டர் அளவீடு',
+  'enterOdometerReading': 'ஓடோமீட்டர் அளவீட்டை உள்ளிடவும்',
+  'loadingShiftActions': 'ஷிப்ட் செயல்களை ஏற்றுகிறது...',
+  
+  // Shift History Section (ஷிப்ட் வரலாறு பிரிவு)
+  'shiftHistoryReports': 'ஷிப்ட் வரலாறு மற்றும் அறிக்கைகள்',
+  'today': 'இன்று',
+  'thisWeek': 'இந்த வாரம்',
+  'thisMonth': 'இந்த மாதம்',
+  'allTime': 'எல்லா நேரமும்',
+  'export': 'ஏற்றுமதி',
+  'refresh': 'புதுப்பிக்கவும்',
+  'totalShifts': 'மொத்த ஷிப்ட்கள்',
+  'totalHours': 'மொத்த மணிநேரங்கள்',
+  'totalDistance': 'மொத்த தூரம்',
+  'workingDays': 'வேலை நாட்கள்',
+  'clockInTime': 'கிளாக் இன் நேரம்',
+  'duration': 'கால அளவு',
+  'startOdometer': 'தொடக்க ஓடோமீட்டர்'
 };

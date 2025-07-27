@@ -897,77 +897,77 @@
                         <span data-translate="currentStatus">Current Status</span>
                     </h3>
                     <div class="info-row">
-                        <span class="info-label">Shift Status:</span>
+                        <span class="info-label" data-translate="shiftStatus">Shift Status:</span>
                         <span class="info-value" id="shift-status-text">Loading...</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Today's Shifts:</span>
+                        <span class="info-label" data-translate="todaysShifts">Today's Shifts:</span>
                         <span class="info-value" id="today-shifts-count">0</span>
                     </div>
                     <div id="active-shift-info" style="display: none;">
                         <div class="info-row">
-                            <span class="info-label">Clock In Time:</span>
+                            <span class="info-label" data-translate="clockInTime">Clock In Time:</span>
                             <span class="info-value" id="clock-in-time">-</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Duration:</span>
+                            <span class="info-label" data-translate="duration">Duration:</span>
                             <span class="info-value" id="shift-duration">-</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Start Odometer:</span>
+                            <span class="info-label" data-translate="startOdometer">Start Odometer:</span>
                             <span class="info-value" id="start-odometer-display">-</span>
                         </div>
                     </div>
-                    <button class="btn" onclick="refreshStatus()">Refresh Status</button>
+                    <button class="btn" onclick="refreshStatus()" data-translate="refreshStatus">Refresh Status</button>
                 </div>
                 
                 <div class="card">
-                    <h3>👤 Driver Information</h3>
+                    <h3 data-translate="driverInformation">👤 Driver Information</h3>
                     <div class="info-row">
-                        <span class="info-label">Name:</span>
+                        <span class="info-label" data-translate="name">Name:</span>
                         <span class="info-value" id="driver-name">Loading...</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Phone:</span>
+                        <span class="info-label" data-translate="phone">Phone:</span>
                         <span class="info-value" id="driver-phone">Loading...</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Email:</span>
+                        <span class="info-label" data-translate="email">Email:</span>
                         <span class="info-value" id="driver-email">Loading...</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Role:</span>
+                        <span class="info-label" data-translate="role">Role:</span>
                         <span class="info-value" id="user-role">Loading...</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Account Status:</span>
+                        <span class="info-label" data-translate="accountStatus">Account Status:</span>
                         <span class="info-value" id="driver-status">Loading...</span>
                     </div>
                     <!-- RBAC: Admin Controls (hidden for drivers) -->
                     <div id="admin-controls" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #3498db;">
-                        <button class="btn" onclick="openAdminPanel()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); margin-bottom: 10px;">🔧 Admin Panel</button>
+                        <button class="btn" onclick="openAdminPanel()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); margin-bottom: 10px;" data-translate="adminPanel">🔧 Admin Panel</button>
 
                     </div>
-                    <button class="btn" onclick="logout()">Logout</button>
+                    <button class="btn" onclick="logout()" data-translate="logout">Logout</button>
                 </div>
                 
                 <div class="card">
-                    <h3>⏰ Clock In/Out</h3>
+                    <h3 data-translate="clockInOut">⏰ Clock In/Out</h3>
                     <div id="clock-in-form" style="display: none;">
                         <div class="form-group">
-                            <label for="start-odometer">Start Odometer Reading:</label>
-                            <input type="number" id="start-odometer" name="startOdometer" required placeholder="Enter odometer reading" min="0">
+                            <label for="start-odometer" data-translate="startOdometerReading">Start Odometer Reading:</label>
+                            <input type="number" id="start-odometer" name="startOdometer" required data-translate-placeholder="enterOdometerReading" placeholder="Enter odometer reading" min="0">
                         </div>
-                        <button type="button" class="btn" onclick="clockIn()" id="clock-in-btn">🕐 Clock In</button>
+                        <button type="button" class="btn" onclick="clockIn()" id="clock-in-btn" data-translate="clockIn">🕐 Clock In</button>
                     </div>
                     <div id="clock-out-form" style="display: none;">
                         <div class="form-group">
-                            <label for="end-odometer">End Odometer Reading:</label>
-                            <input type="number" id="end-odometer" name="endOdometer" required placeholder="Enter odometer reading" min="0">
+                            <label for="end-odometer" data-translate="endOdometerReading">End Odometer Reading:</label>
+                            <input type="number" id="end-odometer" name="endOdometer" required data-translate-placeholder="enterOdometerReading" placeholder="Enter odometer reading" min="0">
                         </div>
-                        <button type="button" class="btn" onclick="clockOut()" id="clock-out-btn">🕕 Clock Out</button>
+                        <button type="button" class="btn" onclick="clockOut()" id="clock-out-btn" data-translate="clockOut">🕕 Clock Out</button>
                     </div>
-                    <div id="clock-message" style="text-align: center; padding: 20px; color: #7f8c8d;">
+                    <div id="clock-message" style="text-align: center; padding: 20px; color: #7f8c8d;" data-translate="loadingShiftActions">
                         Loading shift actions...
                     </div>
                 </div>
@@ -975,14 +975,14 @@
                 <!-- Enhanced Shift History Section -->
                 <div class="card">
                     <div class="section-header">
-                        <h3>📊 Shift History & Reports</h3>
+                        <h3 data-translate="shiftHistoryReports">📊 Shift History & Reports</h3>
                         <div class="controls">
                             <!-- Quick Filter Buttons -->
                             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                                <button onclick="setQuickFilter('today')" id="btn-today" class="filter-button">Today</button>
-                                <button onclick="setQuickFilter('week')" id="btn-week" class="filter-button">This Week</button>
-                                <button onclick="setQuickFilter('month')" id="btn-month" class="filter-button active">This Month</button>
-                                <button onclick="setQuickFilter('all')" id="btn-all" class="filter-button">All Time</button>
+                                <button onclick="setQuickFilter('today')" id="btn-today" class="filter-button" data-translate="today">Today</button>
+                                <button onclick="setQuickFilter('week')" id="btn-week" class="filter-button" data-translate="thisWeek">This Week</button>
+                                <button onclick="setQuickFilter('month')" id="btn-month" class="filter-button active" data-translate="thisMonth">This Month</button>
+                                <button onclick="setQuickFilter('all')" id="btn-all" class="filter-button" data-translate="allTime">All Time</button>
                             </div>
                             
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -1011,8 +1011,8 @@
                                     <option value="2025" selected>2025</option>
                                     <option value="2026">2026</option>
                                 </select>
-                                <button onclick="exportShiftData('csv')" class="btn-secondary">📥 Export</button>
-                                <button onclick="loadShiftData()" class="btn-secondary">🔄 Refresh</button>
+                                <button onclick="exportShiftData('csv')" class="btn-secondary" data-translate="export">📥 Export</button>
+                                <button onclick="loadShiftData()" class="btn-secondary" data-translate="refresh">🔄 Refresh</button>
                             </div>
                         </div>
                     </div>
@@ -1045,22 +1045,22 @@
                     <!-- Enhanced Summary Cards (Story 8) -->
                     <div class="summary-cards">
                         <div class="summary-card">
-                            <h4>Total Shifts</h4>
+                            <h4 data-translate="totalShifts">Total Shifts</h4>
                             <span id="total-shifts">-</span>
                             <small id="shifts-trend" style="color: #4caf50; font-size: 12px; display: block;"></small>
                         </div>
                         <div class="summary-card">
-                            <h4>Total Hours</h4>
+                            <h4 data-translate="totalHours">Total Hours</h4>
                             <span id="total-hours">-</span>
                             <small id="hours-trend" style="color: #4caf50; font-size: 12px; display: block;"></small>
                         </div>
                         <div class="summary-card">
-                            <h4>Total Distance</h4>
+                            <h4 data-translate="totalDistance">Total Distance</h4>
                             <span id="total-distance">- km</span>
                             <small id="distance-trend" style="color: #4caf50; font-size: 12px; display: block;"></small>
                         </div>
                         <div class="summary-card">
-                            <h4>Working Days</h4>
+                            <h4 data-translate="workingDays">Working Days</h4>
                             <span id="working-days">-</span>
                         </div>
                         <div class="summary-card" style="border-left: 4px solid #4CAF50;">

@@ -224,5 +224,37 @@ export const en = {
   'active': 'Active',
   'inactive': 'Inactive',
   'verified': 'Verified',
-  'unverified': 'Unverified'
+  'unverified': 'Unverified',
+  
+  // Additional Dashboard Elements
+  'shiftStatus': 'Shift Status',
+  'todaysShifts': "Today's Shifts",
+  'refreshStatus': 'Refresh Status',
+  'driverInformation': 'Driver Information',
+  'name': 'Name',
+  'phone': 'Phone',
+  'email': 'Email',
+  'role': 'Role',
+  'accountStatus': 'Account Status',
+  'clockInOut': 'Clock In/Out',
+  'startOdometerReading': 'Start Odometer Reading',
+  'endOdometerReading': 'End Odometer Reading',
+  'enterOdometerReading': 'Enter odometer reading',
+  'loadingShiftActions': 'Loading shift actions...',
+  
+  // Shift History Section
+  'shiftHistoryReports': 'Shift History & Reports',
+  'today': 'Today',
+  'thisWeek': 'This Week',
+  'thisMonth': 'This Month',
+  'allTime': 'All Time',
+  'export': 'Export',
+  'refresh': 'Refresh',
+  'totalShifts': 'Total Shifts',
+  'totalHours': 'Total Hours',
+  'totalDistance': 'Total Distance',
+  'workingDays': 'Working Days',
+  'clockInTime': 'Clock In Time',
+  'duration': 'Duration',
+  'startOdometer': 'Start Odometer'
 };
