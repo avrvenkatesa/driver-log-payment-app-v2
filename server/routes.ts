@@ -189,15 +189,14 @@ export function registerRoutes(app: Express) {
           return res.status(400).json({ error: 'Invalid driver ID' });
         }
 
-        const allowedFields = ['name', 'email', 'phone', 'is_phone_verified', 'is_active'];
         const updateData: any = {};
         
-        // Filter only allowed fields from request body
-        for (const field of allowedFields) {
-          if (req.body[field] !== undefined) {
-            updateData[field] = req.body[field];
-          }
-        }
+        // Filter only allowed fields from request body with explicit property access
+        if (req.body.name !== undefined) updateData.name = req.body.name;
+        if (req.body.email !== undefined) updateData.email = req.body.email;
+        if (req.body.phone !== undefined) updateData.phone = req.body.phone;
+        if (req.body.is_phone_verified !== undefined) updateData.is_phone_verified = req.body.is_phone_verified;
+        if (req.body.is_active !== undefined) updateData.is_active = req.body.is_active;
         
         if (Object.keys(updateData).length === 0) {
           return res.status(400).json({
