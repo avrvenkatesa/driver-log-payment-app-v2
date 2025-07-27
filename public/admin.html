@@ -943,22 +943,86 @@
                 </div>
                 <div class="card-body">
                     <!-- Shift Management Controls -->
-                    <div class="shift-controls" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                        <button onclick="showCreateShiftModal()" class="btn-primary" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                            ➕ Create New Shift
-                        </button>
-                        <select id="shift-driver-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
-                            <option value="all">All Drivers</option>
-                        </select>
-                        <select id="shift-status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                        <input type="date" id="shift-date-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
-                        <button onclick="applyShiftFilters()" class="btn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">Apply Filters</button>
-                        <button onclick="clearShiftFilters()" class="btn" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Clear</button>
-                        <button onclick="refreshShiftData()" class="btn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">🔄 Refresh</button>
+                    <div class="shift-controls" style="margin-bottom: 1.5rem;">
+                        <!-- Primary Action Row -->
+                        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <button onclick="showCreateShiftModal()" class="btn-primary" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                ➕ Create New Shift
+                            </button>
+                            <button onclick="toggleBulkMode()" id="bulk-mode-btn" class="btn" style="padding: 10px 20px; background: #fd7e14; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                📋 Bulk Update Mode
+                            </button>
+                            <select id="shift-driver-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="all">All Drivers</option>
+                            </select>
+                            <select id="shift-status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <input type="date" id="shift-date-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <button onclick="applyShiftFilters()" class="btn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">Apply Filters</button>
+                            <button onclick="clearShiftFilters()" class="btn" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Clear</button>
+                            <button onclick="refreshShiftData()" class="btn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">🔄 Refresh</button>
+                        </div>
+
+                        <!-- Bulk Update Controls (Hidden by default) -->
+                        <div id="bulk-update-controls" style="display: none; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                                <h4 style="margin: 0; color: #856404;">📋 Bulk Update Operations</h4>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span id="selected-count" style="color: #856404; font-weight: 500;">0 shifts selected</span>
+                                    <button onclick="selectAllShifts()" class="btn" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Select All</button>
+                                    <button onclick="deselectAllShifts()" class="btn" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear Selection</button>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <!-- Bulk Status Update -->
+                                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #495057;">Update Status</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <select id="bulk-status-select" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                                            <option value="">Select Status</option>
+                                            <option value="active">Active</option>
+                                            <option value="completed">Completed</option>
+                                        </select>
+                                        <button onclick="bulkUpdateStatus()" class="btn" style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Apply</button>
+                                    </div>
+                                </div>
+
+                                <!-- Bulk Notes Update -->
+                                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #495057;">Add Notes</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="bulk-notes-input" placeholder="Add note to selected shifts..." style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                                        <button onclick="bulkUpdateNotes()" class="btn" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Add</button>
+                                    </div>
+                                </div>
+
+                                <!-- Bulk Time Adjustment -->
+                                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #495057;">Time Adjustment</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <select id="bulk-time-type" style="padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                                            <option value="clock_out">Set Clock Out</option>
+                                            <option value="duration">Adjust Duration</option>
+                                        </select>
+                                        <input type="time" id="bulk-time-value" style="padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                                        <button onclick="bulkUpdateTime()" class="btn" style="padding: 6px 12px; background: #fd7e14; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Apply</button>
+                                    </div>
+                                </div>
+
+                                <!-- Bulk Delete -->
+                                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #495057;">Bulk Actions</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="bulkExportShifts()" class="btn" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📤 Export</button>
+                                        <button onclick="bulkDeleteShifts()" class="btn" style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Shifts Table -->
