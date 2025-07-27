@@ -156,6 +156,7 @@ class AdvanceEligibilityService {
                         // Group by month for earnings calculation
                         const monthlyEarnings = {};
                         rows.forEach(shift => {
+                            if (!shift.shift_date) return; // Skip null dates - fixed crash
                             const monthKey = shift.shift_date.substring(0, 7); // YYYY-MM
                             if (!monthlyEarnings[monthKey]) {
                                 monthlyEarnings[monthKey] = {
