@@ -48,6 +48,11 @@ class AlternativePDFService {
             overtimePay: 0,
             fuelAllowance: 0,
             grossEarnings: 0,
+            leaveDeduction: 0,
+            pfDeduction: 0,
+            esiDeduction: 0,
+            taxDeduction: 0,
+            advanceDeduction: 0,
             totalDeductions: 0,
             totalEarnings: 0,
             workingDays: 0
@@ -60,6 +65,11 @@ class AlternativePDFService {
             totals.overtimePay += breakdown.overtimePay || 0;
             totals.fuelAllowance += breakdown.fuelAllowance || 0;
             totals.grossEarnings += breakdown.grossEarnings || 0;
+            totals.leaveDeduction += breakdown.leaveDeduction || 0;
+            totals.pfDeduction += breakdown.pfDeduction || 0;
+            totals.esiDeduction += breakdown.esiDeduction || 0;
+            totals.taxDeduction += breakdown.taxDeduction || 0;
+            totals.advanceDeduction += breakdown.advanceDeduction || 0;
             totals.totalDeductions += breakdown.totalDeductions || 0;
             totals.totalEarnings += breakdown.totalEarnings || 0;
             totals.workingDays += breakdown.workingDays || 0;
