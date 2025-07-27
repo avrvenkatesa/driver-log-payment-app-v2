@@ -1646,9 +1646,11 @@
             document.getElementById(tabName + '-tab').classList.add('active');
             event.target.classList.add('active');
 
-            // Load drivers when drivers tab is selected
+            // Load data when specific tabs are selected
             if (tabName === 'drivers') {
                 loadAdminDriverManagement();
+            } else if (tabName === 'reports') {
+                loadReportsAnalytics();
             }
         }
 
@@ -2160,6 +2162,52 @@
             const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
             
             return `${startOfWeek.toLocaleDateString('en-IN')} - ${endOfWeek.toLocaleDateString('en-IN')}`;
+        }
+
+        // Load analytics data for Reports tab
+        async function loadReportsAnalytics() {
+            console.log('[Reports Analytics] Loading analytics data for Reports tab...');
+            
+            try {
+                // Show loading state
+                document.getElementById('totalShiftsCount').textContent = '...';
+                document.getElementById('totalDistanceCount').textContent = '... km';
+                document.getElementById('totalHoursCount').textContent = '... hrs';
+                document.getElementById('activeDriversCount').textContent = '...';
+                
+                // Fetch analytics data from the API
+                const response = await fetch('/api/admin/analytics?filter=all', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    const summary = result.data.summary;
+                    
+                    // Update the analytics cards
+                    document.getElementById('totalShiftsCount').textContent = summary.totalShifts || 0;
+                    document.getElementById('totalDistanceCount').textContent = `${(summary.totalDistance || 0).toFixed(1)} km`;
+                    document.getElementById('totalHoursCount').textContent = `${(summary.totalHours || 0).toFixed(1)} hrs`;
+                    document.getElementById('activeDriversCount').textContent = summary.activeDrivers || 0;
+                    
+                    console.log('[Reports Analytics] Analytics cards updated successfully:', summary);
+                } else {
+                    throw new Error(result.error || 'Failed to load analytics data');
+                }
+                
+            } catch (error) {
+                console.error('[Reports Analytics] Error loading analytics data:', error);
+                
+                // Show error state
+                document.getElementById('totalShiftsCount').textContent = 'Error';
+                document.getElementById('totalDistanceCount').textContent = 'Error';
+                document.getElementById('totalHoursCount').textContent = 'Error';
+                document.getElementById('activeDriversCount').textContent = 'Error';
+            }
         }
 
         // Initialize analytics when reports tab is shown
