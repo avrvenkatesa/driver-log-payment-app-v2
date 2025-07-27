@@ -202,7 +202,7 @@ class TestDataGenerator {
         if (isSunday) {
             // Sunday work - all overtime
             startTime = this.randomTime(6, 10);
-            duration = this.randomFloat(4, 10);
+            duration = this.randomFloat(4, 8); // Reduced max to prevent going past midnight
         } else if (Math.random() < this.shiftPatterns.overtimeFrequency) {
             // Overtime shift
             startTime = this.randomTime(6, 8);
@@ -213,27 +213,57 @@ class TestDataGenerator {
             duration = this.shiftPatterns.averageHoursPerDay + this.randomFloat(-1, 1);
         }
         
+        // Ensure duration is positive and reasonable
+        duration = Math.max(2, Math.min(duration, 14)); // 2-14 hours max
+        
         endTime = startTime + duration;
         
-        // Calculate distance based on time (10-25 km/hour)
+        // Ensure end time doesn't exceed 23:59 (convert to next day if needed)
+        let clockOutDate = new Date(date);
+        if (endTime >= 24) {
+            endTime = endTime - 24;
+            clockOutDate.setDate(clockOutDate.getDate() + 1);
+        }
+        
+        // Calculate distance based on time (15-25 km/hour average)
         const distance = Math.round(duration * this.randomFloat(15, 25));
         
-        // Format times as ISO strings
-        const clockInTime = this.dateTimeToISO(date, startTime);
-        const clockOutTime = this.dateTimeToISO(date, endTime);
-        
-        return {
-            driverId,
-            clockInTime,
-            clockOutTime,
-            startOdometer,
-            endOdometer: startOdometer + distance,
-            totalDistance: distance,
-            shiftDurationMinutes: Math.round(duration * 60),
-            status: 'completed',
-            isTestData: true,
-            sessionId: this.sessionId
-        };
+        try {
+            // Format times as ISO strings with validation
+            const clockInTime = this.dateTimeToISO(date, startTime);
+            const clockOutTime = this.dateTimeToISO(clockOutDate, endTime);
+            
+            return {
+                driverId,
+                clockInTime,
+                clockOutTime,
+                startOdometer,
+                endOdometer: startOdometer + distance,
+                totalDistance: distance,
+                shiftDurationMinutes: Math.round(duration * 60),
+                status: 'completed',
+                isTestData: true,
+                sessionId: this.sessionId
+            };
+        } catch (error) {
+            console.error('[Test Data] Error generating shift for date:', date, 'driver:', driverId, error.message);
+            // Return a safe fallback shift
+            const fallbackClockIn = this.dateTimeToISO(date, 8); // 8:00 AM
+            const fallbackClockOut = this.dateTimeToISO(date, 16); // 4:00 PM
+            
+            return {
+                driverId,
+                clockInTime: fallbackClockIn,
+                clockOutTime: fallbackClockOut,
+                startOdometer,
+                endOdometer: startOdometer + 120, // 120km fallback
+                totalDistance: 120,
+                shiftDurationMinutes: 480, // 8 hours
+                status: 'completed',
+                isTestData: true,
+                sessionId: this.sessionId
+            };
+        }
     }
 
     async generateDriverLeaves(driverId) {
@@ -292,15 +322,34 @@ class TestDataGenerator {
             });
         }
         
-        // Save leave requests
+        // Save leave requests with duplicate checking
         for (const leave of leaveRequests) {
             await new Promise((resolve, reject) => {
-                db.run(
-                    `INSERT INTO leave_requests 
-                     (driver_id, leave_date, leave_type, reason, status, is_test_data) 
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [leave.driverId, leave.leaveDate, leave.leaveType, leave.reason, leave.status, 1],
-                    (err) => err ? reject(err) : resolve()
+                // First check if leave request already exists
+                db.get(
+                    `SELECT id FROM leave_requests WHERE driver_id = ? AND leave_date = ?`,
+                    [leave.driverId, leave.leaveDate],
+                    (err, existing) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        
+                        if (existing) {
+                            console.log(`[Test Data] Skipping duplicate leave request for driver ${leave.driverId} on ${leave.leaveDate}`);
+                            resolve(); // Skip duplicate
+                            return;
+                        }
+                        
+                        // Insert new leave request
+                        db.run(
+                            `INSERT INTO leave_requests 
+                             (driver_id, leave_date, leave_type, reason, status, is_test_data) 
+                             VALUES (?, ?, ?, ?, ?, ?)`,
+                            [leave.driverId, leave.leaveDate, leave.leaveType, leave.reason, leave.status, 1],
+                            (err) => err ? reject(err) : resolve()
+                        );
+                    }
                 );
             });
         }
@@ -353,11 +402,43 @@ class TestDataGenerator {
     }
 
     dateTimeToISO(date, hourFloat) {
-        const newDate = new Date(date);
-        const hours = Math.floor(hourFloat);
-        const minutes = Math.round((hourFloat - hours) * 60);
-        newDate.setHours(hours, minutes, 0, 0);
-        return newDate.toISOString();
+        try {
+            const newDate = new Date(date);
+            
+            // Validate input date
+            if (isNaN(newDate.getTime())) {
+                throw new Error(`Invalid date provided: ${date}`);
+            }
+            
+            // Ensure hourFloat is valid
+            if (typeof hourFloat !== 'number' || isNaN(hourFloat) || hourFloat < 0 || hourFloat >= 24) {
+                throw new Error(`Invalid hour value: ${hourFloat}. Must be between 0 and 24`);
+            }
+            
+            const hours = Math.floor(hourFloat);
+            const minutes = Math.round((hourFloat - hours) * 60);
+            
+            // Validate calculated values
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                throw new Error(`Invalid time calculated: ${hours}:${minutes}`);
+            }
+            
+            newDate.setHours(hours, minutes, 0, 0);
+            
+            // Validate final date
+            const result = newDate.toISOString();
+            if (!result || result === 'Invalid Date') {
+                throw new Error(`Failed to create valid ISO string from date: ${date}, hour: ${hourFloat}`);
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('[Test Data] dateTimeToISO error:', error.message);
+            // Fallback to safe default
+            const safeDate = new Date(date);
+            safeDate.setHours(8, 0, 0, 0); // Default to 8:00 AM
+            return safeDate.toISOString();
+        }
     }
 }
 
