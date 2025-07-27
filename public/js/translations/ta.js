@@ -256,5 +256,28 @@ export const ta = {
   'workingDays': 'வேலை நாட்கள்',
   'clockInTime': 'கிளாக் இன் நேரம்',
   'duration': 'கால அளவு',
-  'startOdometer': 'தொடக்க ஓடோமீட்டர்'
+  'startOdometer': 'தொடக்க ஓடோமீட்டர்',
+  
+  // Leave Management Section (விடுப்பு மேலாண்மை பிரிவு)
+  'leaveManagement': 'விடுப்பு மேலாண்மை',
+  'requestTrackLeave': 'உங்கள் விடுப்பை கோரவும் மற்றும் கண்காணிக்கவும்',
+  'annualLeaveBalance': 'வருடாந்திர விடுப்பு இருப்பு',
+  'daysPerYear': 'ஆண்டுக்கு 12 நாட்கள்',
+  'balance': 'இருப்பு',
+  'submitNewLeaveRequest': 'புதிய விடுப்பு கோரிக்கையை சமர்ப்பிக்கவும்',
+  'leaveDate': 'விடுப்பு தேதி *',
+  'leaveType': 'விடுப்பு வகை *',
+  'annualLeave': 'வருடாந்திர விடுப்பு',
+  'sickLeave': 'நோய் விடுப்பு',
+  'emergencyLeave': 'அவசர விடுப்பு',
+  'reason': 'காரணம் *',
+  'brieflyDescribeReason': 'விடுப்புக்கான காரணத்தை சுருக்கமாக விவரிக்கவும்...',
+  'submitLeaveRequest': 'விடுப்பு கோரிக்கையை சமர்ப்பிக்கவும்',
+  'recentLeaveRequests': 'சமீபத்திய விடுப்பு கோரிக்கைகள்',
+  'date': 'தேதி',
+  'type': 'வகை',
+  'status': 'நிலை',
+  'requested': 'கோரப்பட்டது',
+  'actions': 'செயல்கள்',
+  'loadingLeaveHistory': 'விடுப்பு வரலாற்றை ஏற்றுகிறது...'
 };

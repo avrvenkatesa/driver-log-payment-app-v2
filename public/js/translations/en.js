@@ -256,5 +256,28 @@ export const en = {
   'workingDays': 'Working Days',
   'clockInTime': 'Clock In Time',
   'duration': 'Duration',
-  'startOdometer': 'Start Odometer'
+  'startOdometer': 'Start Odometer',
+  
+  // Leave Management Section
+  'leaveManagement': 'Leave Management',
+  'requestTrackLeave': 'Request and track your leave',
+  'annualLeaveBalance': 'Annual Leave Balance',
+  'daysPerYear': '12 days per year',
+  'balance': 'Balance',
+  'submitNewLeaveRequest': 'Submit New Leave Request',
+  'leaveDate': 'Leave Date *',
+  'leaveType': 'Leave Type *',
+  'annualLeave': 'Annual Leave',
+  'sickLeave': 'Sick Leave',
+  'emergencyLeave': 'Emergency Leave',
+  'reason': 'Reason *',
+  'brieflyDescribeReason': 'Briefly describe the reason for leave...',
+  'submitLeaveRequest': 'Submit Leave Request',
+  'recentLeaveRequests': 'Recent Leave Requests',
+  'date': 'Date',
+  'type': 'Type',
+  'status': 'Status',
+  'requested': 'Requested',
+  'actions': 'Actions',
+  'loadingLeaveHistory': 'Loading leave history...'
 };

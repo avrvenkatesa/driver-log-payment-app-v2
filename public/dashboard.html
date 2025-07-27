@@ -1141,21 +1141,21 @@
         <!-- Story 12: Leave Management Section -->
         <div class="card" id="leave-management-card">
             <div class="card-header">
-                <h3>📅 Leave Management</h3>
-                <span class="card-subtitle">Request and track your leave</span>
+                <h3 data-translate="leaveManagement">📅 Leave Management</h3>
+                <span class="card-subtitle" data-translate="requestTrackLeave">Request and track your leave</span>
             </div>
             <div class="card-content">
                 <!-- Leave Balance Display -->
                 <div class="leave-balance-section" style="background: linear-gradient(135deg, #e8f5e8, #c8e6c9); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h4 style="color: #2e7d32; margin: 0;">Annual Leave Balance</h4>
+                            <h4 style="color: #2e7d32; margin: 0;" data-translate="annualLeaveBalance">Annual Leave Balance</h4>
                             <span id="leave-balance-display" style="font-size: 1.5em; font-weight: bold; color: #1b5e20;">Loading...</span>
-                            <small style="display: block; color: #4caf50; margin-top: 5px;" id="leave-balance-info">12 days per year</small>
+                            <small style="display: block; color: #4caf50; margin-top: 5px;" id="leave-balance-info" data-translate="daysPerYear">12 days per year</small>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 0.9em; color: #558b2f;">
-                                <span id="leave-year-display">2025</span> Balance
+                                <span id="leave-year-display">2025</span> <span data-translate="balance">Balance</span>
                             </div>
                         </div>
                     </div>
@@ -1163,27 +1163,27 @@
 
                 <!-- Leave Request Form -->
                 <div class="leave-request-form" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h4 style="margin-bottom: 15px; color: #333;">Submit New Leave Request</h4>
+                    <h4 style="margin-bottom: 15px; color: #333;" data-translate="submitNewLeaveRequest">Submit New Leave Request</h4>
                     <form id="leave-request-form" onsubmit="submitLeaveRequest(event)">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div>
-                                <label for="leave-date" style="display: block; margin-bottom: 5px; font-weight: 500;">Leave Date *</label>
+                                <label for="leave-date" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="leaveDate">Leave Date *</label>
                                 <input type="date" id="leave-date" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                             </div>
                             <div>
-                                <label for="leave-type" style="display: block; margin-bottom: 5px; font-weight: 500;">Leave Type *</label>
+                                <label for="leave-type" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="leaveType">Leave Type *</label>
                                 <select id="leave-type" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                                    <option value="annual">Annual Leave</option>
-                                    <option value="sick">Sick Leave</option>
-                                    <option value="emergency">Emergency Leave</option>
+                                    <option value="annual" data-translate="annualLeave">Annual Leave</option>
+                                    <option value="sick" data-translate="sickLeave">Sick Leave</option>
+                                    <option value="emergency" data-translate="emergencyLeave">Emergency Leave</option>
                                 </select>
                             </div>
                         </div>
                         <div style="margin-bottom: 15px;">
-                            <label for="leave-reason" style="display: block; margin-bottom: 5px; font-weight: 500;">Reason *</label>
-                            <textarea id="leave-reason" rows="3" placeholder="Briefly describe the reason for leave..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;" required></textarea>
+                            <label for="leave-reason" style="display: block; margin-bottom: 5px; font-weight: 500;" data-translate="reason">Reason *</label>
+                            <textarea id="leave-reason" rows="3" data-translate-placeholder="brieflyDescribeReason" placeholder="Briefly describe the reason for leave..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;" required></textarea>
                         </div>
-                        <button type="submit" class="btn-primary" id="submit-leave-btn" style="width: 100%;">
+                        <button type="submit" class="btn-primary" id="submit-leave-btn" style="width: 100%;" data-translate="submitLeaveRequest">
                             📅 Submit Leave Request
                         </button>
                     </form>
@@ -1192,14 +1192,14 @@
                 <!-- Leave Requests History -->
                 <div class="leave-history-section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h4 style="margin: 0; color: #333;">Recent Leave Requests</h4>
+                        <h4 style="margin: 0; color: #333;" data-translate="recentLeaveRequests">Recent Leave Requests</h4>
                         <div>
                             <select id="leave-history-year" onchange="loadLeaveHistory()" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="2024">2024</option>
                                 <option value="2025" selected>2025</option>
                                 <option value="2026">2026</option>
                             </select>
-                            <button onclick="loadLeaveHistory()" class="btn-secondary" style="margin-left: 10px;">🔄 Refresh</button>
+                            <button onclick="loadLeaveHistory()" class="btn-secondary" style="margin-left: 10px;" data-translate="refresh">🔄 Refresh</button>
                         </div>
                     </div>
 
@@ -1208,19 +1208,19 @@
                         <table class="shifts-table" style="width: 100%;">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Type</th>
-                                    <th>Reason</th>
-                                    <th>Status</th>
-                                    <th>Requested</th>
-                                    <th>Actions</th>
+                                    <th data-translate="date">Date</th>
+                                    <th data-translate="type">Type</th>
+                                    <th data-translate="reason">Reason</th>
+                                    <th data-translate="status">Status</th>
+                                    <th data-translate="requested">Requested</th>
+                                    <th data-translate="actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="leave-history-table-body">
                                 <tr>
                                     <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
                                         <div class="loading-spinner"></div>
-                                        Loading leave history...
+                                        <span data-translate="loadingLeaveHistory">Loading leave history...</span>
                                     </td>
                                 </tr>
                             </tbody>
