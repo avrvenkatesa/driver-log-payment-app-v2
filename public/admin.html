@@ -673,6 +673,7 @@
             <button class="nav-tab active" onclick="showTab('payroll')" data-translate="payrollConfig">💰 Payroll Config</button>
             <button class="nav-tab" onclick="showTab('drivers')" data-translate="driverManagement">👥 Driver Management</button>
             <button class="nav-tab" onclick="showTab('leave')" data-translate="leaveManagement">🏖️ Leave Management</button>
+            <button class="nav-tab" onclick="showTab('advance')" data-translate="advanceMgmt">💳 Advance Payments</button>
             <button class="nav-tab" onclick="showTab('shifts')" data-translate="shiftManagement">⚙️ Shift Management</button>
             <button class="nav-tab" onclick="showTab('reports')" data-translate="reports">📊 Reports</button>
             <button class="nav-tab" onclick="showTab('system')" data-translate="settings">⚙️ System</button>
@@ -928,6 +929,92 @@
                         <div class="pagination-controls">
                             <button id="leave-prev" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>← Previous</button>
                             <button id="leave-next" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>Next →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advance Payment Management Tab - Story 19: Advance Payment Management -->
+        <div id="advance-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">💳 Advance Payment Management</h2>
+                    <p class="text-muted">Review, approve, and manage advance payment requests from drivers</p>
+                </div>
+                <div class="card-body">
+                    <!-- Advance Payment Summary Cards -->
+                    <div class="analytics-summary" style="margin-bottom: 30px;">
+                        <div class="summary-card" style="background: linear-gradient(135deg, #ff9f43, #f37025); color: white;">
+                            <h4>Pending Requests</h4>
+                            <span id="pendingAdvancesCount">-</span>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #1dd1a1, #20bf6b); color: white;">
+                            <h4>Approved This Month</h4>
+                            <span id="approvedAdvancesCount">-</span>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #feca57, #ff9f43); color: white;">
+                            <h4>Total Outstanding</h4>
+                            <span id="totalOutstandingAmount">₹-</span>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #5f27cd, #8854d0); color: white;">
+                            <h4>Average Request</h4>
+                            <span id="averageRequestAmount">₹-</span>
+                        </div>
+                    </div>
+
+                    <!-- Filter and Control Section -->
+                    <div class="advance-controls" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <select id="advance-status-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                        <select id="advance-driver-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="all">All Drivers</option>
+                        </select>
+                        <input type="date" id="advance-from-date" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="date" id="advance-to-date" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <button onclick="applyAdvanceFilters()" class="btn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">Apply Filters</button>
+                        <button onclick="clearAdvanceFilters()" class="btn" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Clear</button>
+                        <button onclick="refreshAdvanceData()" class="btn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">🔄 Refresh</button>
+                    </div>
+
+                    <!-- Advance Requests Table -->
+                    <div class="table-container" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <table class="data-table" id="advance-requests-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Driver</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Amount</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Type</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Request Date</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Reason</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Status</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="advance-requests-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                                        <div class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;"></div>
+                                        Loading advance requests...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container" id="advance-pagination" style="display: none; margin-top: 1rem; justify-content: space-between; align-items: center;">
+                        <div class="pagination-info">
+                            <span id="advance-page-info">-</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="advance-prev" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>← Previous</button>
+                            <button id="advance-next" class="btn btn-sm" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;" disabled>Next →</button>
                         </div>
                     </div>
                 </div>
@@ -2578,6 +2665,11 @@
                         loadLeaveManagement();
                     }, 100);
                 }
+            } else if (tabName === 'advance') {
+                // Initialize advance payment management if not already done
+                setTimeout(() => {
+                    initializeAdvancePayment();
+                }, 100);
             } else if (tabName === 'shifts') {
                 // Initialize shift management if not already done
                 setTimeout(() => {
@@ -3210,6 +3302,522 @@
                 'July', 'August', 'September', 'October', 'November', 'December'
             ];
             return months[parseInt(monthNumber) - 1] || 'Unknown';
+        }
+
+        // Story 19: Advance Payment Management Functions
+        let advanceRequestsData = [];
+        let advanceCurrentPage = 1;
+        let advanceItemsPerPage = 10;
+        let advanceFilters = {};
+
+        // Initialize Advance Payment Management
+        async function initializeAdvancePayment() {
+            console.log('[Advance Management] Initializing advance payment management...');
+            await loadAdvanceRequestsSummary();
+            await loadAdvanceRequestsList();
+            await loadDriversForAdvanceFilter();
+        }
+
+        // Load advance requests summary
+        async function loadAdvanceRequestsSummary() {
+            try {
+                console.log('[Advance Management] Loading summary...');
+                
+                const response = await fetch('/api/admin/advance-requests?summary=true', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[Advance Management] Summary loaded:', result);
+
+                if (result.success && result.data) {
+                    displayAdvanceSummary(result.data);
+                } else {
+                    throw new Error(result.message || 'Failed to load summary');
+                }
+
+            } catch (error) {
+                console.error('[Advance Management] Error loading summary:', error);
+                showError(`Error loading advance summary: ${error.message}`, 'error');
+            }
+        }
+
+        // Display advance payment summary
+        function displayAdvanceSummary(data) {
+            // Calculate summary from requests
+            const pendingRequests = data.requests ? data.requests.filter(r => r.status === 'pending') : [];
+            const approvedThisMonth = data.requests ? data.requests.filter(r => 
+                r.status === 'approved' && 
+                new Date(r.request_date).getMonth() === new Date().getMonth()
+            ) : [];
+            
+            const totalOutstanding = data.requests ? 
+                data.requests.filter(r => r.status === 'approved' || r.status === 'paid')
+                    .reduce((sum, r) => sum + (r.approved_amount || r.requested_amount), 0) : 0;
+            
+            const averageRequest = data.requests && data.requests.length > 0 ? 
+                data.requests.reduce((sum, r) => sum + r.requested_amount, 0) / data.requests.length : 0;
+
+            document.getElementById('pendingAdvancesCount').textContent = pendingRequests.length;
+            document.getElementById('approvedAdvancesCount').textContent = approvedThisMonth.length;
+            document.getElementById('totalOutstandingAmount').textContent = `₹${totalOutstanding.toLocaleString('en-IN')}`;
+            document.getElementById('averageRequestAmount').textContent = `₹${Math.round(averageRequest).toLocaleString('en-IN')}`;
+        }
+
+        // Load advance requests list
+        async function loadAdvanceRequestsList(page = 1) {
+            try {
+                console.log('[Advance Management] Loading requests list...');
+                
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: advanceItemsPerPage,
+                    ...advanceFilters
+                });
+
+                const response = await fetch(`/api/admin/advance-requests?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[Advance Management] Requests loaded:', result);
+
+                if (result.success && result.data) {
+                    advanceRequestsData = result.data.requests || [];
+                    displayAdvanceRequestsList(advanceRequestsData);
+                    updateAdvancePagination(result.data.totalCount || 0, page);
+                } else {
+                    throw new Error(result.message || 'Failed to load requests');
+                }
+
+            } catch (error) {
+                console.error('[Advance Management] Error loading requests:', error);
+                const tbody = document.getElementById('advance-requests-tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #d32f2f;">
+                            Error loading advance requests: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display advance requests list
+        function displayAdvanceRequestsList(requests) {
+            const tbody = document.getElementById('advance-requests-tbody');
+            
+            if (!requests || requests.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                            No advance requests found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = requests.map(request => {
+                const statusBadge = getStatusBadge(request.status);
+                const requestDate = formatDate(request.request_date);
+                const amount = `₹${request.requested_amount.toLocaleString('en-IN')}`;
+                
+                let actions = '';
+                if (request.status === 'pending') {
+                    actions = `
+                        <button onclick="showApprovalModal(${request.id})" 
+                                style="padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;">
+                            ✓ Approve
+                        </button>
+                        <button onclick="showRejectionModal(${request.id})" 
+                                style="padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            ✗ Reject
+                        </button>
+                    `;
+                } else if (request.status === 'approved') {
+                    actions = `
+                        <button onclick="markAsPaid(${request.id})" 
+                                style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            💰 Mark Paid
+                        </button>
+                    `;
+                } else {
+                    actions = `<span style="color: #666; font-style: italic;">No actions</span>`;
+                }
+
+                return `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight: 500;">${request.driver_name || 'Unknown'}</td>
+                        <td style="padding: 12px; font-weight: 600; color: #2c5aa0;">${amount}</td>
+                        <td style="padding: 12px;">
+                            <span style="padding: 4px 8px; background: #e9ecef; border-radius: 4px; font-size: 0.85em; text-transform: capitalize;">
+                                ${request.advance_type || 'Regular'}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; color: #666;">${requestDate}</td>
+                        <td style="padding: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${request.reason}">
+                            ${request.reason || 'No reason provided'}
+                        </td>
+                        <td style="padding: 12px;">${statusBadge}</td>
+                        <td style="padding: 12px;">${actions}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Get status badge
+        function getStatusBadge(status) {
+            const statusColors = {
+                'pending': { bg: '#fff3cd', color: '#856404', text: 'Pending' },
+                'approved': { bg: '#d4edda', color: '#155724', text: 'Approved' },
+                'rejected': { bg: '#f8d7da', color: '#721c24', text: 'Rejected' },
+                'paid': { bg: '#d1ecf1', color: '#0c5460', text: 'Paid' }
+            };
+            
+            const config = statusColors[status] || { bg: '#f8f9fa', color: '#495057', text: status };
+            
+            return `
+                <span style="padding: 6px 12px; background: ${config.bg}; color: ${config.color}; 
+                             border-radius: 20px; font-size: 0.85em; font-weight: 500;">
+                    ${config.text}
+                </span>
+            `;
+        }
+
+        // Update advance pagination
+        function updateAdvancePagination(totalCount, currentPage) {
+            const pagination = document.getElementById('advance-pagination');
+            const pageInfo = document.getElementById('advance-page-info');
+            const prevBtn = document.getElementById('advance-prev');
+            const nextBtn = document.getElementById('advance-next');
+
+            const totalPages = Math.ceil(totalCount / advanceItemsPerPage);
+            const startItem = (currentPage - 1) * advanceItemsPerPage + 1;
+            const endItem = Math.min(currentPage * advanceItemsPerPage, totalCount);
+
+            pageInfo.textContent = `Showing ${startItem}-${endItem} of ${totalCount} requests`;
+            
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+            
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    advanceCurrentPage = currentPage - 1;
+                    loadAdvanceRequestsList(advanceCurrentPage);
+                }
+            };
+            
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    advanceCurrentPage = currentPage + 1;
+                    loadAdvanceRequestsList(advanceCurrentPage);
+                }
+            };
+
+            pagination.style.display = totalCount > 0 ? 'flex' : 'none';
+        }
+
+        // Load drivers for filter dropdown
+        async function loadDriversForAdvanceFilter() {
+            try {
+                const response = await fetch('/api/admin/drivers', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const select = document.getElementById('advance-driver-filter');
+                        select.innerHTML = '<option value="all">All Drivers</option>';
+                        
+                        result.data.forEach(driver => {
+                            select.innerHTML += `<option value="${driver.id}">${driver.name}</option>`;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[Advance Management] Error loading drivers:', error);
+            }
+        }
+
+        // Apply advance filters
+        function applyAdvanceFilters() {
+            advanceFilters = {};
+            
+            const status = document.getElementById('advance-status-filter').value;
+            const driverId = document.getElementById('advance-driver-filter').value;
+            const fromDate = document.getElementById('advance-from-date').value;
+            const toDate = document.getElementById('advance-to-date').value;
+            
+            if (status !== 'all') advanceFilters.status = status;
+            if (driverId !== 'all') advanceFilters.driverId = driverId;
+            if (fromDate) advanceFilters.fromDate = fromDate;
+            if (toDate) advanceFilters.toDate = toDate;
+            
+            advanceCurrentPage = 1;
+            loadAdvanceRequestsList(1);
+        }
+
+        // Clear advance filters
+        function clearAdvanceFilters() {
+            document.getElementById('advance-status-filter').value = 'all';
+            document.getElementById('advance-driver-filter').value = 'all';
+            document.getElementById('advance-from-date').value = '';
+            document.getElementById('advance-to-date').value = '';
+            
+            advanceFilters = {};
+            advanceCurrentPage = 1;
+            loadAdvanceRequestsList(1);
+        }
+
+        // Refresh advance data
+        function refreshAdvanceData() {
+            loadAdvanceRequestsSummary();
+            loadAdvanceRequestsList(advanceCurrentPage);
+        }
+
+        // Show approval modal
+        function showApprovalModal(advanceId) {
+            const request = advanceRequestsData.find(r => r.id === advanceId);
+            if (!request) return;
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.5); display: flex; justify-content: center; 
+                align-items: center; z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <h3 style="margin: 0 0 20px 0; color: #333;">Approve Advance Request</h3>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Driver:</strong> ${request.driver_name}<br>
+                        <strong>Requested Amount:</strong> ₹${request.requested_amount.toLocaleString('en-IN')}<br>
+                        <strong>Reason:</strong> ${request.reason}
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Approved Amount:</label>
+                        <input type="number" id="approved-amount" value="${request.requested_amount}" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Payment Method:</label>
+                        <select id="payment-method" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash">Cash</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Notes:</label>
+                        <textarea id="approval-notes" rows="3" 
+                                  style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+                                  placeholder="Optional approval notes..."></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="this.closest('div').parentElement.remove()" 
+                                style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Cancel
+                        </button>
+                        <button onclick="approveAdvanceRequest(${advanceId})" 
+                                style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Approve
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        }
+
+        // Approve advance request
+        async function approveAdvanceRequest(advanceId) {
+            try {
+                const approvedAmount = parseFloat(document.getElementById('approved-amount').value);
+                const paymentMethod = document.getElementById('payment-method').value;
+                const notes = document.getElementById('approval-notes').value;
+
+                if (!approvedAmount || approvedAmount <= 0) {
+                    showAlert('Please enter a valid approved amount', 'error');
+                    return;
+                }
+
+                const response = await fetch(`/api/admin/advance-request/${advanceId}/approve`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        approvedAmount,
+                        paymentMethod,
+                        notes
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('✅ Advance request approved successfully!', 'success');
+                    document.querySelector('[style*="position: fixed"]').remove(); // Close modal
+                    refreshAdvanceData();
+                } else {
+                    throw new Error(result.message || 'Failed to approve request');
+                }
+
+            } catch (error) {
+                console.error('[Advance Management] Error approving request:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show rejection modal
+        function showRejectionModal(advanceId) {
+            const request = advanceRequestsData.find(r => r.id === advanceId);
+            if (!request) return;
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.5); display: flex; justify-content: center; 
+                align-items: center; z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <h3 style="margin: 0 0 20px 0; color: #dc3545;">Reject Advance Request</h3>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Driver:</strong> ${request.driver_name}<br>
+                        <strong>Requested Amount:</strong> ₹${request.requested_amount.toLocaleString('en-IN')}<br>
+                        <strong>Reason:</strong> ${request.reason}
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Rejection Reason:</label>
+                        <textarea id="rejection-reason" rows="3" required
+                                  style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+                                  placeholder="Please provide a reason for rejection..."></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="this.closest('div').parentElement.remove()" 
+                                style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Cancel
+                        </button>
+                        <button onclick="rejectAdvanceRequest(${advanceId})" 
+                                style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        }
+
+        // Reject advance request
+        async function rejectAdvanceRequest(advanceId) {
+            try {
+                const rejectionReason = document.getElementById('rejection-reason').value.trim();
+
+                if (!rejectionReason) {
+                    showAlert('Please provide a reason for rejection', 'error');
+                    return;
+                }
+
+                const response = await fetch(`/api/admin/advance-request/${advanceId}/reject`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        rejectionReason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Advance request rejected', 'success');
+                    document.querySelector('[style*="position: fixed"]').remove(); // Close modal
+                    refreshAdvanceData();
+                } else {
+                    throw new Error(result.message || 'Failed to reject request');
+                }
+
+            } catch (error) {
+                console.error('[Advance Management] Error rejecting request:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Mark advance as paid
+        async function markAsPaid(advanceId) {
+            if (!confirm('Mark this advance request as paid? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/advance-request/${advanceId}/mark-paid`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('✅ Advance marked as paid successfully!', 'success');
+                    refreshAdvanceData();
+                } else {
+                    throw new Error(result.message || 'Failed to mark as paid');
+                }
+
+            } catch (error) {
+                console.error('[Advance Management] Error marking as paid:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Format date helper
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
         }
     </script>
 </body>
