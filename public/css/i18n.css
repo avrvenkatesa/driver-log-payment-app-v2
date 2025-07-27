@@ -1,0 +1,241 @@
+/* Internationalization CSS - Tamil Font Support */
+
+/* Import Tamil fonts */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@300;400;500;600;700&display=swap');
+
+/* Default Tamil font fallbacks */
+.tamil-text,
+body[data-language="ta"],
+[lang="ta"] {
+  font-family: 'Noto Sans Tamil', 'Latha', 'Mukti Narrow', 'Arial Unicode MS', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+/* Tamil text rendering optimizations */
+body[data-language="ta"] {
+  text-rendering: optimizeLegibility;
+  -webkit-font-feature-settings: "liga", "kern";
+  font-feature-settings: "liga", "kern";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tamil headings */
+body[data-language="ta"] h1,
+body[data-language="ta"] h2,
+body[data-language="ta"] h3,
+body[data-language="ta"] h4,
+body[data-language="ta"] h5,
+body[data-language="ta"] h6 {
+  font-family: 'Noto Sans Tamil', 'Latha', 'Arial Unicode MS', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Tamil form elements */
+body[data-language="ta"] input,
+body[data-language="ta"] textarea,
+body[data-language="ta"] select,
+body[data-language="ta"] button {
+  font-family: 'Noto Sans Tamil', 'Latha', 'Arial Unicode MS', sans-serif;
+  font-size: 14px;
+}
+
+/* Tamil table text */
+body[data-language="ta"] table {
+  font-family: 'Noto Sans Tamil', 'Latha', 'Arial Unicode MS', sans-serif;
+}
+
+/* Language selector styles */
+.language-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.language-selector {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.language-selector:hover {
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.language-selector:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* Language indicator */
+.language-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #666;
+  padding: 2px 6px;
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+/* RTL support preparation (if needed for future languages) */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .language-container {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Tamil specific UI adjustments */
+body[data-language="ta"] .btn {
+  letter-spacing: 0.3px;
+}
+
+body[data-language="ta"] .card-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+body[data-language="ta"] .form-label {
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+/* Navigation adjustments for Tamil */
+body[data-language="ta"] .nav-link {
+  font-size: 15px;
+  padding: 8px 16px;
+}
+
+/* Status badge adjustments for Tamil */
+body[data-language="ta"] .status-badge {
+  font-size: 13px;
+  padding: 4px 8px;
+  font-weight: 500;
+}
+
+/* Loading text adjustments */
+body[data-language="ta"] .loading-text {
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+/* Modal and dialog adjustments */
+body[data-language="ta"] .modal-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+body[data-language="ta"] .modal-body {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Table header adjustments for Tamil */
+body[data-language="ta"] th {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Notification adjustments */
+body[data-language="ta"] .notification,
+body[data-language="ta"] .alert {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Dashboard card adjustments */
+body[data-language="ta"] .dashboard-card {
+  text-align: center;
+}
+
+body[data-language="ta"] .dashboard-card h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+/* Form validation message adjustments */
+body[data-language="ta"] .error-message,
+body[data-language="ta"] .validation-message {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments for Tamil */
+@media (max-width: 768px) {
+  body[data-language="ta"] {
+    font-size: 14px;
+  }
+  
+  body[data-language="ta"] h1 {
+    font-size: 20px;
+  }
+  
+  body[data-language="ta"] h2 {
+    font-size: 18px;
+  }
+  
+  body[data-language="ta"] h3 {
+    font-size: 16px;
+  }
+  
+  .language-container {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .language-selector {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+}
+
+/* Animation for language switching */
+.language-transition {
+  transition: all 0.3s ease;
+}
+
+/* Language change notification */
+.language-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #4CAF50;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10000;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.3s ease;
+}
+
+.language-notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Print styles for Tamil */
+@media print {
+  body[data-language="ta"] {
+    font-family: 'Noto Sans Tamil', 'Latha', 'Arial Unicode MS', sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+}

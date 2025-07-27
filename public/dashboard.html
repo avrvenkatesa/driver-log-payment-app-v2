@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-language="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Log Pro - Dashboard</title>
+    <title data-translate="driverDashboard">Driver Log Pro - Dashboard</title>
+    <link rel="stylesheet" href="css/i18n.css">
     <style>
         * {
             margin: 0;
@@ -849,11 +850,20 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚗 Driver Log Pro</h1>
-            <p class="subtitle">Driver Dashboard & Status Monitoring</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h1 data-translate="driverDashboard">🚗 Driver Log Pro</h1>
+                <div class="language-container">
+                    <label for="languageSelector" data-translate="selectLanguage" style="font-size: 14px; color: #666; margin-right: 8px;">Select Language</label>
+                    <select id="languageSelector" class="language-selector">
+                        <option value="en" data-translate="english">English</option>
+                        <option value="ta" data-translate="tamil">தமிழ்</option>
+                    </select>
+                </div>
+            </div>
+            <p class="subtitle" data-translate="driverStatusMonitoring">Driver Dashboard & Status Monitoring</p>
         </div>
         
-        <div id="loading" class="loading">
+        <div id="loading" class="loading" data-translate="loadingDashboard">
             Loading dashboard...
         </div>
         
@@ -861,19 +871,19 @@
         
         <div id="login-container" style="display: none;">
             <div class="login-form">
-                <h2 style="text-align: center; margin-bottom: 25px; color: #2c3e50;">Driver Login</h2>
+                <h2 style="text-align: center; margin-bottom: 25px; color: #2c3e50;" data-translate="driverLogin">Driver Login</h2>
                 <form id="login-form">
                     <div class="form-group">
-                        <label for="identifier">Phone / Email / Name:</label>
-                        <input type="text" id="identifier" name="identifier" required placeholder="Enter your identifier">
+                        <label for="identifier" data-translate="phoneEmailName">Phone / Email / Name:</label>
+                        <input type="text" id="identifier" name="identifier" required data-translate-placeholder="enterIdentifier" placeholder="Enter your identifier">
                     </div>
                     <div class="form-group">
-                        <label for="password">Password:</label>
-                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                        <label for="password" data-translate="password">Password:</label>
+                        <input type="password" id="password" name="password" required data-translate-placeholder="enterPassword" placeholder="Enter your password">
                     </div>
-                    <button type="submit" class="btn">Login</button>
+                    <button type="submit" class="btn" data-translate="login">Login</button>
                 </form>
-                <div style="text-align: center; margin-top: 15px; color: #7f8c8d;">
+                <div style="text-align: center; margin-top: 15px; color: #7f8c8d;" data-translate="testAccount">
                     Test Account: +1234567890 / password123
                 </div>
             </div>
@@ -884,7 +894,7 @@
                 <div class="card">
                     <h3>
                         <span class="status-indicator" id="shift-status-indicator"></span>
-                        Current Status
+                        <span data-translate="currentStatus">Current Status</span>
                     </h3>
                     <div class="info-row">
                         <span class="info-label">Shift Status:</span>
@@ -4111,6 +4121,39 @@
                 year: 'numeric'
             });
         }
+    </script>
+    
+    <!-- Translation System -->
+    <script type="module" src="js/translationManager.js"></script>
+    <script>
+        // Initialize language change for driver dashboard
+        window.addEventListener('languageChanged', function(event) {
+            console.log('[Driver Dashboard] Language changed to:', event.detail.language);
+            
+            // Update document language attribute
+            document.documentElement.setAttribute('lang', event.detail.language);
+            document.documentElement.setAttribute('data-language', event.detail.language);
+            
+            // Refresh dynamic content translations if needed
+            if (typeof refreshData === 'function') {
+                setTimeout(() => refreshData(), 100);
+            }
+        });
+        
+        // Wait for translation system to be ready
+        window.addEventListener('translationSystemReady', function(event) {
+            console.log('[Driver Dashboard] Translation system ready');
+            
+            // Apply initial language setting
+            document.documentElement.setAttribute('data-language', event.detail.language);
+            
+            // Initialize driver dashboard with translations
+            setTimeout(() => {
+                if (typeof loadDriverStatus === 'function') {
+                    loadDriverStatus();
+                }
+            }, 200);
+        });
     </script>
 </body>
 </html>
