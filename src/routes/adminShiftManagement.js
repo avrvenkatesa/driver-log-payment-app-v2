@@ -897,12 +897,21 @@ router.post('/shifts/bulk', async (req, res) => {
         for (const shiftData of shifts) {
             try {
                 if (operation === 'create') {
-                    // Validate and create shift
-                    const existingShifts = dbConnection.prepare(`
-                        SELECT * FROM shifts WHERE driver_id = ? ORDER BY shift_date DESC
-                    `).all(shiftData.driverId);
+                    // Validate and create shift - get existing shifts properly
+                    const existingShiftsResult = new Promise((resolve, reject) => {
+                        dbConnection.all(`
+                            SELECT * FROM shifts WHERE driver_id = ? ORDER BY clock_in_time DESC
+                        `, [shiftData.driverId], (err, rows) => {
+                            if (err) reject(err);
+                            else resolve(rows || []);
+                        });
+                    });
                     
-                    const validation = validateShiftData(shiftData, existingShifts);
+                    const existingShifts = await existingShiftsResult;
+                    
+                    // Ensure existingShifts is always an array for validation
+                    const shiftsArray = Array.isArray(existingShifts) ? existingShifts : [];
+                    const validation = validateShiftData(shiftData, shiftsArray);
                     
                     if (!validation.isValid) {
                         results.push({ 
@@ -920,21 +929,27 @@ router.post('/shifts/bulk', async (req, res) => {
                     const durationMinutes = Math.round((endDateTime - startDateTime) / (1000 * 60));
                     const distance = parseInt(shiftData.endOdometer) - parseInt(shiftData.startOdometer);
                     
-                    const insertStmt = dbConnection.prepare(`
-                        INSERT INTO shifts (
-                            driver_id, shift_date, clock_in_time, clock_out_time, 
-                            start_odometer, end_odometer, total_distance, 
-                            shift_duration_minutes, status, created_by, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, datetime('now'))
-                    `);
+                    // Create shift using proper async database call
+                    const createShiftResult = new Promise((resolve, reject) => {
+                        dbConnection.run(`
+                            INSERT INTO shifts (
+                                driver_id, clock_in_time, clock_out_time, 
+                                start_odometer, end_odometer, total_distance, 
+                                shift_duration_minutes, status, created_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', datetime('now'))
+                        `, [
+                            shiftData.driverId,
+                            convertToIST(startDateTime).formatted,
+                            convertToIST(endDateTime).formatted,
+                            shiftData.startOdometer, shiftData.endOdometer, 
+                            distance, durationMinutes
+                        ], function(err) {
+                            if (err) reject(err);
+                            else resolve({ lastInsertRowid: this.lastID });
+                        });
+                    });
                     
-                    const result = insertStmt.run(
-                        shiftData.driverId, shiftData.date,
-                        convertToIST(startDateTime).formatted,
-                        convertToIST(endDateTime).formatted,
-                        shiftData.startOdometer, shiftData.endOdometer, 
-                        distance, durationMinutes, adminId
-                    );
+                    const result = await createShiftResult;
                     
                     const auditId = await createAuditLog(
                         result.lastInsertRowid, 'create', null, shiftData, adminId, 
