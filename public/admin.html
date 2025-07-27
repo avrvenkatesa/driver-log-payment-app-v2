@@ -3572,17 +3572,60 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.success && result.data) {
-                        const select = document.getElementById('advance-driver-filter');
-                        select.innerHTML = '<option value="all">All Drivers</option>';
-                        
-                        result.data.forEach(driver => {
-                            select.innerHTML += `<option value="${driver.id}">${driver.name}</option>`;
-                        });
+                    console.log('[Advance Management] Drivers API response:', result);
+                    
+                    let drivers = [];
+                    
+                    // Handle different response structures
+                    if (result.success && result.data && result.data.drivers) {
+                        drivers = Array.isArray(result.data.drivers) ? result.data.drivers : [result.data.drivers];
+                    } else if (result.success && result.data) {
+                        drivers = Array.isArray(result.data) ? result.data : [result.data];
+                    } else if (Array.isArray(result)) {
+                        drivers = result;
+                    } else if (result.drivers) {
+                        drivers = Array.isArray(result.drivers) ? result.drivers : [result.drivers];
                     }
+                    
+                    const select = document.getElementById('advance-driver-filter');
+                    select.innerHTML = '<option value="all">All Drivers</option>';
+                    
+                    if (drivers.length > 0) {
+                        drivers.forEach(driver => {
+                            const driverId = driver.id || driver.driver_id;
+                            const driverName = driver.name || driver.driver_name || `Driver ${driverId}`;
+                            select.innerHTML += `<option value="${driverId}">${driverName}</option>`;
+                        });
+                        console.log('[Advance Management] Loaded', drivers.length, 'drivers for filter');
+                    } else {
+                        console.log('[Advance Management] No drivers found in response');
+                    }
+                } else {
+                    console.error('[Advance Management] Failed to load drivers:', response.status, response.statusText);
                 }
             } catch (error) {
                 console.error('[Advance Management] Error loading drivers:', error);
+                
+                // Fallback: Load drivers from advance requests data
+                if (advanceRequestsData && advanceRequestsData.length > 0) {
+                    const select = document.getElementById('advance-driver-filter');
+                    select.innerHTML = '<option value="all">All Drivers</option>';
+                    
+                    const uniqueDrivers = new Map();
+                    advanceRequestsData.forEach(request => {
+                        const driverId = request.driverId || request.driver_id;
+                        const driverName = request.driverName || request.driver_name;
+                        if (driverId && driverName) {
+                            uniqueDrivers.set(driverId, driverName);
+                        }
+                    });
+                    
+                    uniqueDrivers.forEach((name, id) => {
+                        select.innerHTML += `<option value="${id}">${name}</option>`;
+                    });
+                    
+                    console.log('[Advance Management] Used fallback driver loading from requests data');
+                }
             }
         }
 
