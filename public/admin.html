@@ -1022,6 +1022,87 @@
                 </div>
             </div>
 
+            <!-- PDF Payroll Export Section (Story 18) -->
+            <div class="card" style="margin-bottom: 25px;">
+                <h3>📋 Payroll Reports & PDF Export</h3>
+                <p style="color: #666; margin-bottom: 20px;">Generate professional payroll reports in PDF format for monthly and yearly periods.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px;">
+                    <!-- Monthly Report -->
+                    <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fafafa;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📅 Monthly Payroll Report</h4>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Generate detailed payroll report for a specific month with driver breakdown.</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Year</label>
+                                <select id="monthly-year" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="2025">2025</option>
+                                    <option value="2024">2024</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Month</label>
+                                <select id="monthly-month" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7" selected>July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="generateMonthlyPDF()" class="btn-primary" style="flex: 1; padding: 10px; font-size: 14px;">
+                                📄 Generate PDF
+                            </button>
+                            <button onclick="previewMonthlyReport()" class="btn btn-secondary" style="padding: 10px 15px; font-size: 14px;">
+                                👁️ Preview
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Year-to-Date Report -->
+                    <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fafafa;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📊 Year-to-Date Report</h4>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Generate comprehensive annual payroll summary with monthly breakdown.</p>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Year</label>
+                            <select id="ytd-year" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="generateYTDPDF()" class="btn-primary" style="flex: 1; padding: 10px; font-size: 14px;">
+                                📊 Generate YTD PDF
+                            </button>
+                            <button onclick="previewYTDReport()" class="btn btn-secondary" style="padding: 10px 15px; font-size: 14px;">
+                                👁️ Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Export Status -->
+                <div id="pdf-export-status" style="display: none; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                    <div style="display: flex; align-items: center;">
+                        <div class="loading-spinner" style="width: 20px; height: 20px; margin-right: 10px;"></div>
+                        <span id="pdf-status-text">Generating PDF report...</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filter Controls -->
             <div class="card">
                 <div class="analytics-controls">
@@ -2861,6 +2942,226 @@
             const minutes = String(date.getMinutes()).padStart(2, '0');
             
             return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // PDF Export Functions (Story 18: PDF Payroll Reports)
+        
+        // Show PDF export status
+        function showPDFStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('pdf-export-status');
+            const statusText = document.getElementById('pdf-status-text');
+            
+            statusText.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                statusDiv.style.backgroundColor = '#d4edda';
+                statusDiv.style.borderColor = '#c3e6cb';
+                statusDiv.style.color = '#155724';
+                statusDiv.querySelector('.loading-spinner').style.display = 'none';
+            } else if (type === 'error') {
+                statusDiv.style.backgroundColor = '#f8d7da';
+                statusDiv.style.borderColor = '#f5c6cb';
+                statusDiv.style.color = '#721c24';
+                statusDiv.querySelector('.loading-spinner').style.display = 'none';
+            } else {
+                statusDiv.style.backgroundColor = '#fff3cd';
+                statusDiv.style.borderColor = '#ffeaa7';
+                statusDiv.style.color = '#856404';
+                statusDiv.querySelector('.loading-spinner').style.display = 'inline-block';
+            }
+            
+            // Auto-hide success/error messages after 5 seconds
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Generate Monthly PDF Report
+        async function generateMonthlyPDF() {
+            const year = document.getElementById('monthly-year').value;
+            const month = document.getElementById('monthly-month').value;
+            
+            if (!year || !month) {
+                showAlert('Please select both year and month', 'error');
+                return;
+            }
+            
+            showPDFStatus('Generating monthly payroll PDF report...', 'loading');
+            
+            try {
+                const response = await fetch(`/api/admin/payroll/${year}/${month}/export?download=true`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('text/html')) {
+                    // HTML fallback - open in new window
+                    const htmlContent = await response.text();
+                    const newWindow = window.open('', '_blank');
+                    newWindow.document.write(htmlContent);
+                    newWindow.document.close();
+                    showPDFStatus('Report opened in new window (HTML format)', 'success');
+                } else {
+                    // PDF download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Payroll_Report_${getMonthName(month)}_${year}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showPDFStatus('PDF report downloaded successfully', 'success');
+                }
+                
+            } catch (error) {
+                console.error('[PDF Export] Error generating monthly PDF:', error);
+                showPDFStatus(`Failed to generate report: ${error.message}`, 'error');
+            }
+        }
+        
+        // Preview Monthly Report
+        async function previewMonthlyReport() {
+            const year = document.getElementById('monthly-year').value;
+            const month = document.getElementById('monthly-month').value;
+            
+            if (!year || !month) {
+                showAlert('Please select both year and month', 'error');
+                return;
+            }
+            
+            showPDFStatus('Loading report preview...', 'loading');
+            
+            try {
+                const response = await fetch(`/api/admin/payroll/${year}/${month}/export?download=false`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const htmlContent = await response.text();
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+                showPDFStatus('Report preview opened in new window', 'success');
+                
+            } catch (error) {
+                console.error('[PDF Export] Error previewing monthly report:', error);
+                showPDFStatus(`Failed to preview report: ${error.message}`, 'error');
+            }
+        }
+        
+        // Generate Year-to-Date PDF Report
+        async function generateYTDPDF() {
+            const year = document.getElementById('ytd-year').value;
+            
+            if (!year) {
+                showAlert('Please select a year', 'error');
+                return;
+            }
+            
+            showPDFStatus('Generating year-to-date payroll PDF report...', 'loading');
+            
+            try {
+                const response = await fetch(`/api/admin/payroll/${year}/ytd/export?download=true`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('text/html')) {
+                    // HTML fallback - open in new window
+                    const htmlContent = await response.text();
+                    const newWindow = window.open('', '_blank');
+                    newWindow.document.write(htmlContent);
+                    newWindow.document.close();
+                    showPDFStatus('YTD report opened in new window (HTML format)', 'success');
+                } else {
+                    // PDF download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `YTD_Payroll_Report_${year}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showPDFStatus('YTD PDF report downloaded successfully', 'success');
+                }
+                
+            } catch (error) {
+                console.error('[PDF Export] Error generating YTD PDF:', error);
+                showPDFStatus(`Failed to generate YTD report: ${error.message}`, 'error');
+            }
+        }
+        
+        // Preview Year-to-Date Report
+        async function previewYTDReport() {
+            const year = document.getElementById('ytd-year').value;
+            
+            if (!year) {
+                showAlert('Please select a year', 'error');
+                return;
+            }
+            
+            showPDFStatus('Loading YTD report preview...', 'loading');
+            
+            try {
+                const response = await fetch(`/api/admin/payroll/${year}/ytd/export?download=false`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const htmlContent = await response.text();
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+                showPDFStatus('YTD report preview opened in new window', 'success');
+                
+            } catch (error) {
+                console.error('[PDF Export] Error previewing YTD report:', error);
+                showPDFStatus(`Failed to preview YTD report: ${error.message}`, 'error');
+            }
+        }
+        
+        // Helper function to get month name
+        function getMonthName(monthNumber) {
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            return months[parseInt(monthNumber) - 1] || 'Unknown';
         }
     </script>
 </body>

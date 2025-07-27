@@ -1,0 +1,1 @@
+{"success":false,"error":"PDF_GENERATION_FAILED","message":"Failed to generate PDF report","details":"dbConnection.all is not a function"}

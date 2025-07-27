@@ -169,6 +169,11 @@ try {
   app.use('/api/admin', adminShiftManagementRoutes);
   log('✅ Manual shift management routes registered at /api/admin');
   
+  // PDF Payroll Export routes (Story 18: PDF Payroll Reports)
+  const payrollPDFRoutes = require('./src/routes/payrollPDFRoutes.js');
+  app.use('/api/admin', payrollPDFRoutes);
+  log('✅ PDF payroll export routes registered at /api/admin');
+  
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
     log('✅ Payroll configuration system initialized successfully');
