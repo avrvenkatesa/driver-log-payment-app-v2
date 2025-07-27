@@ -8,7 +8,6 @@ packages = ["lsof", "file", "sqlite-interactive"]
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
 [[ports]]
