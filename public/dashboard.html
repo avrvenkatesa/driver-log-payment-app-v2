@@ -4440,10 +4440,13 @@
         }
 
         // Update loadDashboard to include advance payment initialization
-        const originalLoadDashboard2 = loadDashboard;
+        const originalLoadDashboardForAdvance = loadDashboard;
         loadDashboard = function() {
-            originalLoadDashboard2();
-            initializeAdvancePayment();
+            originalLoadDashboardForAdvance();
+            setTimeout(() => {
+                console.log('[Advance Payment] Starting initialization...');
+                initializeAdvancePayment();
+            }, 1000);
         };
     </script>
     
