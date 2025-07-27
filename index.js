@@ -174,6 +174,20 @@ try {
   app.use('/api/admin', payrollPDFRoutes);
   log('✅ PDF payroll export routes registered at /api/admin');
   
+  // Test Data Management routes (Story 20: Test Data Management) - will be added later
+  // const testDataRoutes = require('./src/routes/testDataRoutes.js');
+  // app.use('/api/admin', testDataRoutes);
+  // log('✅ Test data management routes registered at /api/admin');
+  
+  // Advance Payment routes (Story 19: Advance Payment Management)
+  const advancePaymentRoutes = require('./src/routes/advancePaymentRoutes.js');
+  app.use('/api/driver', advancePaymentRoutes);
+  log('✅ Advance payment routes registered at /api/driver');
+  
+  const adminAdvanceRoutes = require('./src/routes/adminAdvanceRoutes.js');
+  app.use('/api/admin', adminAdvanceRoutes);
+  log('✅ Admin advance payment routes registered at /api/admin');
+  
   // Initialize payroll configuration system
   initializePayrollSystem().then(() => {
     log('✅ Payroll configuration system initialized successfully');
@@ -189,6 +203,14 @@ try {
     log('✅ Leave management system initialized successfully');
   }).catch(err => {
     log(`❌ Error initializing leave management system: ${err.message}`);
+  });
+  
+  // Initialize advance payment system (Story 19)
+  const { createAdvancePaymentTables } = require('./src/database/advancePaymentSchema.js');
+  createAdvancePaymentTables().then(() => {
+    log('✅ Advance payment system initialized successfully');
+  }).catch(err => {
+    log(`❌ Error initializing advance payment system: ${err.message}`);
   });
   
   // Test database availability
