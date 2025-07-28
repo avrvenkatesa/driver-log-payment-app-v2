@@ -47,7 +47,13 @@ class AlternativePDFService {
             overtimeHours: 0,
             overtimePay: 0,
             fuelAllowance: 0,
+            grossEarnings: 0,
             leaveDeduction: 0,
+            pfDeduction: 0,
+            esiDeduction: 0,
+            taxDeduction: 0,
+            advanceDeduction: 0,
+            totalDeductions: 0,
             totalEarnings: 0,
             workingDays: 0
         };
@@ -58,7 +64,13 @@ class AlternativePDFService {
             totals.overtimeHours += breakdown.overtimeHours || 0;
             totals.overtimePay += breakdown.overtimePay || 0;
             totals.fuelAllowance += breakdown.fuelAllowance || 0;
+            totals.grossEarnings += breakdown.grossEarnings || 0;
             totals.leaveDeduction += breakdown.leaveDeduction || 0;
+            totals.pfDeduction += breakdown.pfDeduction || 0;
+            totals.esiDeduction += breakdown.esiDeduction || 0;
+            totals.taxDeduction += breakdown.taxDeduction || 0;
+            totals.advanceDeduction += breakdown.advanceDeduction || 0;
+            totals.totalDeductions += breakdown.totalDeductions || 0;
             totals.totalEarnings += breakdown.totalEarnings || 0;
             totals.workingDays += breakdown.workingDays || 0;
         });
@@ -90,8 +102,8 @@ class AlternativePDFService {
         doc.rect(50, yPosition - 10, 500, 25).fillAndStroke('#007bff', '#007bff');
         doc.fillColor('white').fontSize(10).font('Helvetica-Bold');
         
-        const headers = ['Driver Name', 'Base Salary', 'OT Hours', 'OT Pay', 'Fuel', 'Deductions', 'Total'];
-        const columnWidths = [100, 70, 50, 70, 50, 70, 80];
+        const headers = ['Driver Name', 'Base Salary', 'OT Hours', 'OT Pay', 'Fuel', 'Deductions', 'Net Pay'];
+        const columnWidths = [90, 65, 45, 65, 45, 75, 75];
         let xPosition = 55;
         
         headers.forEach((header, i) => {
@@ -118,7 +130,7 @@ class AlternativePDFService {
                 (breakdown.overtimeHours || 0).toFixed(1),
                 this.formatCurrency(breakdown.overtimePay || 0),
                 this.formatCurrency(breakdown.fuelAllowance || 0),
-                this.formatCurrency(breakdown.leaveDeduction || 0),
+                this.formatCurrency(breakdown.totalDeductions || 0),
                 this.formatCurrency(breakdown.totalEarnings || 0)
             ];
             
@@ -154,7 +166,7 @@ class AlternativePDFService {
             totals.overtimeHours.toFixed(1),
             this.formatCurrency(totals.overtimePay),
             this.formatCurrency(totals.fuelAllowance),
-            this.formatCurrency(totals.leaveDeduction),
+            this.formatCurrency(totals.totalDeductions),
             this.formatCurrency(totals.totalEarnings)
         ];
         

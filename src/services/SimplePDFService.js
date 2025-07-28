@@ -15,7 +15,13 @@ class SimplePDFService {
             overtimeHours: 0,
             overtimePay: 0,
             fuelAllowance: 0,
+            grossEarnings: 0,
             leaveDeduction: 0,
+            pfDeduction: 0,
+            esiDeduction: 0,
+            taxDeduction: 0,
+            advanceDeduction: 0,
+            totalDeductions: 0,
             totalEarnings: 0,
             workingDays: 0
         };
@@ -26,7 +32,13 @@ class SimplePDFService {
             totals.overtimeHours += breakdown.overtimeHours || 0;
             totals.overtimePay += breakdown.overtimePay || 0;
             totals.fuelAllowance += breakdown.fuelAllowance || 0;
+            totals.grossEarnings += breakdown.grossEarnings || 0;
             totals.leaveDeduction += breakdown.leaveDeduction || 0;
+            totals.pfDeduction += breakdown.pfDeduction || 0;
+            totals.esiDeduction += breakdown.esiDeduction || 0;
+            totals.taxDeduction += breakdown.taxDeduction || 0;
+            totals.advanceDeduction += breakdown.advanceDeduction || 0;
+            totals.totalDeductions += breakdown.totalDeductions || 0;
             totals.totalEarnings += breakdown.totalEarnings || 0;
             totals.workingDays += breakdown.workingDays || 0;
             
@@ -37,7 +49,7 @@ class SimplePDFService {
                     <td style="text-align: center;">${(breakdown.overtimeHours || 0).toFixed(1)}</td>
                     <td class="currency">${this.formatCurrency(breakdown.overtimePay || 0)}</td>
                     <td class="currency">${this.formatCurrency(breakdown.fuelAllowance || 0)}</td>
-                    <td class="currency">${this.formatCurrency(breakdown.leaveDeduction || 0)}</td>
+                    <td class="currency">${this.formatCurrency(breakdown.totalDeductions || 0)}</td>
                     <td class="currency total-cell">${this.formatCurrency(breakdown.totalEarnings || 0)}</td>
                 </tr>
             `;
@@ -221,6 +233,10 @@ class SimplePDFService {
                 <div class="stat-value">${this.formatCurrency(totals.fuelAllowance)}</div>
                 <div class="stat-label">Fuel Allowance</div>
             </div>
+            <div class="stat-item">
+                <div class="stat-value">${this.formatCurrency(totals.totalDeductions)}</div>
+                <div class="stat-label">Total Deductions</div>
+            </div>
         </div>
     </div>
     
@@ -232,8 +248,8 @@ class SimplePDFService {
                 <th>Overtime Hours</th>
                 <th>Overtime Pay</th>
                 <th>Fuel Allowance</th>
-                <th>Leave Deduction</th>
-                <th>Total Earnings</th>
+                <th>Total Deductions</th>
+                <th>Net Pay</th>
             </tr>
         </thead>
         <tbody>
@@ -244,11 +260,53 @@ class SimplePDFService {
                 <td style="text-align: center;"><strong>${totals.overtimeHours.toFixed(1)}</strong></td>
                 <td class="currency"><strong>${this.formatCurrency(totals.overtimePay)}</strong></td>
                 <td class="currency"><strong>${this.formatCurrency(totals.fuelAllowance)}</strong></td>
-                <td class="currency"><strong>${this.formatCurrency(totals.leaveDeduction)}</strong></td>
+                <td class="currency"><strong>${this.formatCurrency(totals.totalDeductions)}</strong></td>
                 <td class="currency total-cell"><strong>${this.formatCurrency(totals.totalEarnings)}</strong></td>
             </tr>
         </tbody>
     </table>
+    
+    <div class="deductions-section" style="margin-top: 30px;">
+        <h3 style="text-align: center; color: #333; margin-bottom: 20px;">Deductions Breakdown</h3>
+        <table style="font-size: 12px;">
+            <thead>
+                <tr>
+                    <th>Driver Name</th>
+                    <th>Leave Deduction</th>
+                    <th>PF (12%)</th>
+                    <th>ESI (0.75%)</th>
+                    <th>Tax (5%)</th>
+                    <th>Advance Payments</th>
+                    <th>Total Deductions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${payrollData.map(driver => {
+                    const b = driver.breakdown;
+                    return `
+                        <tr>
+                            <td style="font-weight: bold;">${driver.driverName}</td>
+                            <td class="currency">${this.formatCurrency(b.leaveDeduction || 0)}</td>
+                            <td class="currency">${this.formatCurrency(b.pfDeduction || 0)}</td>
+                            <td class="currency">${this.formatCurrency(b.esiDeduction || 0)}</td>
+                            <td class="currency">${this.formatCurrency(b.taxDeduction || 0)}</td>
+                            <td class="currency">${this.formatCurrency(b.advanceDeduction || 0)}</td>
+                            <td class="currency"><strong>${this.formatCurrency(b.totalDeductions || 0)}</strong></td>
+                        </tr>
+                    `;
+                }).join('')}
+                <tr class="total-row">
+                    <td><strong>TOTAL</strong></td>
+                    <td class="currency"><strong>${this.formatCurrency(totals.leaveDeduction || 0)}</strong></td>
+                    <td class="currency"><strong>${this.formatCurrency(totals.pfDeduction || 0)}</strong></td>
+                    <td class="currency"><strong>${this.formatCurrency(totals.esiDeduction || 0)}</strong></td>
+                    <td class="currency"><strong>${this.formatCurrency(totals.taxDeduction || 0)}</strong></td>
+                    <td class="currency"><strong>${this.formatCurrency(totals.advanceDeduction || 0)}</strong></td>
+                    <td class="currency total-cell"><strong>${this.formatCurrency(totals.totalDeductions)}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
     
     <div class="footer">
         <p><strong>Driver Log Payment System | Confidential Document</strong></p>

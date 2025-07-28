@@ -49,31 +49,117 @@ async function calculateBulkPayroll(year, month) {
                     });
                 });
                 
-                const payrollData = drivers.map(driver => {
+                // Get advance payments for all drivers for this month
+                const getAdvancePayments = (driverId) => {
+                    return new Promise((resolve, reject) => {
+                        const advanceQuery = `
+                            SELECT 
+                                id, approved_amount, request_date, status,
+                                settled_against_payroll_month, settlement_amount
+                            FROM advance_payments 
+                            WHERE driver_id = ? 
+                            AND status IN ('approved', 'paid') 
+                            AND (settled_against_payroll_month IS NULL OR settled_against_payroll_month = ?)
+                            ORDER BY request_date ASC
+                        `;
+                        const payrollMonth = `${year}-${month.toString().padStart(2, '0')}`;
+                        
+                        dbConnection.all(advanceQuery, [driverId, payrollMonth], (err, rows) => {
+                            if (err) reject(err);
+                            else resolve(rows || []);
+                        });
+                    });
+                };
+
+                const payrollData = await Promise.all(drivers.map(async driver => {
                     const workingDays = driver.workingDays || 0;
                     const totalHours = (driver.totalMinutes || 0) / 60;
                     const regularHours = Math.min(totalHours, workingDays * 8);
                     const overtimeHours = Math.max(0, totalHours - regularHours);
                     
-                    // FIX: Use full monthly salary instead of prorated
-                    const baseSalary = config.monthly_salary || 27000;
-                    const overtimePay = overtimeHours * config.overtime_rate;
-                    const fuelAllowance = workingDays * config.fuel_allowance;
-                    const totalEarnings = baseSalary + overtimePay + fuelAllowance;
+                    // Calculate base salary (full monthly if worked 20+ days, otherwise prorated)
+                    const daysInMonth = new Date(year, month, 0).getDate();
+                    const minimumDaysForFullSalary = 20;
+                    const baseSalary = workingDays >= minimumDaysForFullSalary ? 
+                        (config.monthly_salary || 27000) : 
+                        ((config.monthly_salary || 27000) * (workingDays / daysInMonth));
+                    
+                    const overtimePay = overtimeHours * (config.overtime_rate || 110);
+                    const fuelAllowance = workingDays * (config.fuel_allowance || 15);
+                    
+                    // Calculate deductions
+                    const grossEarnings = baseSalary + overtimePay + fuelAllowance;
+                    
+                    // Leave deduction for unpaid leaves (if worked less than expected days)
+                    const expectedWorkingDays = Math.min(daysInMonth, 30); // Max 30 working days
+                    const unpaidLeaveDays = Math.max(0, expectedWorkingDays - workingDays - 4); // Allow 4 weekly offs
+                    const leaveDeduction = unpaidLeaveDays > 0 ? 
+                        ((config.monthly_salary || 27000) / expectedWorkingDays) * unpaidLeaveDays : 0;
+                    
+                    // Get advance payments for this driver
+                    const advancePayments = await getAdvancePayments(driver.driverId);
+                    const advanceDeduction = advancePayments.reduce((sum, advance) => {
+                        // Only deduct if not already settled
+                        if (!advance.settled_against_payroll_month) {
+                            return sum + (advance.approved_amount || 0);
+                        }
+                        return sum;
+                    }, 0);
+                    
+                    // Standard deductions (PF: 12%, ESI: 0.75% if salary < 25000, Tax: 5% if salary > 20000)
+                    const pfDeduction = grossEarnings * 0.12; // 12% PF
+                    const esiDeduction = grossEarnings < 25000 ? grossEarnings * 0.0075 : 0; // 0.75% ESI if under 25k
+                    const taxDeduction = grossEarnings > 20000 ? grossEarnings * 0.05 : 0; // 5% tax if over 20k
+                    
+                    const totalDeductions = leaveDeduction + pfDeduction + esiDeduction + taxDeduction + advanceDeduction;
+                    const totalEarnings = grossEarnings - totalDeductions;
                     
                     return {
                         driverName: driver.driverName,
                         breakdown: {
-                            baseSalary: baseSalary,
-                            overtimeHours: overtimeHours,
-                            overtimePay: overtimePay,
-                            fuelAllowance: fuelAllowance,
-                            leaveDeduction: 0,
-                            totalEarnings: totalEarnings,
+                            baseSalary: Math.round(baseSalary * 100) / 100,
+                            overtimeHours: Math.round(overtimeHours * 100) / 100,
+                            overtimePay: Math.round(overtimePay * 100) / 100,
+                            fuelAllowance: Math.round(fuelAllowance * 100) / 100,
+                            grossEarnings: Math.round(grossEarnings * 100) / 100,
+                            leaveDeduction: Math.round(leaveDeduction * 100) / 100,
+                            pfDeduction: Math.round(pfDeduction * 100) / 100,
+                            esiDeduction: Math.round(esiDeduction * 100) / 100,
+                            taxDeduction: Math.round(taxDeduction * 100) / 100,
+                            advanceDeduction: Math.round(advanceDeduction * 100) / 100,
+                            totalDeductions: Math.round(totalDeductions * 100) / 100,
+                            totalEarnings: Math.round(totalEarnings * 100) / 100,
                             workingDays: workingDays
                         }
                     };
-                });
+                }));
+                
+                // Mark advance payments as settled against this payroll period
+                const payrollMonth = `${year}-${month.toString().padStart(2, '0')}`;
+                for (const driver of payrollData) {
+                    if (driver.breakdown.advanceDeduction > 0) {
+                        const settleQuery = `
+                            UPDATE advance_payments 
+                            SET settled_against_payroll_month = ?,
+                                settled_at = CURRENT_TIMESTAMP,
+                                settlement_amount = approved_amount,
+                                status = 'settled'
+                            WHERE driver_id IN (
+                                SELECT id FROM drivers WHERE name = ?
+                            ) 
+                            AND status IN ('approved', 'paid')
+                            AND settled_against_payroll_month IS NULL
+                        `;
+                        
+                        dbConnection.run(settleQuery, [payrollMonth, driver.driverName], (err) => {
+                            if (err) {
+                                console.error(`[PDF Export] Error settling advances for ${driver.driverName}:`, err);
+                            } else {
+                                console.log(`[PDF Export] Settled ₹${driver.breakdown.advanceDeduction} advance for ${driver.driverName}`);
+                            }
+                        });
+                    }
+                }
                 
                 resolve(payrollData);
             } catch (error) {
