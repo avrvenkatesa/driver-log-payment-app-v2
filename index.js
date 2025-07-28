@@ -179,11 +179,6 @@ try {
   app.use('/api/admin', testDataRoutes);
   log('✅ Test data management routes registered at /api/admin');
   
-  // Test Data Management routes (Story 20: Test Data Management) - will be added later
-  // const testDataRoutes = require('./src/routes/testDataRoutes.js');
-  // app.use('/api/admin', testDataRoutes);
-  // log('✅ Test data management routes registered at /api/admin');
-  
   // Advance Payment routes (Story 19: Advance Payment Management)
   const advancePaymentRoutes = require('./src/routes/advancePaymentRoutes.js');
   app.use('/api/driver', advancePaymentRoutes);

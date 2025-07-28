@@ -5,7 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 // Database connection
-const dbPath = path.join(process.cwd(), 'company.db');
+const dbPath = path.join(process.cwd(), 'database/driver_logs.db');
 
 // Helper function to ensure test data tables exist
 async function createTestDataTablesIfNotExist(db) {
